@@ -11,9 +11,10 @@
     "esModuleInterop": true,
     "lib": ["ESNext", "DOM"],
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["element-plus/global"]
   },
-  "include": ["src"],
+  "include": ["src", "electron/domain/Shortcuts.ts", "electron/domain/command", "electron/domain/Command.ts"],
   "references": [
     { "path": "./tsconfig.node.json" }
   ]

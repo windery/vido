@@ -3,7 +3,7 @@
   "version": "28.1.0",
   "main": "dist-electron/main/index.js",
   "description": "Really simple Electron + Vue + Vite boilerplate.",
-  "author": "草鞋没号 <308487730@qq.com>",
+  "author": "windery <res.windery@gmail.com>",
   "license": "MIT",
   "private": true,
   "keywords": [
@@ -24,15 +24,27 @@
     "build": "vue-tsc --noEmit && vite build && electron-builder",
     "preview": "vite preview"
   },
+  "dependencies": {
+    "electron": "^29.4.5",
+    "element-plus": "^2.7.7",
+    "vue": "^3.4.21"
+  },
   "devDependencies": {
+    "@eslint/js": "^9.7.0",
+    "@nabla/vite-plugin-eslint": "^2.0.4",
     "@vitejs/plugin-vue": "^5.0.4",
-    "electron": "^29.1.1",
+    "@vue/devtools": "^6.6.3",
     "electron-builder": "^24.13.3",
-    "typescript": "^5.4.2",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-vue": "^9.27.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.3",
+    "unplugin-auto-import": "^0.18.0",
+    "unplugin-vue-components": "^0.27.3",
     "vite": "^5.1.5",
     "vite-plugin-electron": "^0.28.4",
     "vite-plugin-electron-renderer": "^0.14.5",
-    "vue": "^3.4.21",
     "vue-tsc": "^2.0.6"
   }
 }
