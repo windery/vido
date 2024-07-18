@@ -1,9 +1,11 @@
 import eslint from '@eslint/js';
-import tseslint from 'typescript-eslint';
 import pluginVue from 'eslint-plugin-vue';
+// import eslintConfigPrettier from "eslint-config-prettier";
 
-export default tseslint.config(
+export default [
   eslint.configs.recommended,
-  ...tseslint.configs.recommended,
-  ...pluginVue.configs['flat/recommended']
-);
+  // ...pluginVue.configs['flat/recommend'],
+  ...pluginVue.configs['flat/essential'],
+  ...pluginVue.configs['flat/strongly-recommended'],
+  // eslintConfigPrettier
+];
