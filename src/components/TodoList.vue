@@ -21,6 +21,7 @@ const tasks = ref([
     <el-table v-for="task in tasks" :key="task.id">
       <el-table-column>
         <template #default="{ row }">
+
           <span>{{ row.id }}</span>
         </template>
       </el-table-column>
