@@ -14,7 +14,7 @@
     "noEmit": true,
     "types": ["element-plus/global"]
   },
-  "include": ["src"],
+  "include": ["src", "electron/domain/Shortcuts.ts"],
   "references": [
     { "path": "./tsconfig.node.json" }
   ]

@@ -16,7 +16,3 @@ const app = createApp(App)
   .$nextTick(() => {
     postMessage({ payload: 'removeLoading' }, '*');
   });
-
-if (process.env.NODE_ENV === 'development') {
-  devtools.connect('127.0.0.1', 8098);
-}
