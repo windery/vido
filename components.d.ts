@@ -10,6 +10,8 @@ declare module 'vue' {
     ElButton: typeof import('element-plus/es')['ElButton']
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
+    ElText: typeof import('element-plus/es')['ElText']
+    ModeDebug: typeof import('./src/components/ModeDebug.vue')['default']
     TodoList: typeof import('./src/components/TodoList.vue')['default']
   }
 }

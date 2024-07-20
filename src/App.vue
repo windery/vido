@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import ModeDebug from "./components/ModeDebug.vue";
 import TodoList from "./components/TodoList.vue";
 </script>
 
 <template>
-  <TodoList msg="Electron + Vite + Vue" />
+  <div class="app">
+    <ModeDebug />
+    <TodoList />
+  </div>
 </template>
 
 <style>
@@ -13,22 +17,14 @@ import TodoList from "./components/TodoList.vue";
   justify-content: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-
-.logo.electron:hover {
-  filter: drop-shadow(0 0 2em #9feaf9);
-}
-
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
+.app {
+  height: 100vh;
+  /* 视口高度 */
+  width: 100vw;
+  /* 视口宽度 */
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  /* 防止滚动条 */
 }
 </style>

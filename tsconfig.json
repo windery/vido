@@ -9,13 +9,25 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "esModuleInterop": true,
-    "lib": ["ESNext", "DOM"],
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["element-plus/global"]
+    "types": [
+      "element-plus/global"
+    ]
   },
-  "include": ["src", "electron/domain/Shortcuts.ts", "electron/domain/command", "electron/domain/Command.ts"],
+  "include": [
+    "src",
+    "electron/domain/Shortcuts.ts",
+    "electron/domain/command",
+    "electron/domain/Command.ts"
+  ],
   "references": [
-    { "path": "./tsconfig.node.json" }
+    {
+      "path": "./tsconfig.node.json"
+    }
   ]
 }
