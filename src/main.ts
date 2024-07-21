@@ -14,7 +14,7 @@ import piniaLogger from './store/piniaLogger';
 const pinia = createPinia();
 pinia.use(piniaLogger);
 
-const app = createApp(App)
+createApp(App)
   .use(ElementPlus)
   .use(pinia)
   .mount('#app')
