@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import shortcut from '../Shortcuts';
+import shortcut from '../shortcuts';
 
 class QuitCommand implements Command {
   name: string;

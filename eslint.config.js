@@ -3,6 +3,11 @@ import pluginVue from 'eslint-plugin-vue';
 import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default [
+  eslint.configs.recommended,
+  ...pluginVue.configs['flat/base'],
+  ...pluginVue.configs['flat/essential'],
+  ...pluginVue.configs['flat/recommended'],
+  eslintConfigPrettier,
   {
     ignores: [
       'node_modules/**',
@@ -13,9 +18,4 @@ export default [
       'release',
     ],
   },
-  eslint.configs.recommended,
-  // ...pluginVue.configs['flat/recommend'],
-  ...pluginVue.configs['flat/essential'],
-  ...pluginVue.configs['flat/strongly-recommended'],
-  eslintConfigPrettier,
 ];

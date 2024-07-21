@@ -1,5 +1,5 @@
 export enum EditorMode {
-  COMMAND,
-  EDIT,
-  LAST_LINE,
+  COMMAND = 0,
+  EDIT = 1,
+  LAST_LINE = 2,
 }

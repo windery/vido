@@ -21,7 +21,7 @@
   },
   "include": [
     "src",
-    "electron/domain/Shortcuts.ts",
+    "electron/domain/shortcuts.ts",
     "electron/domain/command",
     "electron/domain/Command.ts"
   ],
