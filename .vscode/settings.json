@@ -1,13 +1,5 @@
 {
   "editor.formatOnSave": true,
-  "eslint.validate": [
-    "javascript",
-    "typescript",
-    "vue"
-  ],
-  "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "always"
-  },
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.tsc.autoDetect": "off",
   "json.schemas": [
