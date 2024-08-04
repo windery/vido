@@ -1,5 +1,6 @@
 <template>
-  <el-table class="task-table" :data="tasks" :row-class-name="rowClassName" @row-click="handleRowClick">
+  <el-table class="task-table" :data="tasks" :row-class-name="rowClassName" @row-click="handleRowClick"
+    header-row-style="display:none">
     <el-table-column label="Completed" prop="completed">
       <template #default="{ row }">
         <el-checkbox v-model="row.completed"></el-checkbox>
@@ -28,9 +29,9 @@ const handleRowClick = (row: any, column: any, event: Event) => {
 
 <style>
 .task-table {
+  margin-top: 50px;
   width: 100%;
   height: 100%;
-  margin-top: 20px;
 }
 
 .el-table__row.selected-row {

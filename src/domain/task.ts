@@ -6,6 +6,7 @@ export class Task {
   content: string;
   completed?: boolean;
   selected?: boolean;
+  status?: TaskState;
   remind?: TaskRemind;
 
   constructor() {
@@ -13,6 +14,7 @@ export class Task {
     this.title = '';
     this.content = '';
     this.selected = false;
+    this.status = TaskState.NORMAL;
   }
 }
 
@@ -25,4 +27,10 @@ export class TaskRemind {
     this.date = date;
     this.repeat = repeat;
   }
+}
+
+export enum TaskState {
+  NORMAL,
+  SELECTED,
+  EDITING,
 }

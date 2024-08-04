@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { Task } from '../domain/task';
+import { Task, TaskState } from '../domain/task';
 
 export const taskStore = defineStore('tasks', {
   state: () => ({
@@ -28,6 +28,17 @@ export const taskStore = defineStore('tasks', {
         },
         selected: false,
       },
+      {
+        id: 3,
+        title: 'Task 3',
+        content: 'Content 3',
+        completed: false,
+        remind: {
+          date: new Date(),
+          repeat: false,
+        },
+        selected: false,
+      },
     ] as Task[],
     filteredTasks: [] as Task[],
   }),
@@ -47,33 +58,75 @@ export const taskStore = defineStore('tasks', {
       });
     },
     selectNext() {
+      let nextTask: Task | undefined;
       let found = false;
-      this.tasks.forEach((task, index) => {
-        if (task.selected) {
-          if (index < this.tasks.length - 1) {
+      if (this.tasks.length > 0) {
+        this.tasks.forEach((task, index) => {
+          if (task.selected && !found) {
             task.selected = false;
-            this.tasks[index + 1].selected = true;
-            found = true;
+            task.status = TaskState.NORMAL;
+            if (index < this.tasks.length - 1) {
+              nextTask = this.tasks[index + 1];
+              found = true;
+            } else {
+              nextTask = this.tasks[0];
+              found = true;
+            }
+            if (nextTask) {
+              nextTask.selected = true;
+              nextTask.status = TaskState.SELECTED;
+            }
           }
+        });
+        if (!found) {
+          this.tasks[0].selected = true;
         }
-      });
-      if (!found && this.tasks.length > 0) {
-        this.tasks[0].selected = true;
       }
     },
     selectPrevious() {
       let found = false;
-      this.tasks.forEach((task, index) => {
-        if (task.selected) {
-          if (index > 0) {
+      let previousTask: Task | undefined; // Initialize previousTask to undefined
+
+      if (this.tasks.length > 0) {
+        this.tasks.forEach((task, index) => {
+          if (task.selected && !found) {
             task.selected = false;
-            this.tasks[index - 1].selected = true;
-            found = true;
+            task.status = TaskState.NORMAL;
+            if (index > 0) {
+              previousTask = this.tasks[index - 1];
+              found = true;
+            } else if (index == 0) {
+              previousTask = this.tasks[this.tasks.length - 1];
+              found = true;
+            }
+            if (previousTask) {
+              console.log('previousTask', previousTask);
+              previousTask.selected = true;
+              previousTask.status = TaskState.SELECTED;
+            } else {
+              console.log('previousTask is undefined');
+            }
           }
+        });
+        if (!found) {
+          this.tasks[0].selected = true;
         }
+      }
+    },
+    getSelectedTask() {
+      return this.tasks.find((task) => task.selected);
+    },
+    startEditing() {
+      this.tasks.forEach((task) => {
+        task.status = TaskState.NORMAL;
       });
-      if (!found && this.tasks.length > 0) {
-        this.tasks[0].selected = true;
+      const selectedTask = this.getSelectedTask();
+      console.log('selectedTask', selectedTask);
+      if (selectedTask) {
+        console.log(
+          `task ${selectedTask.id} - ${selectedTask.title} start editing`
+        );
+        selectedTask.status = TaskState.EDITING;
       }
     },
   },

@@ -5,8 +5,12 @@ import TodoList from "./components/TodoList.vue";
 
 <template>
   <div class="app">
-    <ModeDebug />
-    <TodoList />
+    <el-row>
+      <ModeDebug />
+    </el-row>
+    <el-row>
+      <TodoList />
+    </el-row>
   </div>
 </template>
 
