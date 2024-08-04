@@ -1,5 +1,5 @@
 <template>
-  <el-table class="task-table" :data="tasks" :row-class-name="rowClassName">
+  <el-table class="task-table" :data="tasks" :row-class-name="rowClassName" @row-click="handleRowClick">
     <el-table-column label="Completed" prop="completed">
       <template #default="{ row }">
         <el-checkbox v-model="row.completed"></el-checkbox>
@@ -11,17 +11,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
 import { taskStore } from '../store/task';
 
-const tasks = ref(taskStore().tasks);
+const { tasks, selectTask } = taskStore();
 
-const rowClassName = (row: { row: any, rowIndex: any }) => {
-  console.log('row', row);
-  if (row.rowIndex == 0) {
-    console.log('black-row');
-    return 'black-row';
-  }
+const rowClassName = (row: { row: any, rowIndex: number }) => {
+  return row.row.selected ? 'selected-row' : '';
+};
+
+const handleRowClick = (row: any, column: any, event: Event) => {
+  console.log('Row clicked:', row);
+  selectTask(row.id);
 };
 
 </script>
@@ -33,7 +33,7 @@ const rowClassName = (row: { row: any, rowIndex: any }) => {
   margin-top: 20px;
 }
 
-.black-row {
-  background-color: #874c4c;
+.el-table__row.selected-row {
+  background-color: #E3F2FD !important;
 }
 </style>

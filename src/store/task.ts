@@ -26,7 +26,7 @@ export const taskStore = defineStore('tasks', {
           date: new Date(),
           repeat: false,
         },
-        selected: true,
+        selected: false,
       },
     ] as Task[],
     filteredTasks: [] as Task[],
@@ -40,6 +40,41 @@ export const taskStore = defineStore('tasks', {
     },
     removeTask(taskId: number) {
       this.tasks = this.tasks.filter((task) => task.id !== taskId);
+    },
+    selectTask(taskId: number) {
+      this.tasks.forEach((task) => {
+        task.selected = task.id === taskId;
+      });
+    },
+    selectNext() {
+      let found = false;
+      this.tasks.forEach((task, index) => {
+        if (task.selected) {
+          if (index < this.tasks.length - 1) {
+            task.selected = false;
+            this.tasks[index + 1].selected = true;
+            found = true;
+          }
+        }
+      });
+      if (!found && this.tasks.length > 0) {
+        this.tasks[0].selected = true;
+      }
+    },
+    selectPrevious() {
+      let found = false;
+      this.tasks.forEach((task, index) => {
+        if (task.selected) {
+          if (index > 0) {
+            task.selected = false;
+            this.tasks[index - 1].selected = true;
+            found = true;
+          }
+        }
+      });
+      if (!found && this.tasks.length > 0) {
+        this.tasks[0].selected = true;
+      }
     },
   },
 });
