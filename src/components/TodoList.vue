@@ -13,26 +13,27 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { taskStore } from '../store/task';
-import { Task } from '../domain/task';
 
 const tasks = ref(taskStore().tasks);
 
-// 定义 rowClassName 函数并直接使用它
-const rowClassName = (row: { row: Task }): string => {
-  console.log('rowClassName task: ', row.row);
-  return row.row.completed ? 'completed-row' : '';
+const rowClassName = (row: { row: any, rowIndex: any }) => {
+  console.log('row', row);
+  if (row.rowIndex == 0) {
+    console.log('black-row');
+    return 'black-row';
+  }
 };
+
 </script>
 
-<style scoped>
+<style>
 .task-table {
   width: 100%;
   height: 100%;
   margin-top: 20px;
 }
 
-.completed-row {
-  background-color: #faf5f5 !important;
-  /* 这里添加你的样式 */
+.black-row {
+  background-color: #874c4c;
 }
 </style>
