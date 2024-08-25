@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import ModeDebug from "./components/ModeDebug.vue";
 import TodoList from "./components/TodoList.vue";
+import LastLine from "./components/LastLine.vue";
 </script>
 
 <template>
   <div class="app">
+    <el-row>
+      <LastLine />
+    </el-row>
     <el-row>
       <ModeDebug />
     </el-row>
@@ -22,9 +26,9 @@ import TodoList from "./components/TodoList.vue";
 }
 
 .app {
-  height: 100vh;
+  height: 100%;
   /* 视口高度 */
-  width: 100vw;
+  width: 100%;
   /* 视口宽度 */
   margin: 0;
   padding: 0;

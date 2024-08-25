@@ -1,5 +1,5 @@
 <template>
-  <el-table class="task-table" :data="tasks" :row-class-name="rowClassName" @row-click="handleRowClick"
+  <el-table class="task-table" :data="filteredTasks" :row-class-name="rowClassName" @row-click="handleRowClick"
     header-row-style="display:none">
     <el-table-column label="Completed" prop="completed">
       <template #default="{ row }">
@@ -14,14 +14,14 @@
 <script setup lang="ts">
 import { taskStore } from '../store/task';
 
-const { tasks, selectTask } = taskStore();
+const { filteredTasks, selectTask } = taskStore();
 
 const rowClassName = (row: { row: any, rowIndex: number }) => {
   return row.row.selected ? 'selected-row' : '';
 };
 
 const handleRowClick = (row: any, column: any, event: Event) => {
-  console.log('Row clicked:', row);
+  console.log('Row clicked:', row, column, event);
   selectTask(row.id);
 };
 

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { Task, TaskState } from '../domain/task';
+import { lastlineStone } from './lastline';
 
 export const taskStore = defineStore('tasks', {
   state: () => ({
@@ -40,8 +41,19 @@ export const taskStore = defineStore('tasks', {
         selected: false,
       },
     ] as Task[],
-    filteredTasks: [] as Task[],
   }),
+  getters: {
+    // 计算属性，返回已完成的任务
+    filteredTasks: (state) => {
+      const filter = lastlineStone().content;
+      if (!filter || filter === '') {
+        return state.tasks;
+      }
+      return state.tasks.filter(
+        (task) => task.title.includes(filter) || task.content.includes(filter)
+      );
+    },
+  },
   actions: {
     genId() {
       return this.maxId++;
@@ -127,6 +139,13 @@ export const taskStore = defineStore('tasks', {
           `task ${selectedTask.id} - ${selectedTask.title} start editing`
         );
         selectedTask.status = TaskState.EDITING;
+      }
+    },
+    triggerSelectedCompletion() {
+      const selectedTask = this.getSelectedTask();
+      if (selectedTask) {
+        console.log(`change task ${selectedTask.id} completion`);
+        selectedTask.completed = !selectedTask.completed;
       }
     },
   },

@@ -1,15 +1,37 @@
 import { EditorMode } from './domain/editor';
 import { editorStore } from './store/editor';
+import { lastlineStone } from './store/lastline';
 import { taskStore } from './store/task';
 
 window.addEventListener('keydown', (event) => {
+  const lastline = lastlineStone();
   console.log(`Key pressed: ${event.key}`);
-  const mode = editorStore().mode;
-  if (mode === EditorMode.COMMAND) {
+  const editor = editorStore();
+  const tasks = taskStore();
+  if (editor.mode === EditorMode.COMMAND) {
+    // command
     if (event.key === 'k') {
-      taskStore().selectPrevious();
+      tasks.selectPrevious();
     } else if (event.key === 'j') {
-      taskStore().selectNext();
+      tasks.selectNext();
+    } else if (event.key === 'i') {
+      tasks.startEditing();
+    } else if (event.key === '/') {
+      lastline.show();
+      editor.changeMode(EditorMode.LAST_LINE);
+    } else if (event.key === 'Escape') {
+      lastline.hide();
+    } else if (event.key === ' ') {
+      tasks.triggerSelectedCompletion();
+    }
+  } else if (editor.mode === EditorMode.LAST_LINE) {
+    // last line
+    if (event.key === 'Escape') {
+      editor.changeMode(EditorMode.COMMAND);
+      lastline.hide();
+    } else if (event.key === 'Enter') {
+      lastline.search();
+      editor.changeMode(EditorMode.COMMAND);
     }
   }
 });
