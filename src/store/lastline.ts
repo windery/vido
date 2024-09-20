@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 
-export const lastlineStone = defineStore('lastline', {
+export const lastlineStore = defineStore('lastline', {
   state: () => ({
     mode: 'search',
     content: '',

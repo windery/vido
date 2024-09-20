@@ -2,6 +2,12 @@
 import ModeDebug from "./components/ModeDebug.vue";
 import TodoList from "./components/TodoList.vue";
 import LastLine from "./components/LastLine.vue";
+
+import { onMounted } from "vue";
+onMounted(() => {
+  // 页面加载时检查是否已有深色模式设置
+  document.body.classList.add('dark');
+});
 </script>
 
 <template>

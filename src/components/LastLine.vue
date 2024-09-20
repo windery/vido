@@ -7,9 +7,9 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch, nextTick } from 'vue';
-import { lastlineStone } from '../store/lastline';
+import { lastlineStore } from '../store/lastline';
 
-const lastline = lastlineStone();
+const lastline = lastlineStore();
 const inputRef = ref<any>(null);
 
 onMounted(() => {

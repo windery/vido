@@ -17,9 +17,9 @@ const { mode: editorMode } = editorStore()
   position: fixed;
   top: 10px;
   right: 10px;
-  background-color: rgba(133, 120, 120, 0.200);
+  /* background-color: rgba(133, 120, 120, 0.200); */
   /* 浅色背景，带有透明度 */
-  color: #333;
+  /* color: #333; */
   /* 深色文字 */
   padding: 2px 5px;
   border-radius: 8px;

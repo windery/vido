@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { Task, TaskState } from '../domain/task';
-import { lastlineStone } from './lastline';
+import { lastlineStore } from './lastline';
 
 export const taskStore = defineStore('tasks', {
   state: () => ({
@@ -17,6 +17,7 @@ export const taskStore = defineStore('tasks', {
           repeat: false,
         },
         selected: false,
+        status: TaskState.NORMAL,
       },
       {
         id: 2,
@@ -28,6 +29,7 @@ export const taskStore = defineStore('tasks', {
           repeat: false,
         },
         selected: false,
+        status: TaskState.NORMAL,
       },
       {
         id: 3,
@@ -39,19 +41,31 @@ export const taskStore = defineStore('tasks', {
           repeat: false,
         },
         selected: false,
+        status: TaskState.NORMAL,
       },
     ] as Task[],
+    NON_EXIST_TASK: {} as Task,
   }),
   getters: {
     // 计算属性，返回已完成的任务
     filteredTasks: (state) => {
-      const filter = lastlineStone().content;
+      const filter = lastlineStore().content;
       if (!filter || filter === '') {
         return state.tasks;
       }
       return state.tasks.filter(
         (task) => task.title.includes(filter) || task.content.includes(filter)
       );
+    },
+    selectedTask: (state): Task => {
+      const selected = state.tasks.find((task) => task.selected);
+      if (selected) {
+        console.log(`selectedTask is ${selected.id} - ${selected.title}`);
+        return selected;
+      } else {
+        console.log(`selected task is none`);
+        return state.NON_EXIST_TASK;
+      }
     },
   },
   actions: {
@@ -87,11 +101,15 @@ export const taskStore = defineStore('tasks', {
             if (nextTask) {
               nextTask.selected = true;
               nextTask.status = TaskState.SELECTED;
+              console.log('nextTask', nextTask);
+            } else {
+              console.log('nextTask is undefined');
             }
           }
         });
         if (!found) {
           this.tasks[0].selected = true;
+          this.tasks[0].status = TaskState.SELECTED;
         }
       }
     },
@@ -122,27 +140,24 @@ export const taskStore = defineStore('tasks', {
         });
         if (!found) {
           this.tasks[0].selected = true;
+          this.tasks[0].status = TaskState.SELECTED;
         }
       }
-    },
-    getSelectedTask() {
-      return this.tasks.find((task) => task.selected);
     },
     startEditing() {
       this.tasks.forEach((task) => {
         task.status = TaskState.NORMAL;
       });
-      const selectedTask = this.getSelectedTask();
-      console.log('selectedTask', selectedTask);
-      if (selectedTask) {
+      console.log('selectedTask', this.selectedTask);
+      if (this.selectedTask) {
         console.log(
-          `task ${selectedTask.id} - ${selectedTask.title} start editing`
+          `task ${this.selectedTask.id} - ${this.selectedTask.title} start editing`
         );
-        selectedTask.status = TaskState.EDITING;
+        this.selectedTask.status = TaskState.EDITING;
       }
     },
     triggerSelectedCompletion() {
-      const selectedTask = this.getSelectedTask();
+      const selectedTask = this.selectedTask;
       if (selectedTask) {
         console.log(`change task ${selectedTask.id} completion`);
         selectedTask.completed = !selectedTask.completed;
