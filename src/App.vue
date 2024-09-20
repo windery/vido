@@ -1,9 +1,27 @@
 <script setup lang="ts">
+import ModeDebug from "./components/ModeDebug.vue";
 import TodoList from "./components/TodoList.vue";
+import LastLine from "./components/LastLine.vue";
+
+import { onMounted } from "vue";
+onMounted(() => {
+  // 页面加载时检查是否已有深色模式设置
+  document.body.classList.add('dark');
+});
 </script>
 
 <template>
-  <TodoList msg="Electron + Vite + Vue" />
+  <div class="app">
+    <el-row>
+      <LastLine />
+    </el-row>
+    <el-row>
+      <ModeDebug />
+    </el-row>
+    <el-row>
+      <TodoList />
+    </el-row>
+  </div>
 </template>
 
 <style>
@@ -13,22 +31,14 @@ import TodoList from "./components/TodoList.vue";
   justify-content: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-
-.logo.electron:hover {
-  filter: drop-shadow(0 0 2em #9feaf9);
-}
-
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
+.app {
+  height: 100%;
+  /* 视口高度 */
+  width: 100%;
+  /* 视口宽度 */
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  /* 防止滚动条 */
 }
 </style>

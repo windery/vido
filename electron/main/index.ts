@@ -1,10 +1,10 @@
 import { app, BrowserWindow, shell, ipcMain } from 'electron';
-import { createRequire } from 'node:module';
+// import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import os from 'node:os';
 
-const require = createRequire(import.meta.url);
+// const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // The built directory structure
@@ -46,6 +46,8 @@ async function createWindow() {
   win = new BrowserWindow({
     title: 'Vido',
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
+    width: 800,
+    height: 600,
     webPreferences: {
       preload,
       // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
