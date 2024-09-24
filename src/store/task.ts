@@ -5,7 +5,6 @@ import { lastlineStore } from './lastline';
 export const taskStore = defineStore('tasks', {
   state: () => ({
     maxId: 1,
-    // tasks: [] as Task[],
     tasks: [
       {
         id: 1,
@@ -17,7 +16,7 @@ export const taskStore = defineStore('tasks', {
           repeat: false,
         },
         selected: false,
-        status: TaskState.NORMAL,
+        status: TaskState.VIEWING,
       },
       {
         id: 2,
@@ -29,7 +28,7 @@ export const taskStore = defineStore('tasks', {
           repeat: false,
         },
         selected: false,
-        status: TaskState.NORMAL,
+        status: TaskState.VIEWING,
       },
       {
         id: 3,
@@ -41,7 +40,7 @@ export const taskStore = defineStore('tasks', {
           repeat: false,
         },
         selected: false,
-        status: TaskState.NORMAL,
+        status: TaskState.VIEWING,
       },
     ] as Task[],
     NON_EXIST_TASK: {} as Task,
@@ -90,7 +89,7 @@ export const taskStore = defineStore('tasks', {
         this.tasks.forEach((task, index) => {
           if (task.selected && !found) {
             task.selected = false;
-            task.status = TaskState.NORMAL;
+            task.status = TaskState.VIEWING;
             if (index < this.tasks.length - 1) {
               nextTask = this.tasks[index + 1];
               found = true;
@@ -121,7 +120,7 @@ export const taskStore = defineStore('tasks', {
         this.tasks.forEach((task, index) => {
           if (task.selected && !found) {
             task.selected = false;
-            task.status = TaskState.NORMAL;
+            task.status = TaskState.VIEWING;
             if (index > 0) {
               previousTask = this.tasks[index - 1];
               found = true;
@@ -146,14 +145,21 @@ export const taskStore = defineStore('tasks', {
     },
     startEditing() {
       this.tasks.forEach((task) => {
-        task.status = TaskState.NORMAL;
+        task.status = TaskState.VIEWING;
       });
-      console.log('selectedTask', this.selectedTask);
       if (this.selectedTask) {
         console.log(
           `task ${this.selectedTask.id} - ${this.selectedTask.title} start editing`
         );
         this.selectedTask.status = TaskState.EDITING;
+      }
+    },
+    stopEditing() {
+      if (this.selectedTask) {
+        console.log(
+          `task ${this.selectedTask.id} - ${this.selectedTask.title} stop editing`
+        );
+        this.selectedTask.status = TaskState.VIEWING;
       }
     },
     triggerSelectedCompletion() {

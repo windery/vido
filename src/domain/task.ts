@@ -14,7 +14,7 @@ export class Task {
     this.title = '';
     this.content = '';
     this.selected = false;
-    this.status = TaskState.NORMAL;
+    this.status = TaskState.VIEWING;
   }
 }
 
@@ -30,7 +30,7 @@ export class TaskRemind {
 }
 
 export enum TaskState {
-  NORMAL,
+  VIEWING,
   SELECTED,
   EDITING,
 }

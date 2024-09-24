@@ -1,25 +1,33 @@
 <template>
   <el-table ref="tableRef" class="task-table" :data="filteredTasks" @row-click="handleRowClick"
-    :header-row-style="{ display: 'none' }" highlight-current-row>
+    :header-row-style="{ display: 'none' }" highlight-current-row row-key="id" :expand-row-keys="expandRowKeys">
     <el-table-column label="Completed" prop="completed">
       <template #default="{ row }">
         <el-checkbox v-model="row.completed"></el-checkbox>
       </template>
     </el-table-column>
     <el-table-column label="Title" prop="title"> </el-table-column>
-    <el-table-column label="Content" prop="content"> </el-table-column>
+    <el-table-column type="expand">
+      <template #default="{ row: task }">
+        <el-input v-if="task.status === TaskState.EDITING" ref="contentEditRef" type="textarea"
+          v-model="task.content"></el-input>
+        <p v-else>{{ task.content }}</p>
+      </template>
+    </el-table-column>
   </el-table>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import { taskStore } from '../store/task';
 import { storeToRefs } from 'pinia';
+import { Task, TaskState } from '../domain/task';
 
 const { filteredTasks, selectedTask } = storeToRefs(taskStore());
 const selectTask = taskStore().selectTask;
 
 const tableRef = ref<InstanceType<typeof import('element-plus')['ElTable']> | null>(null);
+const contentEditRef = ref<InstanceType<typeof import('element-plus')['ElInput']> | null>(null);
 
 const handleRowClick = (row: any) => {
   console.log('Row clicked:', row);
@@ -32,13 +40,33 @@ const handleRowClick = (row: any) => {
   }
 };
 
+const expandRowKeys = ref<number[]>([]);
+const toggleRowExpansion = (task: Task) => {
+  const index = expandRowKeys.value.indexOf(task.id);
+  console.log(`toggleRowExpansion: task ${task.id} ${task.title} - ${index}`);
+  expandRowKeys.value.splice(0, 1);
+  expandRowKeys.value.push(task.id);
+  console.log('current expandRowKeys:', expandRowKeys.value);
+};
 
-watch(selectedTask, () => {
-  if (tableRef.value) {
-    console.log('task table set current row:', selectedTask.value.id);
-    tableRef.value.setCurrentRow(selectedTask.value);
-  } else {
-    console.warn('tableRef is null');
+watch(selectedTask, (newTask, oldTask) => {
+  if (oldTask.selected !== newTask.selected) {
+    console.log('selectedTask changed:', oldTask, newTask);
+    if (tableRef.value) {
+      console.log(`task table set current row: ${newTask.id} - ${newTask.title}`);
+      tableRef.value.setCurrentRow(newTask);
+      toggleRowExpansion(newTask);
+    } else {
+      console.error('task table tableRef is undefined');
+    }
+
+  }
+
+  if (newTask.status === TaskState.EDITING) {
+    console.log('focus on contentEditRef');
+    nextTick(() => {
+      contentEditRef?.value?.focus();
+    });
   }
 }, {
   deep: true,

@@ -11,13 +11,13 @@ declare module 'vue' {
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCheckbox: typeof import('element-plus/es')['ElCheckbox']
     ElInput: typeof import('element-plus/es')['ElInput']
+    ElLabel: typeof import('element-plus/es')['ElLabel']
     ElRow: typeof import('element-plus/es')['ElRow']
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
     ElText: typeof import('element-plus/es')['ElText']
     LastLine: typeof import('./src/components/LastLine.vue')['default']
     ModeDebug: typeof import('./src/components/ModeDebug.vue')['default']
-    ElText: typeof import('element-plus/es')['ElText']
     TodoList: typeof import('./src/components/TodoList.vue')['default']
   }
 }
