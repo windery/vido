@@ -59,10 +59,10 @@ export const taskStore = defineStore('tasks', {
     selectedTask: (state): Task => {
       const selected = state.tasks.find((task) => task.selected);
       if (selected) {
-        console.log(`selectedTask is ${selected.id} - ${selected.title}`);
+        console.debug(`selectedTask is ${selected.id} - ${selected.title}`);
         return selected;
       } else {
-        console.log(`selected task is none`);
+        console.debug(`selected task is none`);
         return state.NON_EXIST_TASK;
       }
     },
@@ -100,9 +100,9 @@ export const taskStore = defineStore('tasks', {
             if (nextTask) {
               nextTask.selected = true;
               nextTask.status = TaskState.SELECTED;
-              console.log('nextTask', nextTask);
+              console.debug('nextTask', nextTask);
             } else {
-              console.log('nextTask is undefined');
+              console.debug('nextTask is undefined');
             }
           }
         });
@@ -129,11 +129,11 @@ export const taskStore = defineStore('tasks', {
               found = true;
             }
             if (previousTask) {
-              console.log('previousTask', previousTask);
+              console.debug('previousTask', previousTask);
               previousTask.selected = true;
               previousTask.status = TaskState.SELECTED;
             } else {
-              console.log('previousTask is undefined');
+              console.debug('previousTask is undefined');
             }
           }
         });

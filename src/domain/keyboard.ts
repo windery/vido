@@ -7,9 +7,14 @@ export const initKeyboard = () => {
   // 监听键盘事件
   window.addEventListener('keydown', (event) => {
     const lastline = lastlineStore();
-    console.log(`Key pressed: ${event.key}`);
     const editor = editorStore();
     const tasks = taskStore();
+
+    if (needShowKeyboardLog(editor.mode, event.key)) {
+      console.info(
+        `Current editor mode: ${EditorMode[editor.mode]}, key pressed: ${event.key}`
+      );
+    }
     if (editor.mode === EditorMode.COMMAND) {
       // command
       if (event.key === 'k') {
@@ -46,3 +51,11 @@ export const initKeyboard = () => {
     }
   });
 };
+function needShowKeyboardLog(mode: EditorMode, key: string) {
+  if (mode === EditorMode.COMMAND) {
+    return true;
+  }
+  if (key === 'Escape') {
+    return true;
+  }
+}

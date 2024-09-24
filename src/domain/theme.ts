@@ -4,8 +4,10 @@ export function initializeTheme() {
   const isSystemDark = window.matchMedia(
     '(prefers-color-scheme: dark)'
   ).matches;
-  console.log('isSystemDark', isSystemDark);
+  const theme = isSystemDark ? 'dark' : 'light';
+  console.log(`current system theme is ${theme}`);
   if (isSystemDark) {
+    console.log('vido theme is set to dark');
     document.documentElement.classList.add('dark');
   }
   // 添加一个监听器，实时监听用户系统主题的变化
@@ -13,10 +15,10 @@ export function initializeTheme() {
     .matchMedia('(prefers-color-scheme: dark)')
     .addEventListener('change', (event) => {
       if (event.matches) {
-        console.log('system dark mode on');
+        console.log('vido theme is set to dark');
         document.documentElement.classList.add('dark');
       } else {
-        console.log('system dark mode off');
+        console.log('vido theme is set to light');
         document.documentElement.classList.remove('dark');
       }
     });

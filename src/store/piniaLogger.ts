@@ -70,7 +70,7 @@ function piniaLogger({ store }: PiniaPluginContext) {
 
         // 过滤掉 undefined 到 undefined 的变化
         if (!(prevValue === undefined && newValue === undefined)) {
-          console.log(
+          console.debug(
             `\x1b[32m[Pinia Logger] ${field}\x1b[0m changed from \x1b[31m${JSON.stringify(prevValue)}\x1b[0m to \x1b[32m${JSON.stringify(newValue)}\x1b[0m`
           );
         }

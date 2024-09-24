@@ -29,11 +29,11 @@ const selectTask = taskStore().selectTask;
 const tableRef = ref<InstanceType<typeof import('element-plus')['ElTable']> | null>(null);
 const contentEditRef = ref<InstanceType<typeof import('element-plus')['ElInput']> | null>(null);
 
-const handleRowClick = (row: any) => {
+const handleRowClick = (row: Task) => {
   console.log('Row clicked:', row);
   selectTask(row.id);
   if (tableRef.value) {
-    console.log('task table set current row:', row.id);
+    console.debug('task table set current row:', row.id);
     tableRef.value.setCurrentRow(row);
   } else {
     console.warn('task table tableRef is null');
@@ -43,17 +43,17 @@ const handleRowClick = (row: any) => {
 const expandRowKeys = ref<number[]>([]);
 const toggleRowExpansion = (task: Task) => {
   const index = expandRowKeys.value.indexOf(task.id);
-  console.log(`toggleRowExpansion: task ${task.id} ${task.title} - ${index}`);
+  console.debug(`toggleRowExpansion: task ${task.id} ${task.title} - ${index}`);
   expandRowKeys.value.splice(0, 1);
   expandRowKeys.value.push(task.id);
-  console.log('current expandRowKeys:', expandRowKeys.value);
+  console.debug('toggleRowExpansion after expandRowKeys:', expandRowKeys.value);
 };
 
 watch(selectedTask, (newTask, oldTask) => {
   if (oldTask.selected !== newTask.selected) {
-    console.log('selectedTask changed:', oldTask, newTask);
+    console.debug('selectedTask changed:', oldTask, newTask);
     if (tableRef.value) {
-      console.log(`task table set current row: ${newTask.id} - ${newTask.title}`);
+      console.debug(`task table set current row: taskId ${newTask.id} - taskTitle ${newTask.title}`);
       tableRef.value.setCurrentRow(newTask);
       toggleRowExpansion(newTask);
     } else {
