@@ -11,7 +11,7 @@
       <template #default="{ row: task }">
         <el-input v-if="task.status === TaskState.EDITING" ref="contentEditRef" type="textarea"
           v-model="task.content"></el-input>
-        <p v-else>{{ task.content }}</p>
+        <p v-else @click="() => startEditing(task)">{{ task.content }}</p>
       </template>
     </el-table-column>
   </el-table>
@@ -49,6 +49,13 @@ const toggleRowExpansion = (task: Task) => {
   console.debug('toggleRowExpansion after expandRowKeys:', expandRowKeys.value);
 };
 
+const startEditing = (task: Task) => {
+  console.debug('startEditing:', task);
+  nextTick(() => {
+    taskStore().startEditing();
+  });
+};
+
 watch(selectedTask, (newTask, oldTask) => {
   if (oldTask.selected !== newTask.selected) {
     console.debug('selectedTask changed:', oldTask, newTask);
@@ -63,8 +70,8 @@ watch(selectedTask, (newTask, oldTask) => {
   }
 
   if (newTask.status === TaskState.EDITING) {
-    console.log('focus on contentEditRef');
     nextTick(() => {
+      console.debug('focus on task content, start editing, task id:', newTask.id);
       contentEditRef?.value?.focus();
     });
   }
@@ -80,5 +87,10 @@ watch(selectedTask, (newTask, oldTask) => {
   margin-top: 50px;
   width: 100%;
   height: 100%;
+}
+
+.el-table .el-table__expand-icon {
+  display: none;
+  /* 隐藏展开图标 */
 }
 </style>
