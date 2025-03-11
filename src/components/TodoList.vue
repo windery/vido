@@ -9,25 +9,41 @@
     <el-table-column label="Title" prop="title"> </el-table-column>
     <el-table-column type="expand">
       <template #default="{ row: task }">
-        <el-input v-if="task.status === TaskState.EDITING" ref="contentEditRef" type="textarea"
-          v-model="task.content"></el-input>
-        <p v-else @click="() => startEditing(task)">{{ task.content }}</p>
+        <el-input v-if="task.status === TaskState.EDITING" ref="contentEditRef" type="textarea" v-model="task.content"
+          @input="adjustHeight"></el-input>
+        <div v-else @click="() => startEditing(task)" v-html="renderMarkdown(task.content)"></div>
       </template>
     </el-table-column>
   </el-table>
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue';
+import { nextTick, onMounted, ref, watch } from 'vue';
 import { taskStore } from '../store/task';
 import { storeToRefs } from 'pinia';
 import { Task, TaskState } from '../domain/task';
+import { marked } from 'marked';
+
 
 const { filteredTasks, selectedTask } = storeToRefs(taskStore());
 const selectTask = taskStore().selectTask;
 
 const tableRef = ref<InstanceType<typeof import('element-plus')['ElTable']> | null>(null);
 const contentEditRef = ref<InstanceType<typeof import('element-plus')['ElInput']> | null>(null);
+
+const renderMarkdown = (content: string) => {
+  return marked(content);
+};
+
+
+const adjustHeight = () => {
+  const textarea = contentEditRef.value?.textarea
+  if (textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }
+
+}
 
 const handleRowClick = (row: Task) => {
   console.log('Row clicked:', row);
@@ -56,6 +72,7 @@ const startEditing = (task: Task) => {
   });
 };
 
+
 watch(selectedTask, (newTask, oldTask) => {
   if (oldTask.selected !== newTask.selected) {
     console.debug('selectedTask changed:', oldTask, newTask);
@@ -72,6 +89,7 @@ watch(selectedTask, (newTask, oldTask) => {
   if (newTask.status === TaskState.EDITING) {
     nextTick(() => {
       console.debug('focus on task content, start editing, task id:', newTask.id);
+      adjustHeight();
       contentEditRef?.value?.focus();
     });
   }
@@ -79,6 +97,12 @@ watch(selectedTask, (newTask, oldTask) => {
   deep: true,
   // immediate: true,
 });
+
+onMounted(async () => {
+  await nextTick();
+  adjustHeight();
+})
+
 
 </script>
 
