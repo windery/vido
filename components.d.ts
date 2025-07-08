@@ -16,8 +16,13 @@ declare module 'vue' {
     ElTable: typeof import('element-plus/es')['ElTable']
     ElTableColumn: typeof import('element-plus/es')['ElTableColumn']
     ElText: typeof import('element-plus/es')['ElText']
+    EmptyBuffer: typeof import('./src/components/EmptyBuffer.vue')['default']
     LastLine: typeof import('./src/components/LastLine.vue')['default']
     ModeDebug: typeof import('./src/components/ModeDebug.vue')['default']
+    StateDemo: typeof import('./src/components/StateDemo.vue')['default']
+    TaskContent: typeof import('./src/components/TaskContent.vue')['default']
+    TaskItem: typeof import('./src/components/TaskItem.vue')['default']
     TodoList: typeof import('./src/components/TodoList.vue')['default']
+    VimHeader: typeof import('./src/components/VimHeader.vue')['default']
   }
 }
