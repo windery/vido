@@ -29,3 +29,7 @@ package-lock.json
 pnpm-lock.yaml
 yarn.lock
 .eslintcache
+
+# Auto-generated files
+auto-imports.d.ts
+components.d.ts
