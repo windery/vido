@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import { nextTick, onMounted, computed, watchEffect, ref, watch } from 'vue';
-import { Task, TaskState } from '../../shared/domain/task';
+import { Task, TaskState } from '../domain/task';
 import { useTaskState } from '../composables/use-task-state';
 import { logger } from '../utils/logger';
 

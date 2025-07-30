@@ -4,7 +4,7 @@
  */
 
 import { ref } from 'vue';
-import { TaskDataManager } from '../../shared/domain/core/task-data-manager';
+import { TaskDataManager } from '../domain/core/task-data-manager';
 import { logger } from '../utils/logger';
 
 // 全局单例实例

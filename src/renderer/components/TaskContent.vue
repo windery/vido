@@ -25,7 +25,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted } from 'vue';
-import { Task, TaskState } from '../../shared/domain/task';
+import { Task, TaskState } from '../domain/task';
 import { marked } from 'marked';
 
 interface Props {

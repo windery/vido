@@ -4,7 +4,7 @@
  */
 
 import { computed } from 'vue';
-import { Task } from '../../shared/domain/task';
+import { Task } from '../domain/task';
 import { getGlobalStateRef } from './task-state-manager';
 
 export function useTaskStateGetters() {

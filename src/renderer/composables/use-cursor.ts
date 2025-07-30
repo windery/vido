@@ -3,7 +3,7 @@
  * 处理光标移动、位置管理和UI交互
  */
 
-import { Task, TaskState } from '../../shared/domain/task';
+import { Task, TaskState } from '../domain/task';
 import { getTaskDataManager } from './task-state-manager';
 import { useTaskStateGetters } from './use-task-state-getters';
 import { logger } from '../utils/logger';

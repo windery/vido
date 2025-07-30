@@ -47,8 +47,8 @@
 
 <script setup lang="ts">
 import { ref, nextTick, watchEffect } from 'vue';
-import { Task, TaskState, TaskPriority } from '../../shared/domain/task';
-import { getScheduleDisplayText, isScheduleExpired } from '../../shared/utils/schedule-helper';
+import { Task, TaskState, TaskPriority } from '../domain/task';
+import { getScheduleDisplayText, isScheduleExpired } from '../utils/schedule-helper';
 import TaskContent from './TaskContent.vue';
 
 interface Props {

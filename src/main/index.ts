@@ -52,8 +52,8 @@ async function createWindow() {
   win = new BrowserWindow({
     title: 'Vido',
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
-    width: 800,
-    height: 600,
+    width: 1000,
+    height: 700,
     webPreferences: {
       preload,
       // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
@@ -77,6 +77,11 @@ async function createWindow() {
   // Test actively push message to the Electron-Renderer
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('main-process-message', new Date().toLocaleString());
+    // 确保焦点在主窗口而不是开发者工具
+    if (win) {
+      win.focus();
+      win.webContents.focus();
+    }
   });
 
   // Make all links open with the browser, not with the application

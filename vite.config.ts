@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import electron from 'vite-plugin-electron/simple';
@@ -17,6 +18,18 @@ export default defineConfig(({ command }) => {
   const sourcemap = isServe || !!process.env.VSCODE_DEBUG;
 
   return {
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+        '@shared': path.resolve(__dirname, './src/shared'),
+        '@renderer': path.resolve(__dirname, './src/renderer'),
+        '@main': path.resolve(__dirname, './src/main'),
+        '@domain': path.resolve(__dirname, './src/shared/domain'),
+        '@components': path.resolve(__dirname, './src/renderer/components'),
+        '@composables': path.resolve(__dirname, './src/renderer/composables'),
+        '@utils': path.resolve(__dirname, './src/renderer/utils'),
+      }
+    },
     plugins: [
       vue(),
       AutoImport({

@@ -20,7 +20,7 @@ import('./initialize').then(() => {
 
     // 确保在Vue应用完全挂载后再初始化键盘管理器
     setTimeout(() => {
-      import('../shared/domain/keyboard/keyboard-manager').then(
+      import('./domain/keyboard/keyboard-manager').then(
         ({ initializeKeyboardManager }) => {
           initializeKeyboardManager();
         }

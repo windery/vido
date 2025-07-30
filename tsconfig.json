@@ -17,7 +17,18 @@
     "noEmit": true,
     "types": [
       "element-plus/global"
-    ]
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@shared/*": ["src/shared/*"],
+      "@renderer/*": ["src/renderer/*"],
+      "@main/*": ["src/main/*"],
+      "@domain/*": ["src/shared/domain/*"],
+      "@components/*": ["src/renderer/components/*"],
+      "@composables/*": ["src/renderer/composables/*"],
+      "@utils/*": ["src/renderer/utils/*"]
+    }
   },
   "include": [
     "src",

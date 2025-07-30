@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { EditorMode } from '../../shared/domain/editor';
+import { EditorMode } from '../domain/editor';
 import { useTaskState } from '../composables/use-task-state';
 
 // 使用新的统一状态管理架构
