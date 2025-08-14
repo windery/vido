@@ -60,12 +60,13 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Task } from '../../domain/task';
-import { getScheduleDisplayText as getScheduleText, parseScheduleFromString } from '../../utils/schedule-helper';
 import { logger } from '../../utils/logger';
 import QuickOptionsTab from './schedule/QuickOptionsTab.vue';
 import DateInputTab from './schedule/DateInputTab.vue';
 import WeeklyOptionsTab from './schedule/WeeklyOptionsTab.vue';
 import RangeInputTab from './schedule/RangeInputTab.vue';
+// New Schedule model
+import { Schedule, ScheduleType, Weekday } from '../../domain/schedule';
 
 interface Props {
     task: Task | null;
@@ -103,6 +104,65 @@ const editValues = ref({
 const rangeStart = ref('');
 const rangeEnd = ref('');
 
+// Helpers to build Schedule instances
+const atEight = (d: Date) => {
+    d.setHours(8, 0, 0, 0);
+    return d;
+};
+
+const buildQuickSchedule = (option: string): Schedule | null => {
+    const normalized = option.trim();
+    if (normalized === '今天') {
+        return new Schedule(ScheduleType.QUICK, { time: atEight(new Date()) });
+    }
+    if (normalized === '明天') {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return new Schedule(ScheduleType.QUICK, { time: atEight(d) });
+    }
+    if (normalized === '下周') {
+        const d = new Date();
+        const day = d.getDay(); // 0=Sun ... 6=Sat
+        const toMonday = ((1 - day + 7) % 7) || 7; // next Monday
+        d.setDate(d.getDate() + toMonday);
+        return new Schedule(ScheduleType.QUICK, { time: atEight(d) });
+    }
+    return null;
+};
+
+const buildWeeklySchedule = (weekdayLabel: string): Schedule | null => {
+    switch (weekdayLabel) {
+        case '周一': return new Schedule(ScheduleType.WEEKLY, undefined, { days: [Weekday.MONDAY] });
+        case '周二': return new Schedule(ScheduleType.WEEKLY, undefined, { days: [Weekday.TUESDAY] });
+        case '周三': return new Schedule(ScheduleType.WEEKLY, undefined, { days: [Weekday.WEDNESDAY] });
+        case '周四': return new Schedule(ScheduleType.WEEKLY, undefined, { days: [Weekday.THURSDAY] });
+        case '周五': return new Schedule(ScheduleType.WEEKLY, undefined, { days: [Weekday.FRIDAY] });
+        case '周六': return new Schedule(ScheduleType.WEEKLY, undefined, { days: [Weekday.SATURDAY] });
+        case '周日': return new Schedule(ScheduleType.WEEKLY, undefined, { days: [Weekday.SUNDAY] });
+        default: return null;
+    }
+};
+
+const buildDateTimeSchedule = (dateTime: string): Schedule => {
+    // Accepts "YYYY-MM-DD HH:MM:SS"
+    const date = new Date(dateTime.replace(' ', 'T'));
+    if (isNaN(date.getTime())) {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return new Schedule(ScheduleType.QUICK, { time: atEight(d) });
+    }
+    return new Schedule(ScheduleType.QUICK, { time: date });
+};
+
+const buildRangeSchedule = (startDate: string, endDate: string): Schedule => {
+    return new Schedule(
+        ScheduleType.RANGE,
+        undefined,
+        undefined,
+        { startDateTime: startDate, endDateTime: endDate }
+    );
+};
+
 // Methods
 const selectScheduleTab = (index: number) => {
     scheduleTabIndex.value = index;
@@ -114,13 +174,29 @@ const selectScheduleTab = (index: number) => {
     rangeInputActive.value = false;
 };
 
+const saveScheduleObject = (schedule: Schedule | undefined) => {
+    if (!props.task) return;
+    emit('update-task', props.task.id, 'schedule', schedule);
+};
+
 const selectQuickOption = (value: string) => {
-    saveScheduleValue(value);
+    if (value === 'clear') {
+        saveScheduleObject(undefined);
+        emit('deactivate');
+        return;
+    }
+    const schedule = buildQuickSchedule(value);
+    if (schedule) {
+        saveScheduleObject(schedule);
+    }
     emit('deactivate');
 };
 
 const selectWeeklyOption = (value: string) => {
-    saveScheduleValue(value);
+    const schedule = buildWeeklySchedule(value);
+    if (schedule) {
+        saveScheduleObject(schedule);
+    }
     emit('deactivate');
 };
 
@@ -131,7 +207,8 @@ const activateDateInput = () => {
 
 const saveDateInput = (dateValue: string) => {
     logger.debug('ScheduleConfig', 'Saving date input and staying in config');
-    saveScheduleValue(dateValue);
+    const schedule = buildDateTimeSchedule(dateValue);
+    saveScheduleObject(schedule);
     dateInputActive.value = false;
     editValues.value.schedule = '';
 };
@@ -143,31 +220,20 @@ const activateRangeInput = () => {
 
 const saveRangeInput = (startDate: string, endDate: string) => {
     logger.debug('ScheduleConfig', 'Saving range input and staying in config');
-    saveScheduleValue(`${startDate} - ${endDate}`);
+    const schedule = buildRangeSchedule(startDate, endDate);
+    saveScheduleObject(schedule);
     rangeInputActive.value = false;
     rangeStart.value = '';
     rangeEnd.value = '';
 };
 
-const saveScheduleValue = (scheduleText: string) => {
-    if (!props.task) return;
-
-    const trimmedText = scheduleText.trim();
-    if (trimmedText === '') return;
-
-    if (trimmedText === 'clear') {
-        emit('update-task', props.task.id, 'schedule', undefined);
-    } else {
-        const schedule = parseScheduleFromString(trimmedText);
-        if (schedule) {
-            emit('update-task', props.task.id, 'schedule', schedule);
-        }
-    }
-};
-
 const getScheduleDisplayText = () => {
     if (!props.task?.schedule) return 'No schedule set';
-    return getScheduleText(props.task.schedule);
+    const maybeSchedule: any = props.task.schedule as any;
+    if (maybeSchedule && typeof maybeSchedule.getScheduleDisplayText === 'function') {
+        return maybeSchedule.getScheduleDisplayText();
+    }
+    return 'No schedule set';
 };
 
 // Navigation methods
