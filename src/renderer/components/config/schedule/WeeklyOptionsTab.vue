@@ -26,13 +26,13 @@ const _emit = defineEmits<{
 }>();
 
 const weeklyOptions = [
-    { value: '周一', label: '周一', short: 'Mon' },
-    { value: '周二', label: '周二', short: 'Tue' },
-    { value: '周三', label: '周三', short: 'Wed' },
-    { value: '周四', label: '周四', short: 'Thu' },
-    { value: '周五', label: '周五', short: 'Fri' },
-    { value: '周六', label: '周六', short: 'Sat' },
-    { value: '周日', label: '周日', short: 'Sun' }
+    { value: 'mon', label: '周一', short: 'Mon' },
+    { value: 'tue', label: '周二', short: 'Tue' },
+    { value: 'wed', label: '周三', short: 'Wed' },
+    { value: 'thu', label: '周四', short: 'Thu' },
+    { value: 'fri', label: '周五', short: 'Fri' },
+    { value: 'sat', label: '周六', short: 'Sat' },
+    { value: 'sun', label: '周日', short: 'Sun' }
 ];
 </script>
 

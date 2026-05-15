@@ -28,9 +28,9 @@ const _emit = defineEmits<{
 }>();
 
 const quickOptions = [
-    { value: '今天', label: '今天', icon: '🔥' },
-    { value: '明天', label: '明天', icon: '➡️' },
-    { value: '下周', label: '下周', icon: '📌' },
+    { value: 'today', label: '今天', icon: '🔥' },
+    { value: 'tomorrow', label: '明天', icon: '➡️' },
+    { value: 'next_week', label: '下周', icon: '📌' },
     { value: 'clear', label: '清除', icon: '🗑️' }
 ];
 </script>

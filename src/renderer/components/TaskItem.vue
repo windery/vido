@@ -27,7 +27,7 @@
                     <span v-for="tag in task.tags" :key="tag" class="inline-tag">#{{ tag }}</span>
                 </span>
 
-                <span v-if="task.schedule && task.schedule.type !== 'none'" class="schedule-indicator">
+                <span v-if="task.schedule" class="schedule-indicator">
                     <span class="schedule-text">
                         📅{{ getScheduleDisplayText(task.schedule) }}
                     </span>

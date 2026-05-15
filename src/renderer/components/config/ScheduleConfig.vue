@@ -198,13 +198,13 @@ const navigateWeeklyOptionDown = () => {
 };
 
 const selectCurrentQuickOption = () => {
-    const quickOptions = ['今天', '明天', '下周', 'clear'];
+    const quickOptions = ['today', 'tomorrow', 'next_week', 'clear'];
     const option = quickOptions[quickOptionIndex.value];
     selectQuickOption(option);
 };
 
 const selectCurrentWeeklyOption = () => {
-    const weeklyOptions = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const weeklyOptions = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
     const option = weeklyOptions[weeklyOptionIndex.value];
     selectWeeklyOption(option);
 };

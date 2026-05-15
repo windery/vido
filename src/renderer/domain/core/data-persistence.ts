@@ -7,6 +7,7 @@ import { Task } from '../task';
 import { TaskDataState } from './task-data-manager';
 import { logger } from '../../utils/logger';
 import { saveJsonFile, loadJsonFile } from '../../utils/file-operations-ipc';
+import { migrateSchedule } from '../../utils/schedule-helper';
 
 export class DataPersistence {
   constructor(
@@ -65,7 +66,7 @@ export class DataPersistence {
           task.completed = taskData.completed || false;
           task.priority = taskData.priority;
           task.tags = taskData.tags || [];
-          task.schedule = taskData.schedule || undefined;
+          task.schedule = migrateSchedule(taskData.schedule) || undefined;
           return task;
         });
 
