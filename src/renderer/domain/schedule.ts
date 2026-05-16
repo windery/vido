@@ -28,6 +28,7 @@ export interface ScheduleQuickTime {
 
 export interface ScheduleWeeklyTime {
   days: Weekday[];
+  recurring?: boolean;
 }
 
 export interface ScheduleRangeTime {
@@ -103,18 +104,19 @@ export class Schedule {
   private getWeeklyDisplayText(): string {
     const wt = this.weeklyTime;
     if (!wt?.days?.length) return '';
-    return wt.days.map((d) => getWeekdayName(d)).join(', ');
+    const names = wt.days.map((d) => getWeekdayName(d)).join(', ');
+    return wt.recurring ? `每${names}` : names;
   }
 
   private getRangeDisplayText(): string {
     const rt = this.rangeTime;
     if (!rt) return '';
-    const startStr = rt.startDateTime
-      ? formatDateTime(new Date(rt.startDateTime))
-      : '';
-    const endStr = rt.endDateTime
-      ? formatDateTime(new Date(rt.endDateTime))
-      : '';
+    const fmt = (s: string) => {
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? s : formatDateTime(d);
+    };
+    const startStr = rt.startDateTime ? fmt(rt.startDateTime) : '';
+    const endStr = rt.endDateTime ? fmt(rt.endDateTime) : '';
     if (startStr && endStr) return `${startStr} - ${endStr}`;
     if (startStr) return startStr;
     if (endStr) return endStr;

@@ -42,10 +42,10 @@ export function createSpecificDateTimeSchedule(dateTime: string): Schedule {
 
 export function createWeekdaySchedule(
   weekday: Weekday,
-  _isRecurring: boolean = false
+  recurring: boolean = false
 ): Schedule {
   return new Schedule(ScheduleType.WEEKLY, {
-    weeklyTime: { days: [weekday] },
+    weeklyTime: { days: [weekday], recurring },
   });
 }
 
@@ -106,10 +106,24 @@ export function parseScheduleFromString(timeStr: string): Schedule | null {
     return createSpecificDateSchedule(formatDate(nextMonday));
   }
 
+  const isRecurring = trimmed.startsWith('每') || trimmed.startsWith('every');
+  const cleanTrimmed = isRecurring
+    ? trimmed.replace(/^每|^every\s*/, '').trim()
+    : trimmed;
+
+  // 优先全词匹配
   for (const [key, weekday] of Object.entries(WEEKDAY_KEYWORDS)) {
-    if (trimmed.includes(key)) {
+    if (cleanTrimmed === key) {
       return new Schedule(ScheduleType.WEEKLY, {
-        weeklyTime: { days: [weekday] },
+        weeklyTime: { days: [weekday], recurring: isRecurring },
+      });
+    }
+  }
+  // 回退到子串匹配
+  for (const [key, weekday] of Object.entries(WEEKDAY_KEYWORDS)) {
+    if (cleanTrimmed.includes(key)) {
+      return new Schedule(ScheduleType.WEEKLY, {
+        weeklyTime: { days: [weekday], recurring: isRecurring },
       });
     }
   }
@@ -174,6 +188,9 @@ export function isScheduleExpired(schedule: Schedule): boolean {
       }
       return false;
     }
+    case ScheduleType.WEEKLY:
+      // 周类型不判定过期（每周重复）
+      return false;
     default:
       return false;
   }
