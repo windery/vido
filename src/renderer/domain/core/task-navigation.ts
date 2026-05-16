@@ -25,7 +25,7 @@ export class TaskNavigation {
       return;
     }
 
-    // 使用与TaskSelectionManager相同的逻辑，创建新的任务对象以确保响应式更新
+    // 创建新对象以确保 Vue 响应式更新
     const newTasks = state.tasks.map((task) => ({
       ...task,
       selected: task.id === taskId,
@@ -147,7 +147,7 @@ export class TaskNavigation {
     const state = this.getState();
     const filter = state.lastlineContent;
 
-    if (!filter || filter === '' || !filter.startsWith('/')) {
+    if (!filter || !filter.startsWith('/')) {
       return state.tasks;
     }
 

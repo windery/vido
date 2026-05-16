@@ -9,14 +9,11 @@ import { ApplicationState } from '../interfaces/observer';
 import { EditorMode } from '../editor';
 
 // 导入各个专门的管理器
-import { TaskOperations } from './task-operations';
 import { CursorManager } from './cursor-manager';
 import { DataPersistence } from './data-persistence';
 import { TaskNavigation } from './task-navigation';
-import { TaskSelectionManager } from './task-selection-manager';
 import { TaskEditingManager } from './task-editing-manager';
 import { TaskCrudManager } from './task-crud-manager';
-import { TaskQueryManager } from './task-query-manager';
 import { logger } from '@utils/logger';
 
 export interface TaskDataState extends ApplicationState {
@@ -28,14 +25,11 @@ export interface TaskDataState extends ApplicationState {
 
 export class TaskDataManager extends ApplicationStateManager {
   // 专门的管理器实例
-  private taskOperations: TaskOperations;
   private cursorManager: CursorManager;
   private dataPersistence: DataPersistence;
   private taskNavigation: TaskNavigation;
-  private taskSelection: TaskSelectionManager;
   private taskEditing: TaskEditingManager;
   private taskCrud: TaskCrudManager;
-  private taskQuery: TaskQueryManager;
 
   constructor(initialState?: Partial<TaskDataState>) {
     const defaultTaskState: TaskDataState = {
@@ -58,10 +52,6 @@ export class TaskDataManager extends ApplicationStateManager {
     super(defaultTaskState);
 
     // 初始化各个管理器
-    this.taskOperations = new TaskOperations(
-      () => this.getTaskDataState(),
-      (updates) => this.updateState(updates, 'TaskOperations')
-    );
     this.cursorManager = new CursorManager(
       () => this.getTaskDataState(),
       (updates) => this.updateState(updates, 'CursorManager'),
@@ -75,10 +65,6 @@ export class TaskDataManager extends ApplicationStateManager {
       () => this.getTaskDataState(),
       (updates) => this.updateState(updates, 'TaskNavigation')
     );
-    this.taskSelection = new TaskSelectionManager(
-      () => this.getTaskDataState(),
-      (updates) => this.updateState(updates, 'TaskSelection')
-    );
     this.taskEditing = new TaskEditingManager(
       () => this.getTaskDataState(),
       (updates) => this.updateState(updates, 'TaskEditing')
@@ -88,7 +74,6 @@ export class TaskDataManager extends ApplicationStateManager {
       (updates) =>
         this.updateState(updates as Partial<TaskDataState>, 'TaskCrud')
     );
-    this.taskQuery = new TaskQueryManager(() => this.getTaskDataState());
   }
 
   // 类型安全的状态获取器
@@ -115,7 +100,7 @@ export class TaskDataManager extends ApplicationStateManager {
    * 任务选择操作
    */
   selectTask(taskId: number): void {
-    this.taskSelection.selectTask(taskId);
+    this.taskNavigation.selectTask(taskId);
   }
 
   async selectNext(): Promise<void> {
@@ -269,19 +254,19 @@ export class TaskDataManager extends ApplicationStateManager {
    * 获取计算属性（兼容Pinia getters）
    */
   get selectedTask(): Task | null {
-    return this.taskSelection.selectedTask;
+    return this.taskNavigation.selectedTask;
   }
 
   get selectedTaskIndex(): number {
-    return this.taskSelection.selectedTaskIndex;
+    return this.taskNavigation.selectedTaskIndex;
   }
 
   get filteredTasks(): Task[] {
-    return this.taskQuery.filteredTasks;
+    return this.taskNavigation.filteredTasks;
   }
 
   get isSearching(): boolean {
-    return this.taskQuery.isSearching;
+    return this.taskNavigation.isSearching;
   }
 
   /**
