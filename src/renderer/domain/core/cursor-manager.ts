@@ -321,28 +321,24 @@ export class CursorManager {
     let l = line;
     let c = col;
     const currentLine = lines[l] || '';
-    // 如果不在词尾，先跳到当前词尾
+
+    // 如果在词中或词首：跳到当前词尾
     if (c < currentLine.length && currentLine[c] !== ' ') {
       while (c < currentLine.length && currentLine[c] !== ' ') c++;
-      // 跨过空白到下一个词
-      while (c < currentLine.length && currentLine[c] === ' ') c++;
-      if (c < currentLine.length) {
-        // 找到下一个词的词尾
-        while (c < currentLine.length && currentLine[c] !== ' ') c++;
-        return { line: l, col: c - 1 };
-      }
-      l++;
-    } else {
-      // 跳过空白
-      while (c < currentLine.length && currentLine[c] === ' ') c++;
-      if (c < currentLine.length) {
-        while (c < currentLine.length && currentLine[c] !== ' ') c++;
-        return { line: l, col: c - 1 };
-      }
-      l++;
+      // 如果下一个字符存在且不是空白（即紧挨着下一个词），或者已经在行尾
+      // vim e 行为：在词中则到当前词尾
+      return { line: l, col: c - 1 };
     }
+
+    // 在空白或行尾：跳到下一个词的词尾
+    while (c < currentLine.length && currentLine[c] === ' ') c++;
+    if (c < currentLine.length) {
+      while (c < currentLine.length && currentLine[c] !== ' ') c++;
+      return { line: l, col: c - 1 };
+    }
+
     // 跨行到下一个有内容的行
-    for (; l < lines.length; l++) {
+    for (l = l + 1; l < lines.length; l++) {
       const ln = lines[l];
       for (c = 0; c < ln.length; c++) {
         if (ln[c] !== ' ') {
