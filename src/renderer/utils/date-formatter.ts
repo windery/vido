@@ -33,19 +33,6 @@ export function formatDate(date: Date): string {
 }
 
 /**
- * 将Date对象格式化为友好的时间字符串
- * @param date Date对象
- * @returns 格式化后的字符串，如: "23:22:33"
- */
-export function formatTime(date: Date): string {
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-
-  return `${hours}:${minutes}:${seconds}`;
-}
-
-/**
  * 解析友好格式的日期时间字符串为Date对象
  * @param dateTimeStr 格式如: "2025-05-08 23:22:33"
  * @returns Date对象，解析失败返回null
@@ -94,14 +81,6 @@ export function parseDate(dateStr: string): Date | null {
   } catch (error) {
     return null;
   }
-}
-
-/**
- * 获取当前时间的友好格式字符串
- * @returns 当前时间，如: "2025-05-08 23:22:33"
- */
-export function getCurrentDateTime(): string {
-  return formatDateTime(new Date());
 }
 
 /**

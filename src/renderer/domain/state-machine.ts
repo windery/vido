@@ -232,16 +232,4 @@ export class StateMachine {
       (transition) => transition.from === this.currentEditorMode
     ).map((transition) => transition.trigger);
   }
-
-  // 打印状态转换表（用于调试）
-  printStateTransitions() {
-    const transitions = STATE_TRANSITIONS.map((t) => ({
-      trigger: t.trigger,
-      from: EditorMode[t.from],
-      to: EditorMode[t.to],
-      description: t.description,
-    }));
-
-    logger.info('StateMachine', 'State transitions table:', transitions);
-  }
 }

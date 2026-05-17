@@ -29,9 +29,6 @@
         Press ? for help
       </span>
     </div>
-    <div class="status-right">
-      <!-- Position info removed as line numbers are already shown in the list -->
-    </div>
   </div>
 </template>
 

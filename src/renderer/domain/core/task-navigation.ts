@@ -99,32 +99,6 @@ export class TaskNavigation {
   }
 
   /**
-   * 开始标题编辑
-   */
-  startTitleEditing(): void {
-    const state = this.getState();
-    const selectedTask = state.tasks.find((task) => task.selected);
-
-    if (!selectedTask) {
-      logger.warn('TaskNavigation', 'No task selected for title editing');
-      return;
-    }
-
-    const tasks = [...state.tasks];
-    const taskIndex = tasks.findIndex((task) => task.id === selectedTask.id);
-    if (taskIndex >= 0) {
-      tasks[taskIndex] = { ...tasks[taskIndex] };
-      tasks[taskIndex].status = TaskState.TITLE_EDITING;
-    }
-
-    this.updateState({ tasks });
-    logger.info(
-      'TaskNavigation',
-      `Started title editing for task ${selectedTask.id}`
-    );
-  }
-
-  /**
    * 获取选中的任务
    */
   get selectedTask(): Task | null {

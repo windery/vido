@@ -9,4 +9,3 @@ export { ContentNavigationModeHandler } from './content-navigation-mode-handler'
 export { ContentEditModeHandler } from './content-edit-mode-handler';
 export { LastLineModeHandler } from './lastline-mode-handler';
 export { HelpModeHandler } from './help-handler';
-export { TaskConfigModeHandler } from './task-config-mode-handler';

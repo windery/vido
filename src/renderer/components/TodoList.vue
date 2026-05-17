@@ -68,13 +68,7 @@ watchEffect(() => {
 
     const task = selectedTask.value;
     // 只在有选中任务时才记录日志，避免初始化时的undefined日志
-    if (task) {
-        logger.info('TodoListRefactored', `Cursor tracker updated: ${tracker}`);
-        logger.info('TodoListRefactored', `watchEffect: task=${task.id}, status=${task.status}, cursorLine=${task.cursorLine}, cursorColumn=${task.cursorColumn}`);
-    }
-
     if (task && task.status === TaskState.CONTENT_NAVIGATION) {
-        logger.info('TodoListRefactored', `Task ${task.id} is in CONTENT_NAVIGATION mode`);
         if (task.cursorLine !== undefined && task.cursorColumn !== undefined) {
             // 找到对应的textarea并更新光标
             nextTick(() => {
@@ -109,8 +103,8 @@ const handleTitleInput = (value: string, task: Task) => {
 };
 
 const handleContentInput = (value: string, task: Task) => {
-    // 更新任务内容
-    task.content = value;
+    const taskState = useTaskState();
+    taskState.taskDataManager.updateTaskProperty(task.id, 'content', value);
 };
 
 const handleCursorUpdate = (event: Event, task: Task) => {

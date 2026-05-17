@@ -15,108 +15,9 @@ export class CursorManager {
     private transition: (trigger: string, context?: any) => any
   ) {}
 
-  /**
-   * 开始内容导航模式
-   */
-  startContentNavigation(): void {
-    const state = this.getState();
-    const selectedTask = state.tasks.find((task) => task.selected);
 
-    if (!selectedTask) {
-      logger.warn('CursorManager', 'No task selected for content navigation');
-      return;
-    }
 
-    // 更新任务状态为内容导航
-    const tasks = [...state.tasks];
-    const taskIndex = tasks.findIndex((task) => task.id === selectedTask.id);
-    if (taskIndex >= 0) {
-      tasks[taskIndex] = { ...tasks[taskIndex] };
-      tasks[taskIndex].status = TaskState.CONTENT_NAVIGATION;
 
-      // 设置初始光标位置
-      if (tasks[taskIndex].cursorLine === undefined) {
-        tasks[taskIndex].cursorLine = 0;
-        tasks[taskIndex].cursorColumn = 0;
-      }
-    }
-
-    this.updateState({
-      tasks,
-      editorMode: EditorMode.CONTENT_NAVIGATION,
-      taskState: TaskState.CONTENT_NAVIGATION,
-    });
-
-    logger.info(
-      'CursorManager',
-      `Started content navigation for task ${selectedTask.id}`
-    );
-  }
-
-  /**
-   * 在光标位置开始编辑
-   */
-  startEditingAtCursor(): void {
-    const state = this.getState();
-    const selectedTask = state.tasks.find((task) => task.selected);
-
-    if (!selectedTask) {
-      logger.warn('CursorManager', 'No task selected for editing');
-      return;
-    }
-
-    const tasks = [...state.tasks];
-    const taskIndex = tasks.findIndex((task) => task.id === selectedTask.id);
-    if (taskIndex >= 0) {
-      tasks[taskIndex] = { ...tasks[taskIndex] };
-      tasks[taskIndex].status = TaskState.CONTENT_EDITING;
-    }
-
-    this.updateState({
-      tasks,
-      editorMode: EditorMode.CONTENT_EDIT,
-      taskState: TaskState.CONTENT_EDITING,
-    });
-
-    logger.info(
-      'CursorManager',
-      `Started editing at cursor for task ${selectedTask.id}`
-    );
-  }
-
-  /**
-   * 停止编辑
-   */
-  stopEditing(): void {
-    const state = this.getState();
-    const selectedTask = state.tasks.find((task) => task.selected);
-
-    if (!selectedTask) {
-      return;
-    }
-
-    const tasks = [...state.tasks];
-    const taskIndex = tasks.findIndex((task) => task.id === selectedTask.id);
-    if (taskIndex >= 0) {
-      tasks[taskIndex] = { ...tasks[taskIndex] };
-      tasks[taskIndex].status = TaskState.VIEWING;
-    }
-
-    this.updateState({
-      tasks,
-      editorMode: EditorMode.COMMAND,
-      taskState: TaskState.VIEWING,
-    });
-
-    logger.info('CursorManager', `Stopped editing for task ${selectedTask.id}`);
-  }
-
-  /**
-   * 退出内容导航模式
-   */
-  exitContentNavigation(): void {
-    this.stopEditing();
-  }
 
   /**
    * 向上移动光标
@@ -302,40 +203,6 @@ export class CursorManager {
     this.updateCursorPosition(selectedTask.id, lastLine, newColumn);
   }
 
-  /**
-   * 在当前光标位置下方插入新行
-   */
-  insertNewLineBelow(): void {
-    const state = this.getState();
-    const selectedTask = state.tasks.find((task) => task.selected);
-
-    if (!selectedTask) {
-      return;
-    }
-
-    const content = selectedTask.content || '';
-    const lines = content.split('\n');
-    const currentLine = selectedTask.cursorLine || 0;
-
-    // 在当前行下方插入空行
-    lines.splice(currentLine + 1, 0, '');
-    const newContent = lines.join('\n');
-
-    const tasks = [...state.tasks];
-    const taskIndex = tasks.findIndex((task) => task.id === selectedTask.id);
-    if (taskIndex >= 0) {
-      tasks[taskIndex] = { ...tasks[taskIndex] };
-      tasks[taskIndex].content = newContent;
-      tasks[taskIndex].cursorLine = currentLine + 1;
-      tasks[taskIndex].cursorColumn = 0;
-    }
-
-    this.updateState({ tasks });
-    logger.info(
-      'CursorManager',
-      `Inserted new line below for task ${selectedTask.id}`
-    );
-  }
 
   /**
    * 更新光标位置

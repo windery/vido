@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 
 interface Props {
     filteredTasksCount: number;
@@ -22,6 +22,7 @@ interface Props {
 defineProps<Props>();
 
 const currentTime = ref('');
+let timeInterval: ReturnType<typeof setInterval> | null = null;
 
 const updateCurrentTime = () => {
     const now = new Date();
@@ -40,7 +41,14 @@ const getCurrentTime = () => {
 
 onMounted(() => {
     updateCurrentTime();
-    setInterval(updateCurrentTime, 60000); // 每分钟更新一次
+    timeInterval = setInterval(updateCurrentTime, 60000);
+});
+
+onUnmounted(() => {
+    if (timeInterval !== null) {
+        clearInterval(timeInterval);
+        timeInterval = null;
+    }
 });
 </script>
 

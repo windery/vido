@@ -51,6 +51,7 @@
                     :range-end="rangeEnd"
                     @activate="activateRangeInput"
                     @save="saveRangeInput"
+                    @deactivate="rangeInputActive = false"
                 />
             </div>
         </div>

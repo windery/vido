@@ -48,6 +48,7 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
     'activate': [];
     'save': [startDate: string, endDate: string];
+    'deactivate': [];
 }>();
 
 const rangeStartInput = ref<HTMLInputElement>();
@@ -82,7 +83,7 @@ const handleInputKeydown = (event: KeyboardEvent) => {
         logger.debug('RangeInputTab', 'Canceling range input');
         localStartValue.value = '';
         localEndValue.value = '';
-        // Parent will handle deactivation
+        emit('deactivate');
     }
 };
 </script>

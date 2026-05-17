@@ -57,7 +57,12 @@ export async function loadJsonFile(filename: string): Promise<any | null> {
     );
     // 在非 Electron 环境中回退到 localStorage
     const data = localStorage.getItem(`vido-${filename}`);
-    return data ? JSON.parse(data) : null;
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
   }
 
   try {
@@ -140,8 +145,8 @@ export async function listJsonFiles(): Promise<string[]> {
     const files: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith('vido-') && key.endsWith('.json')) {
-        files.push(key.substring(5)); // 移除 'vido-' 前缀
+      if (key && key.startsWith('vido-')) {
+        files.push(key.substring(5));
       }
     }
     return files;

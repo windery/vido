@@ -11,10 +11,12 @@ interface LogEntry {
 class Logger {
   private logQueue: string[] = [];
   private isWriting = false;
+  private maxQueueSize = 500;
 
   private formatLogEntry(level: LogEntry['level'], module: string, message: string, data?: any): string {
-    let logLine = `[${level}] [${module}] ${message}`;
-    
+    const ts = new Date().toISOString();
+    let logLine = `${ts} [${level}] [${module}] ${message}`;
+
     if (data) {
       try {
         const dataStr = typeof data === 'object' ? JSON.stringify(data) : String(data);
@@ -23,7 +25,7 @@ class Logger {
         logLine += ` | Data: [circular object]`;
       }
     }
-    
+
     return logLine;
   }
 
@@ -32,7 +34,6 @@ class Logger {
       if (window.vidoLogger && window.vidoLogger.writeLog) {
         await window.vidoLogger.writeLog(logEntry);
       } else {
-        // 如果Electron API不可用，回退到控制台
         console.warn('File logging not available, entry:', logEntry);
       }
     } catch (error) {
@@ -46,7 +47,7 @@ class Logger {
     }
 
     this.isWriting = true;
-    
+
     try {
       while (this.logQueue.length > 0) {
         const logEntry = this.logQueue.shift();
@@ -56,21 +57,28 @@ class Logger {
       }
     } finally {
       this.isWriting = false;
+      // 写入期间可能有新日志入队，延迟再刷一次，防止日志滞留
+      if (this.logQueue.length > 0) {
+        setTimeout(() => this.processLogQueue(), 50);
+      }
     }
   }
 
   private log(level: LogEntry['level'], module: string, message: string, data?: any): void {
     const logEntry = this.formatLogEntry(level, module, message, data);
-    
+
     // 输出到控制台
-    const consoleMethod = level === 'ERROR' ? 'error' : 
-                         level === 'WARN' ? 'warn' : 
+    const consoleMethod = level === 'ERROR' ? 'error' :
+                         level === 'WARN' ? 'warn' :
                          level === 'DEBUG' ? 'debug' : 'log';
     console[consoleMethod](`[${new Date().toISOString()}] ${logEntry}`);
 
-    // 添加到写入队列
+    // 队列满时丢弃最旧的日志
+    if (this.logQueue.length >= this.maxQueueSize) {
+      this.logQueue.shift();
+    }
     this.logQueue.push(logEntry);
-    
+
     // 异步处理队列
     this.processLogQueue().catch(error => {
       console.error('Failed to process log queue:', error);
@@ -93,7 +101,6 @@ class Logger {
     this.log('DEBUG', module, message, data);
   }
 
-  // 强制写入所有待处理的日志
   async flush(): Promise<void> {
     await this.processLogQueue();
   }
@@ -102,8 +109,6 @@ class Logger {
 // 全局日志实例
 export const logger = new Logger();
 
-// 在开发环境下，将logger暴露到window对象，方便在控制台调试
 if (import.meta.env.DEV) {
   (window as any).debugLogger = logger;
-  logger.info('LOGGER', 'File-based logger initialized. Logs saved to ~/.vido/log/');
 }
