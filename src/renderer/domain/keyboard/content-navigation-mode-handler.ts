@@ -128,22 +128,24 @@ export class ContentNavigationModeHandler implements ModeHandler {
     const task = state.tasks.find((t: any) => t.selected);
     const cursorLine = task?.cursorLine ?? 0;
     const cursorCol = task?.cursorColumn ?? 0;
+    const rawContent = task?.content || '';
 
     setTimeout(() => {
       const el = document.querySelector(`[data-task-id="${taskId}"] .content-editor`);
       if (el instanceof HTMLTextAreaElement) {
+        // 先恢复原始内容——CONTENT_NAVIGATION 模式下 textarea 被插入了光标占位符，
+        // 如果不恢复，用 el.value 算出来的 offset 会偏移一位，导致覆盖字符
+        el.value = rawContent;
         el.removeAttribute('readonly');
         el.readOnly = false;
         el.style.display = 'block';
         el.tabIndex = 0;
         el.focus();
 
-        // 根据 domain 光标位置设置 textarea 的 selection
-        const content = el.value;
-        const lines = content.split('\n');
+        const lines = rawContent.split('\n');
         let offset = 0;
         for (let i = 0; i < cursorLine && i < lines.length; i++) {
-          offset += lines[i].length + 1; // +1 for \n
+          offset += lines[i].length + 1;
         }
         offset += Math.min(cursorCol, (lines[cursorLine] || '').length);
         el.setSelectionRange(offset, offset);

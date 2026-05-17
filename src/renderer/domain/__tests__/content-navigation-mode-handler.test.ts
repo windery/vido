@@ -165,6 +165,50 @@ describe('ContentNavigationModeHandler', () => {
     });
   });
 
+  describe('scenario: navigate then append', () => {
+    it('navigate right then a positions cursor correctly', () => {
+      // 模拟用户在 "信息搜集" 中按 l 右移光标，再按 a 追加
+      selectedTask.content = '信息搜集';
+      selectedTask.cursorLine = 0;
+      selectedTask.cursorColumn = 1; // 光标在 "信" 后面
+
+      // 按 l 右移
+      handler.handleKey(makeEvent('l'), 'l', mockTDM, false);
+      expect(mockTDM.moveCursorRight).toHaveBeenCalledTimes(1);
+
+      // 手动把 mock 里的光标位置也更新一下（模拟 moveCursorRight 的效果）
+      selectedTask.cursorColumn = 2; // 光标移到 "息" 前面（位置 2）
+
+      // 按 a 进入编辑
+      handler.handleKey(makeEvent('a'), 'a', mockTDM, false);
+
+      // a 应该把光标移到位置 3（append：在 "息" 后面插入）
+      expect(cursorLine).toBe(0);
+      expect(cursorCol).toBe(3);
+    });
+
+    it('a at end of line does not move past content', () => {
+      selectedTask.content = 'hi';
+      selectedTask.cursorLine = 0;
+      selectedTask.cursorColumn = 2; // at end
+
+      handler.handleKey(makeEvent('a'), 'a', mockTDM, false);
+
+      expect(cursorCol).toBe(2); // stays at end
+    });
+
+    it('multiple lines: a moves cursor right within same line', () => {
+      selectedTask.content = 'line1\nline2\nline3';
+      selectedTask.cursorLine = 1;
+      selectedTask.cursorColumn = 2; // on 'n' of 'line2'
+
+      handler.handleKey(makeEvent('a'), 'a', mockTDM, false);
+
+      expect(cursorLine).toBe(1);
+      expect(cursorCol).toBe(3); // after 'n', before 'e2'
+    });
+  });
+
   describe('Escape', () => {
     it('transitions out of content navigation', () => {
       handler.handleKey(makeEvent('Escape'), 'Escape', mockTDM, false);
