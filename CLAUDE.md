@@ -211,14 +211,35 @@ logger.warn('ComponentName', 'warning message');
 logger.error('ComponentName', 'error message', { error: errorObject });
 ```
 
-### Critical Rule: Log-First Debugging
+### Critical Rule: Log-First + Automated Debugging
 
-**Always check logs before investigating code.** When the user reports a UI behavior issue (keyboard shortcuts not working, cursor position wrong, state transitions broken), the first step is ALWAYS log analysis, not code reading.
+**Never ask the user to manually reproduce a bug. Use the test API to simulate operations and verify via logs.**
 
-1. **Read the logs**: `tail -100 ~/.vido/log/vido-$(date +%Y-%m-%d).log`
-2. **If logs are insufficient, add logs first, then ask user to reproduce**
-3. **Analyze logs to pinpoint the exact line/failure**, then fix the code
-4. **After fixing, check logs again to confirm the fix works**
+#### Automated Debugging Workflow
+
+```bash
+# 1. Start the dev server (test API on port 3002)
+pkill -f "Electron.*vido" 2>/dev/null
+pnpm dev > /tmp/vido-dev.log 2>&1 &
+
+# 2. Wait for test API
+until curl -s --noproxy '*' http://localhost:3002/api/health | grep -q ok; do sleep 2; done
+
+# 3. Simulate key sequences
+curl -s --noproxy '*' -X POST http://localhost:3002/api/sequence \
+  -H "Content-Type: application/json" \
+  -d '{"keys": ["i", "l", "a", "x"]}'
+
+# 4. Verify via logs (add logger calls first if missing)
+tail -50 ~/.vido/log/vido-$(date +%Y-%m-%d).log | grep "TagName"
+```
+
+#### Log Analysis Priority
+
+1. **Read logs FIRST** — `tail -100 ~/.vido/log/vido-$(date +%Y-%m-%d).log`
+2. **If insufficient, ADD logs with key state values**, rebuild, then use test API to reproduce
+3. **Analyze logs to pinpoint the exact line/value**, then fix
+4. **After fixing, use test API to verify**, then check logs to confirm
 
 Every state change (mode transition, task selection, cursor position, config toggle) MUST be logged. If a code path isn't logged, add the log before debugging further.
 
