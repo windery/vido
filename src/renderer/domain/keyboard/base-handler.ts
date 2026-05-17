@@ -1,5 +1,5 @@
 /**
- * 基础模式处理器接口和通用类型
+ * 基础模式处理器接口
  */
 
 import { TaskDataManager } from '../core/task-data-manager';
@@ -11,4 +11,7 @@ export interface ModeHandler {
     taskDataManager: TaskDataManager,
     isInInputField: boolean
   ): boolean;
+
+  /** 清理资源（超时、序列状态等） */
+  dispose(): void;
 }

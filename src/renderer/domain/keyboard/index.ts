@@ -1,5 +1,5 @@
 /**
- * 键盘模式处理器索引文件
+ * 键盘模式处理器索引
  */
 
 export type { ModeHandler } from './base-handler';

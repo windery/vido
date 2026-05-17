@@ -257,4 +257,6 @@ export class LastLineModeHandler implements ModeHandler {
     // 当用户按回车确认拼音输入时，isComposing仍为true，直到组合完成
     return event.isComposing || false;
   }
+
+  dispose(): void {}
 }

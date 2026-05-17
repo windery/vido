@@ -205,6 +205,156 @@ export class CursorManager {
 
 
   /**
+   * 移动到下一个词首 (w)
+   */
+  moveCursorWordForward(): void {
+    const task = this.getSelectedNavTask();
+    if (!task) return;
+    const { content, cursorLine: line, cursorColumn: col } = task;
+    const lines = (content || '').split('\n');
+    const currentLine = line || 0;
+    const currentCol = col || 0;
+
+    // 查找当前行之后第一个词边界
+    const pos = this.findNextWordStart(lines, currentLine, currentCol);
+    if (pos) {
+      this.updateCursorPosition(task.id, pos.line, pos.col);
+    }
+  }
+
+  /**
+   * 移动到上一个词首 (b)
+   */
+  moveCursorWordBackward(): void {
+    const task = this.getSelectedNavTask();
+    if (!task) return;
+    const { content, cursorLine: line, cursorColumn: col } = task;
+    const lines = (content || '').split('\n');
+    const currentLine = line || 0;
+    const currentCol = col || 0;
+
+    const pos = this.findPrevWordStart(lines, currentLine, currentCol);
+    if (pos) {
+      this.updateCursorPosition(task.id, pos.line, pos.col);
+    }
+  }
+
+  /**
+   * 移动到当前/下一个词尾 (e)
+   */
+  moveCursorWordEnd(): void {
+    const task = this.getSelectedNavTask();
+    if (!task) return;
+    const { content, cursorLine: line, cursorColumn: col } = task;
+    const lines = (content || '').split('\n');
+    const currentLine = line || 0;
+    const currentCol = col || 0;
+
+    const pos = this.findNextWordEnd(lines, currentLine, currentCol);
+    if (pos) {
+      this.updateCursorPosition(task.id, pos.line, pos.col);
+    }
+  }
+
+  private getSelectedNavTask(): { id: number; content: string; cursorLine?: number; cursorColumn?: number } | null {
+    const state = this.getState();
+    const selectedTask = state.tasks.find((task) => task.selected);
+    if (!selectedTask || selectedTask.status !== TaskState.CONTENT_NAVIGATION) {
+      return null;
+    }
+    return selectedTask;
+  }
+
+  private findNextWordStart(lines: string[], line: number, col: number): { line: number; col: number } | null {
+    // 先跳过当前词的剩余部分
+    let l = line;
+    let c = col;
+    const currentLine = lines[l] || '';
+    // 如果当前字符不是空白，跳到当前词尾
+    if (c < currentLine.length && currentLine[c] !== ' ') {
+      while (c < currentLine.length && currentLine[c] !== ' ') c++;
+      // 跳过空白
+      while (c < currentLine.length && currentLine[c] === ' ') c++;
+      if (c < currentLine.length) return { line: l, col: c };
+      // 当前行找不到，继续下一行
+      l++;
+    } else {
+      // 当前位置是空白或行尾，跳过空白找下一个词
+      while (c < currentLine.length && currentLine[c] === ' ') c++;
+      if (c < currentLine.length) return { line: l, col: c };
+      l++;
+    }
+    // 跨行查找
+    for (; l < lines.length; l++) {
+      const ln = lines[l];
+      for (c = 0; c < ln.length; c++) {
+        if (ln[c] !== ' ') return { line: l, col: c };
+      }
+    }
+    return null;
+  }
+
+  private findPrevWordStart(lines: string[], line: number, col: number): { line: number; col: number } | null {
+    let l = line;
+    let c = col - 1;
+    // 跳过当前位置之前的空白
+    while (l >= 0) {
+      const ln = lines[l] || '';
+      while (c >= 0 && ln[c] === ' ') c--;
+      if (c < 0) {
+        l--;
+        c = (lines[l] || '').length - 1;
+        continue;
+      }
+      // 找到词尾，回退到词首
+      while (c >= 0 && ln[c] !== ' ') c--;
+      const start = c + 1;
+      if (start < ln.length && ln[start] !== ' ') {
+        return { line: l, col: start };
+      }
+      c--;
+    }
+    return null;
+  }
+
+  private findNextWordEnd(lines: string[], line: number, col: number): { line: number; col: number } | null {
+    let l = line;
+    let c = col;
+    const currentLine = lines[l] || '';
+    // 如果不在词尾，先跳到当前词尾
+    if (c < currentLine.length && currentLine[c] !== ' ') {
+      while (c < currentLine.length && currentLine[c] !== ' ') c++;
+      // 跨过空白到下一个词
+      while (c < currentLine.length && currentLine[c] === ' ') c++;
+      if (c < currentLine.length) {
+        // 找到下一个词的词尾
+        while (c < currentLine.length && currentLine[c] !== ' ') c++;
+        return { line: l, col: c - 1 };
+      }
+      l++;
+    } else {
+      // 跳过空白
+      while (c < currentLine.length && currentLine[c] === ' ') c++;
+      if (c < currentLine.length) {
+        while (c < currentLine.length && currentLine[c] !== ' ') c++;
+        return { line: l, col: c - 1 };
+      }
+      l++;
+    }
+    // 跨行到下一个有内容的行
+    for (; l < lines.length; l++) {
+      const ln = lines[l];
+      for (c = 0; c < ln.length; c++) {
+        if (ln[c] !== ' ') {
+          while (c < ln.length && ln[c] !== ' ') c++;
+          return { line: l, col: c - 1 };
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * 更新光标位置
    */
   updateCursorPosition(taskId: number, line: number, column: number): void {

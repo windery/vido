@@ -21,8 +21,12 @@ import('./initialize').then(() => {
     // 确保在Vue应用完全挂载后再初始化键盘管理器
     setTimeout(() => {
       import('./domain/keyboard/keyboard-manager').then(
-        ({ initializeKeyboardManager }) => {
+        ({ initializeKeyboardManager, getKeyboardManager }) => {
           initializeKeyboardManager();
+          // 注入滚动回调，domain 层不再直接访问 window
+          getKeyboardManager().setScrollCallback(() => {
+            (window as any).scrollToSelectedTask?.();
+          });
         }
       );
 

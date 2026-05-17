@@ -59,6 +59,8 @@ export class ContentEditModeHandler implements ModeHandler {
     }
   }
 
+  dispose(): void {}
+
   private blurInputFields(): void {
     const activeElement = document.activeElement;
     if (

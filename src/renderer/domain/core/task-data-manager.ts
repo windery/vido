@@ -218,6 +218,18 @@ export class TaskDataManager extends ApplicationStateManager {
     this.cursorManager.moveCursorToLastLine();
   }
 
+  moveCursorWordForward(): void {
+    this.cursorManager.moveCursorWordForward();
+  }
+
+  moveCursorWordBackward(): void {
+    this.cursorManager.moveCursorWordBackward();
+  }
+
+  moveCursorWordEnd(): void {
+    this.cursorManager.moveCursorWordEnd();
+  }
+
   /**
    * 在当前光标位置下方插入新行 - 委托给TaskCrudManager
    */
