@@ -6,6 +6,22 @@ This file provides guidance to Claude Code when working with this repository.
 
 **This program is designed for programmers, embodying programmer characteristics: rigorous, concise, and efficient. It should align with programmer thinking patterns.**
 
+### Operation Philosophy
+
+**Vim is an interaction paradigm, not a visual style.**
+
+- **Interaction layer**: vim paradigm — modal editing (COMMAND / INSERT / VISUAL), keyboard-first, key sequences (`dd`, `yy`, `gg`, `G`), count prefixes (`3j`, `2dd`), zero mouse dependency
+- **Visual layer**: modern desktop application — refined typography, fluid animations, depth shadows, color hierarchy, glassmorphism accents
+
+Do not imitate terminal vim's visual appearance. The UI should feel premium and modern while retaining vim's efficient keyboard-driven operations.
+
+### UX Principles
+
+- **Inline over overlay**: avoid modal dialogs; expand and collapse content in place to preserve user's spatial context
+- **Keyboard-first, not keyboard-only**: keyboard is primary, but visual cues (hover states, transitions, focus rings) enhance discoverability
+- **Progressive disclosure**: show common options immediately, reveal advanced options on demand
+- **Immediate feedback**: 200ms transitions, no decorative delays
+
 ## Development Commands
 
 **Recommended: Use pnpm for better performance**
@@ -36,11 +52,14 @@ This application embodies **programmer values**: rigorous, concise, efficient. U
 ### Design Standards
 
 **Typography & Colors**:
-- **Font**: Monospace (SF Mono, JetBrains Mono, Fira Code)
-- **Primary**: #1976D2 (Material Blue 700) - trustworthy, professional
-- **Surface**: #121212 (Dark theme for extended use)
-- **Text**: #E1E1E1 (High contrast), #A0A0A0 (Secondary)
-- **Active**: #1976D2 background with #FFFFFF text
+- **Content font**: Monospace (SF Mono, JetBrains Mono, Fira Code) for task data
+- **UI font**: System UI (SF Pro / Segoe UI) for labels, hints, tab headers
+- **Primary**: #1976D2 (Material Blue 700), hover/focus accent #42a5f5
+- **Surface**: #121212 base, #1e1e20 cards, #2a2a2e inputs
+- **Text**: #E1E1E1 (primary), #A0A0A0 (secondary), #888 (hints)
+- **Priority colors**: P1 #f85149, P2 #d29922, P3 #58a6ff
+- **Glass surface**: `rgba(30,30,32,0.85)` + `backdrop-filter: blur(12px)` for panels
+- **Active**: blue left border + gradient background `#1a3a5c → #264f78`
 
 **Spacing & Layout**:
 - **8dp Grid System**: All spacing multiples of 8px (8px, 16px, 24px, 32px)
@@ -48,11 +67,18 @@ This application embodies **programmer values**: rigorous, concise, efficient. U
 - **Border Radius**: 4dp (small), 8dp (cards/panels)
 - **Minimum Touch**: 44dp for all interactive elements
 
+**Animation & Motion**:
+- **Expand/collapse**: 200ms cubic-bezier(0.16, 1, 0.3, 1), max-height + opacity
+- **Tab switch**: 150ms translateX slide
+- **Hover**: transform translateY(-1px) + box-shadow, 100ms
+- **Focus ring**: blue inner glow `box-shadow: 0 0 0 2px rgba(25,118,210,0.3)`
+- **Selection**: blue left border slides in, background gradient transition
+
 **Interaction Principles**:
-- **Keyboard-first**: All interactions keyboard accessible
-- **Immediate feedback**: State changes instant and clear
-- **Progressive disclosure**: Hide complexity, reveal when needed
-- **Subtle animations**: 200ms ease-out, no decorative effects
+- **Keyboard-first**: All interactions keyboard accessible, visual cues enhance discoverability
+- **Inline over overlay**: No modal dialogs; expand in place
+- **Immediate feedback**: 200ms transitions, no decorative delays
+- **Progressive disclosure**: Common options visible; advanced behind input/custom
 - **4.5:1 contrast ratio** minimum for all text
 
 ### Implementation Requirements
