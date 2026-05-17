@@ -58,7 +58,7 @@ const parseResult = computed(() => {
   if (!inputValue.value.trim()) return null;
   const s = parseScheduleFromString(inputValue.value.trim());
   if (s) return { valid: true, text: getScheduleDisplayText(s), schedule: s };
-  return { valid: false, text: '无法识别的时间格式', schedule: null };
+  return { valid: false, text: '无法识别的时间格式', schedule: undefined };
 });
 
 function selectQuick(value: string) {
