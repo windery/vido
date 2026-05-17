@@ -26,6 +26,7 @@
 import { nextTick, onMounted, computed, watchEffect, ref, watch } from 'vue';
 import { Task, TaskState } from '../domain/task';
 import { useTaskState } from '../composables/use-task-state';
+import { getKeyboardManager } from '../domain/keyboard/keyboard-manager';
 import { logger } from '../utils/logger';
 
 // Components
@@ -339,6 +340,12 @@ const registerTextareaRef = (taskId: number, textarea: HTMLTextAreaElement | nul
 
 onMounted(() => {
     logger.info('TodoListRefactored', 'Component mounted with refactored architecture');
+
+    // 注入滚动回调到键盘管理器，HMR 重渲染时重新注册
+    const km = getKeyboardManager();
+    km.setScrollCallback(() => {
+        (window as any).scrollToSelectedTask?.();
+    });
 
     // 监听保存光标位置事件
     document.addEventListener('save-cursor-position', (event: any) => {

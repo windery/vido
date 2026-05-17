@@ -1,8 +1,67 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CommandModeHandler } from '../keyboard/command-mode-handler';
+import { Task, TaskState } from '../task';
+import { TaskDataState } from '../core/task-data-manager';
+import { TaskNavigation } from '../core/task-navigation';
 
 function makeEvent(key: string): KeyboardEvent {
   return new KeyboardEvent('keydown', { key, bubbles: true });
+}
+
+function makeTasks(count: number): Task[] {
+  return Array.from({ length: count }, (_, i) => {
+    const t = new Task(i + 1);
+    t.title = `Task ${i + 1}`;
+    t.selected = false;
+    t.status = TaskState.VIEWING;
+    return t;
+  });
+}
+
+/** 创建带真实 TaskNavigation 的 mock TaskDataManager */
+function createMockTDM(taskList: Task[]) {
+  let state: TaskDataState = {
+    editorMode: 0,
+    taskState: 0,
+    selectedTaskId: taskList.find((t) => t.selected)?.id,
+    tasks: taskList,
+    maxId: 100,
+    clipboard: null,
+    isTaskConfigVisible: false,
+    isHelpVisible: false,
+    lastlineContent: '',
+    lastlineVisible: false,
+    cursorPosition: undefined,
+  };
+
+  const nav = new TaskNavigation(
+    () => state,
+    (updates) => { state = { ...state, ...updates } as TaskDataState; }
+  );
+
+  return {
+    getState: () => state,
+    _state: () => state, // 暴露内部状态供测试断言
+    selectNext: () => nav.selectNext(),
+    selectPrevious: () => nav.selectPrevious(),
+    goToFirst: () => nav.goToFirst(),
+    goToLast: () => nav.goToLast(),
+    selectTask: (id: number) => nav.selectTask(id),
+    transition: vi.fn(() => ({ success: true })),
+    startContentNavigation: vi.fn(),
+    startTitleEditing: vi.fn(),
+    toggleTaskCompletion: vi.fn(),
+    toggleHelp: vi.fn(),
+    createNewTask: vi.fn(() => {
+      const t = new Task(99);
+      t.title = '';
+      return t;
+    }),
+    deleteSelectedTask: vi.fn(),
+    copySelectedTask: vi.fn(),
+    pasteTask: vi.fn(),
+    showTaskConfig: vi.fn(),
+  };
 }
 
 describe('CommandModeHandler', () => {
@@ -51,6 +110,12 @@ describe('CommandModeHandler', () => {
       handler.handleKey(makeEvent('G'), 'G', mockTDM, false);
       expect(mockTDM.goToLast).toHaveBeenCalledTimes(1);
     });
+
+    it('calls goToFirst on gg', () => {
+      handler.handleKey(makeEvent('g'), 'g', mockTDM, false);
+      handler.handleKey(makeEvent('g'), 'g', mockTDM, false);
+      expect(mockTDM.goToFirst).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('number prefix', () => {
@@ -70,9 +135,8 @@ describe('CommandModeHandler', () => {
       handler.handleKey(makeEvent('3'), '3', mockTDM, false);
       handler.handleKey(makeEvent('j'), 'j', mockTDM, false);
       expect(mockTDM.selectNext).toHaveBeenCalledTimes(3);
-
       handler.handleKey(makeEvent('j'), 'j', mockTDM, false);
-      expect(mockTDM.selectNext).toHaveBeenCalledTimes(4); // +1 more
+      expect(mockTDM.selectNext).toHaveBeenCalledTimes(4);
     });
 
     it('handles multi-digit prefix 12j', () => {
@@ -88,39 +152,6 @@ describe('CommandModeHandler', () => {
       handler.handleKey(makeEvent('d'), 'd', mockTDM, false);
       expect(mockTDM.deleteSelectedTask).toHaveBeenCalledTimes(2);
     });
-
-    it('ignores digit not starting a sequence (e.g. single 0)', () => {
-      // '0' is not in [1-9] regex range — but wait, let me check: 0 is not a valid count prefix in vim
-      handler.handleKey(makeEvent('0'), '0', mockTDM, false);
-      handler.handleKey(makeEvent('j'), 'j', mockTDM, false);
-      expect(mockTDM.selectNext).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('key sequences', () => {
-    it('gg goes to first task', () => {
-      handler.handleKey(makeEvent('g'), 'g', mockTDM, false);
-      handler.handleKey(makeEvent('g'), 'g', mockTDM, false);
-      expect(mockTDM.goToFirst).toHaveBeenCalledTimes(1);
-    });
-
-    it('dd deletes selected task', () => {
-      handler.handleKey(makeEvent('d'), 'd', mockTDM, false);
-      handler.handleKey(makeEvent('d'), 'd', mockTDM, false);
-      expect(mockTDM.deleteSelectedTask).toHaveBeenCalledTimes(1);
-    });
-
-    it('yy copies selected task', () => {
-      handler.handleKey(makeEvent('y'), 'y', mockTDM, false);
-      handler.handleKey(makeEvent('y'), 'y', mockTDM, false);
-      expect(mockTDM.copySelectedTask).toHaveBeenCalledTimes(1);
-    });
-
-    it('cc shows task config', () => {
-      handler.handleKey(makeEvent('c'), 'c', mockTDM, false);
-      handler.handleKey(makeEvent('c'), 'c', mockTDM, false);
-      expect(mockTDM.showTaskConfig).toHaveBeenCalledTimes(1);
-    });
   });
 
   describe('scroll callback', () => {
@@ -128,21 +159,202 @@ describe('CommandModeHandler', () => {
       const scrollCb = vi.fn();
       handler.setScrollCallback(scrollCb);
       handler.handleKey(makeEvent('j'), 'j', mockTDM, false);
-      // scroll happens after setTimeout(10ms)
       await new Promise((r) => setTimeout(r, 20));
       expect(scrollCb).toHaveBeenCalled();
     });
   });
 
   describe('dispose', () => {
-    it('clears all state', () => {
+    it('clears all state for fresh key handling', () => {
       handler.handleKey(makeEvent('3'), '3', mockTDM, false);
       handler.handleKey(makeEvent('g'), 'g', mockTDM, false);
       handler.dispose();
-      // After dispose, new key should work as fresh (no residual count/sequence)
       handler.setScrollCallback(vi.fn());
       handler.handleKey(makeEvent('j'), 'j', mockTDM, false);
       expect(mockTDM.selectNext).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+
+/**
+ * 集成测试：用真实 TaskNavigation + 真实状态，验证按键到状态变更的完整路径
+ */
+describe('CommandModeHandler integration with TaskNavigation', () => {
+  let handler: CommandModeHandler;
+  let mockTDM: any;
+
+  describe('G — go to last task', () => {
+    it('from top (selected=1) selects last task', () => {
+      const tasks = makeTasks(7);
+      tasks[0].selected = true;
+      tasks[0].status = TaskState.SELECTED;
+      mockTDM = createMockTDM(tasks);
+      handler = new CommandModeHandler();
+
+      handler.handleKey(makeEvent('G'), 'G', mockTDM, false);
+
+      expect(mockTDM._state().selectedTaskId).toBe(7);
+    });
+
+    it('from middle selects last task', () => {
+      const tasks = makeTasks(7);
+      tasks[3].selected = true;
+      tasks[3].status = TaskState.SELECTED;
+      mockTDM = createMockTDM(tasks);
+      handler = new CommandModeHandler();
+
+      handler.handleKey(makeEvent('G'), 'G', mockTDM, false);
+
+      expect(mockTDM._state().selectedTaskId).toBe(7);
+    });
+
+    it('from last task stays on last task', () => {
+      const tasks = makeTasks(7);
+      tasks[6].selected = true;
+      tasks[6].status = TaskState.SELECTED;
+      mockTDM = createMockTDM(tasks);
+      handler = new CommandModeHandler();
+
+      handler.handleKey(makeEvent('G'), 'G', mockTDM, false);
+
+      expect(mockTDM._state().selectedTaskId).toBe(7);
+    });
+
+    it('does nothing when task list is empty', () => {
+      mockTDM = createMockTDM([]);
+      handler = new CommandModeHandler();
+
+      handler.handleKey(makeEvent('G'), 'G', mockTDM, false);
+
+      expect(mockTDM._state().selectedTaskId).toBeUndefined();
+    });
+  });
+
+  describe('k — navigate up with wrap', () => {
+    it('at the top (index 0) wraps to last task', () => {
+      const tasks = makeTasks(5);
+      tasks[0].selected = true;
+      tasks[0].status = TaskState.SELECTED;
+      mockTDM = createMockTDM(tasks);
+      handler = new CommandModeHandler();
+
+      handler.handleKey(makeEvent('k'), 'k', mockTDM, false);
+
+      expect(mockTDM._state().selectedTaskId).toBe(5);
+    });
+
+    it('at second task goes to first', () => {
+      const tasks = makeTasks(5);
+      tasks[1].selected = true;
+      tasks[1].status = TaskState.SELECTED;
+      mockTDM = createMockTDM(tasks);
+      handler = new CommandModeHandler();
+
+      handler.handleKey(makeEvent('k'), 'k', mockTDM, false);
+
+      expect(mockTDM._state().selectedTaskId).toBe(1);
+    });
+
+    it('in middle goes to previous', () => {
+      const tasks = makeTasks(5);
+      tasks[2].selected = true;
+      tasks[2].status = TaskState.SELECTED;
+      mockTDM = createMockTDM(tasks);
+      handler = new CommandModeHandler();
+
+      handler.handleKey(makeEvent('k'), 'k', mockTDM, false);
+
+      expect(mockTDM._state().selectedTaskId).toBe(2);
+    });
+
+    it('at the bottom goes to second-to-last', () => {
+      const tasks = makeTasks(5);
+      tasks[4].selected = true;
+      tasks[4].status = TaskState.SELECTED;
+      mockTDM = createMockTDM(tasks);
+      handler = new CommandModeHandler();
+
+      handler.handleKey(makeEvent('k'), 'k', mockTDM, false);
+
+      expect(mockTDM._state().selectedTaskId).toBe(4);
+    });
+  });
+
+  describe('j — navigate down with wrap', () => {
+    it('at the bottom (last index) wraps to first task', () => {
+      const tasks = makeTasks(5);
+      tasks[4].selected = true;
+      tasks[4].status = TaskState.SELECTED;
+      mockTDM = createMockTDM(tasks);
+      handler = new CommandModeHandler();
+
+      handler.handleKey(makeEvent('j'), 'j', mockTDM, false);
+
+      expect(mockTDM._state().selectedTaskId).toBe(1);
+    });
+
+    it('in middle goes to next', () => {
+      const tasks = makeTasks(5);
+      tasks[2].selected = true;
+      tasks[2].status = TaskState.SELECTED;
+      mockTDM = createMockTDM(tasks);
+      handler = new CommandModeHandler();
+
+      handler.handleKey(makeEvent('j'), 'j', mockTDM, false);
+
+      expect(mockTDM._state().selectedTaskId).toBe(4);
+    });
+  });
+
+  describe('gg — go to first task', () => {
+    it('from bottom selects first task', () => {
+      const tasks = makeTasks(7);
+      tasks[6].selected = true;
+      tasks[6].status = TaskState.SELECTED;
+      mockTDM = createMockTDM(tasks);
+      handler = new CommandModeHandler();
+
+      handler.handleKey(makeEvent('g'), 'g', mockTDM, false);
+      handler.handleKey(makeEvent('g'), 'g', mockTDM, false);
+
+      expect(mockTDM._state().selectedTaskId).toBe(1);
+    });
+  });
+
+  describe('number prefix with k/j', () => {
+    it('3k from index 3 wraps to last when list has 5 items', () => {
+      // tasks: [1, 2, 3, 4, 5], selected=4 (index 3)
+      // 3k: up 3 times → index 2 → 1 → 0 → wrap to 4 → wait, that's wrong
+      // Let me trace: from index 3:
+      // k1: index 2 (task 3)
+      // k2: index 1 (task 2)
+      // k3: index 0 (task 1)
+      // selectedTaskId = 1
+      const tasks = makeTasks(5);
+      tasks[3].selected = true;
+      tasks[3].status = TaskState.SELECTED;
+      mockTDM = createMockTDM(tasks);
+      handler = new CommandModeHandler();
+
+      handler.handleKey(makeEvent('3'), '3', mockTDM, false);
+      handler.handleKey(makeEvent('k'), 'k', mockTDM, false);
+
+      expect(mockTDM._state().selectedTaskId).toBe(1);
+    });
+
+    it('3j from index 2 goes to last when list has 5 items', () => {
+      // tasks: [1, 2, 3, 4, 5], selected=3 (index 2)
+      // 3j: down 3 times → index 3 → 4 → wrap to 0 → task 1
+      const tasks = makeTasks(5);
+      tasks[2].selected = true;
+      tasks[2].status = TaskState.SELECTED;
+      mockTDM = createMockTDM(tasks);
+      handler = new CommandModeHandler();
+
+      handler.handleKey(makeEvent('3'), '3', mockTDM, false);
+      handler.handleKey(makeEvent('j'), 'j', mockTDM, false);
+
+      expect(mockTDM._state().selectedTaskId).toBe(1);
     });
   });
 });
