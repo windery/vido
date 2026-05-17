@@ -70,8 +70,8 @@ export class DataPersistence {
           return task;
         });
 
-        const maxId =
-          savedData.maxId || Math.max(...tasks.map((t) => t.id), 0) + 1;
+        const maxTaskId = tasks.length > 0 ? Math.max(...tasks.map((t) => t.id)) : 0;
+        const maxId = Math.max(savedData.maxId || 0, maxTaskId) + 1;
 
         this.updateState({
           tasks,
