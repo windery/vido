@@ -104,8 +104,6 @@ export class KeyboardManager {
       case EditorMode.LAST_LINE:
         this.lastLineModeHandler.handleKey(event, key, this.taskDataManager, isInInputField);
         break;
-      case EditorMode.TASK_CONFIG:
-        break;
       default:
         logger.warn('KeyboardManager', `Unknown editor mode: ${editorMode}`);
     }

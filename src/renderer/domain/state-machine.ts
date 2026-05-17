@@ -43,13 +43,6 @@ export const STATE_TRANSITIONS: StateTransition[] = [
     trigger: 'Escape',
     description: 'Clear search filter or other states',
   },
-  {
-    from: EditorMode.COMMAND,
-    to: EditorMode.TASK_CONFIG,
-    trigger: 'cc',
-    description: 'Open task configuration',
-  },
-
   // TITLE_EDIT模式的转换
   {
     from: EditorMode.TITLE_EDIT,
@@ -112,13 +105,6 @@ export const STATE_TRANSITIONS: StateTransition[] = [
     description: 'Cancel command and return to command mode',
   },
 
-  // TASK_CONFIG模式的转换
-  {
-    from: EditorMode.TASK_CONFIG,
-    to: EditorMode.COMMAND,
-    trigger: 'Escape',
-    description: 'Exit task configuration and return to command mode',
-  },
 ];
 
 // TaskState推导函数 - 根据EditorMode动态计算TaskState
@@ -141,8 +127,6 @@ export function deriveTaskState(
       return TaskState.CONTENT_EDITING;
     case EditorMode.LAST_LINE:
       return TaskState.SELECTED; // 命令行模式下，任务状态保持SELECTED
-    case EditorMode.TASK_CONFIG:
-      return TaskState.SELECTED; // 配置模式下，任务状态保持SELECTED
     default:
       return TaskState.VIEWING;
   }

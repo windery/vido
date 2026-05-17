@@ -185,8 +185,8 @@ export class CommandModeHandler implements ModeHandler {
         this.keySequence += key;
         if (this.keySequence === 'cc') {
           event.preventDefault();
-          taskDataManager.showTaskConfig();
-          this.resetAll();
+          this.resetKeySequence();
+          taskDataManager.toggleConfigPanel();
           return true;
         }
         this.setKeySequenceTimeout();

@@ -4,5 +4,4 @@ export enum EditorMode {
   CONTENT_EDIT = 2,
   LAST_LINE = 3,
   CONTENT_NAVIGATION = 4,
-  TASK_CONFIG = 5,
 }

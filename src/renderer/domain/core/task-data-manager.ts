@@ -20,7 +20,6 @@ export interface TaskDataState extends ApplicationState {
   tasks: Task[];
   maxId: number;
   clipboard: Task | null;
-  isTaskConfigVisible: boolean;
 }
 
 export class TaskDataManager extends ApplicationStateManager {
@@ -45,7 +44,6 @@ export class TaskDataManager extends ApplicationStateManager {
       tasks: [],
       maxId: 1,
       clipboard: null,
-      isTaskConfigVisible: false,
       ...initialState,
     };
 
@@ -342,52 +340,23 @@ export class TaskDataManager extends ApplicationStateManager {
     );
   }
 
-  /**
-   * 显示任务配置页面
-   */
-  showTaskConfig(): void {
-    // 检查是否有选中的任务
-    const currentState = this.getState() as TaskDataState;
-    const selectedTaskId = currentState.selectedTaskId;
-    if (!selectedTaskId || selectedTaskId === -1) {
-      logger.debug(
-        'TaskDataManager',
-        'Cannot show task config: no task selected'
-      );
-      return;
-    }
+  toggleConfigPanel(): void {
+    const state = this.getTaskDataState();
+    const selectedTaskId = state.selectedTaskId;
+    if (!selectedTaskId) return;
 
-    // 验证任务是否存在
-    const taskExists = currentState.tasks.some(
-      (task) => task.id === selectedTaskId
+    const tasks = state.tasks.map((task) =>
+      task.id === selectedTaskId
+        ? { ...task, isConfigExpanded: !task.isConfigExpanded }
+        : { ...task, isConfigExpanded: false }
     );
-    if (!taskExists) {
-      logger.debug(
-        'TaskDataManager',
-        'Cannot show task config: selected task does not exist'
-      );
-      return;
-    }
 
-    this.updateState(
-      {
-        isTaskConfigVisible: true,
-        editorMode: EditorMode.TASK_CONFIG,
-      } as Partial<TaskDataState>,
-      'show-task-config'
-    );
+    this.updateState({ tasks } as Partial<TaskDataState>, 'toggle-config');
   }
 
-  /**
-   * 退出任务配置页面
-   */
-  exitTaskConfig(): void {
-    this.updateState(
-      {
-        isTaskConfigVisible: false,
-        editorMode: EditorMode.COMMAND,
-      } as Partial<TaskDataState>,
-      'exit-task-config'
-    );
+  closeConfigPanel(): void {
+    const state = this.getTaskDataState();
+    const tasks = state.tasks.map((task) => ({ ...task, isConfigExpanded: false }));
+    this.updateState({ tasks } as Partial<TaskDataState>, 'close-config');
   }
 }
