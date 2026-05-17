@@ -5,6 +5,8 @@
 
 import { ModeHandler } from './base-handler';
 import { TaskDataManager } from '../core/task-data-manager';
+import { nextTick } from 'vue';
+import { logger } from '../../utils/logger';
 
 export class ContentNavigationModeHandler implements ModeHandler {
   private keySequence = '';
@@ -130,11 +132,20 @@ export class ContentNavigationModeHandler implements ModeHandler {
     const cursorCol = task?.cursorColumn ?? 0;
     const rawContent = task?.content || '';
 
-    setTimeout(() => {
-      const el = document.querySelector(`[data-task-id="${taskId}"] .content-editor`);
-      if (el instanceof HTMLTextAreaElement) {
-        // 先恢复原始内容——CONTENT_NAVIGATION 模式下 textarea 被插入了光标占位符，
-        // 如果不恢复，用 el.value 算出来的 offset 会偏移一位，导致覆盖字符
+    logger.info('ContentNavigationModeHandler',
+      `enableContentEditing: task=${taskId} cursorLine=${cursorLine} cursorCol=${cursorCol} contentLen=${rawContent.length}`);
+
+    // 等 Vue 完成 DOM 更新后再操作 textarea，避免 :value 绑定覆盖我们的设置
+    nextTick(() => {
+      setTimeout(() => {
+        const el = document.querySelector(`[data-task-id="${taskId}"] .content-editor`);
+        if (!(el instanceof HTMLTextAreaElement)) {
+          logger.warn('ContentNavigationModeHandler', `enableContentEditing: textarea not found for task ${taskId}`);
+          return;
+        }
+
+        // 恢复原始内容——CONTENT_NAVIGATION 模式下 textarea 有光标占位符
+        const beforeValue = el.value;
         el.value = rawContent;
         el.removeAttribute('readonly');
         el.readOnly = false;
@@ -147,10 +158,18 @@ export class ContentNavigationModeHandler implements ModeHandler {
         for (let i = 0; i < cursorLine && i < lines.length; i++) {
           offset += lines[i].length + 1;
         }
-        offset += Math.min(cursorCol, (lines[cursorLine] || '').length);
+        const lineText = lines[cursorLine] || '';
+        const clampedCol = Math.min(cursorCol, lineText.length);
+        offset += clampedCol;
+
         el.setSelectionRange(offset, offset);
-      }
-    }, 5);
+
+        logger.info('ContentNavigationModeHandler',
+          `enableContentEditing: beforeLen=${beforeValue.length} afterLen=${el.value.length} ` +
+          `offset=${offset} selStart=${el.selectionStart} selEnd=${el.selectionEnd} ` +
+          `charAtCursor="${lineText[clampedCol] || '(end)'}"`);
+      }, 0);
+    });
   }
 
   private moveToAppendPosition(taskDataManager: TaskDataManager): void {
@@ -165,6 +184,9 @@ export class ContentNavigationModeHandler implements ModeHandler {
     const line = lines[currentLine] || '';
     const currentCol = task.cursorColumn || 0;
     const newCol = currentCol >= line.length ? line.length : currentCol + 1;
+
+    logger.info('ContentNavigationModeHandler',
+      `moveToAppendPosition: task=${task.id} line=${currentLine} col ${currentCol}→${newCol} content="${content.slice(0, 30)}"`);
 
     taskDataManager.updateTaskCursorPosition(task.id, currentLine, newCol);
   }
