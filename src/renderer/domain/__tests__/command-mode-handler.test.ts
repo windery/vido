@@ -27,7 +27,6 @@ function createMockTDM(taskList: Task[]) {
     tasks: taskList,
     maxId: 100,
     clipboard: null,
-    isTaskConfigVisible: false,
     isHelpVisible: false,
     lastlineContent: '',
     lastlineVisible: false,

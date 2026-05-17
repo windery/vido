@@ -40,12 +40,6 @@ describe('StateMachine', () => {
       expect(sm.getCurrentState().editorMode).toBe(EditorMode.TITLE_EDIT);
     });
 
-    it('cc enters TASK_CONFIG', () => {
-      const result = sm.transition('cc');
-      expect(result.success).toBe(true);
-      expect(sm.getCurrentState().editorMode).toBe(EditorMode.TASK_CONFIG);
-    });
-
     it('Escape stays in COMMAND', () => {
       const result = sm.transition('Escape');
       expect(result.success).toBe(true);
@@ -125,7 +119,7 @@ describe('StateMachine', () => {
       expect(triggers).toContain('i');
       expect(triggers).toContain(':');
       expect(triggers).toContain('Enter');
-      expect(triggers).toContain('cc');
+      // 'cc' no longer transitions to TASK_CONFIG mode
     });
   });
 });

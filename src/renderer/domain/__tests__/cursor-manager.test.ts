@@ -22,7 +22,6 @@ function makeState(tasks: Task[]): TaskDataState {
     tasks,
     maxId: 100,
     clipboard: null,
-    isTaskConfigVisible: false,
     isHelpVisible: false,
     lastlineContent: '',
     lastlineVisible: false,
