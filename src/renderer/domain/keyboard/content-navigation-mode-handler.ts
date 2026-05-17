@@ -121,9 +121,13 @@ export class ContentNavigationModeHandler implements ModeHandler {
   }
 
   private enableContentEditing(taskDataManager: TaskDataManager): void {
-    const state = taskDataManager.getState();
+    const state = taskDataManager.getTaskDataState();
     const taskId = state.selectedTaskId;
     if (!taskId) return;
+
+    const task = state.tasks.find((t: any) => t.selected);
+    const cursorLine = task?.cursorLine ?? 0;
+    const cursorCol = task?.cursorColumn ?? 0;
 
     setTimeout(() => {
       const el = document.querySelector(`[data-task-id="${taskId}"] .content-editor`);
@@ -133,6 +137,16 @@ export class ContentNavigationModeHandler implements ModeHandler {
         el.style.display = 'block';
         el.tabIndex = 0;
         el.focus();
+
+        // 根据 domain 光标位置设置 textarea 的 selection
+        const content = el.value;
+        const lines = content.split('\n');
+        let offset = 0;
+        for (let i = 0; i < cursorLine && i < lines.length; i++) {
+          offset += lines[i].length + 1; // +1 for \n
+        }
+        offset += Math.min(cursorCol, (lines[cursorLine] || '').length);
+        el.setSelectionRange(offset, offset);
       }
     }, 5);
   }
