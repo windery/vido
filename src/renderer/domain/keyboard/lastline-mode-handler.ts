@@ -4,6 +4,7 @@
 
 import { ModeHandler } from './base-handler';
 import { TaskDataManager } from '../core/task-data-manager';
+import { TaskPriority } from '../task';
 import { logger } from '../../utils/logger';
 import {
   createTodaySchedule,
@@ -93,6 +94,13 @@ export class LastLineModeHandler implements ModeHandler {
         break;
       case 'time':
         this.showTaskSchedule(taskDataManager);
+        break;
+      case 'p':
+        this.setTaskPriority(args, taskDataManager);
+        break;
+      case 't':
+      case 'tag':
+        this.setTaskTags(args, taskDataManager);
         break;
       default:
         logger.warn('LastLineModeHandler', `Unknown vim command: ${command}`);
@@ -196,6 +204,78 @@ export class LastLineModeHandler implements ModeHandler {
         'LastLineModeHandler',
         `任务 "${task.title}" 没有设置时间安排`
       );
+    }
+  }
+
+  private setTaskPriority(
+    args: string[],
+    taskDataManager: TaskDataManager
+  ): void {
+    const taskId = taskDataManager.getState().selectedTaskId;
+    if (!taskId) {
+      logger.warn('LastLineModeHandler', 'No task selected for priority');
+      return;
+    }
+
+    if (args.length === 0) {
+      // 无参数：循环切换 P2 → P1 → P3 → P2
+      const task = taskDataManager.getTaskDataState().tasks.find(
+        (t: any) => t.id === taskId
+      );
+      const cycle = [TaskPriority.MEDIUM, TaskPriority.HIGH, TaskPriority.LOW];
+      const current = task?.priority || TaskPriority.MEDIUM;
+      const idx = cycle.indexOf(current);
+      const next = cycle[(idx + 1) % cycle.length];
+      taskDataManager.updateTaskProperty(taskId, 'priority', next);
+      logger.info('LastLineModeHandler', `Cycled priority to: ${next}`);
+    } else {
+      const map: Record<string, TaskPriority> = {
+        '1': TaskPriority.HIGH,
+        '2': TaskPriority.MEDIUM,
+        '3': TaskPriority.LOW,
+        'high': TaskPriority.HIGH,
+        'medium': TaskPriority.MEDIUM,
+        'low': TaskPriority.LOW,
+      };
+      const p =
+        map[args[0].toLowerCase()] || (args[0].toUpperCase() as TaskPriority);
+      if (Object.values(TaskPriority).includes(p)) {
+        taskDataManager.updateTaskProperty(taskId, 'priority', p);
+        logger.info('LastLineModeHandler', `Set priority to: ${p}`);
+      } else {
+        logger.warn('LastLineModeHandler', `Invalid priority: ${args[0]}`);
+      }
+    }
+  }
+
+  private setTaskTags(
+    args: string[],
+    taskDataManager: TaskDataManager
+  ): void {
+    const taskId = taskDataManager.getState().selectedTaskId;
+    if (!taskId) {
+      logger.warn('LastLineModeHandler', 'No task selected for tags');
+      return;
+    }
+
+    const task = taskDataManager.getTaskDataState().tasks.find(
+      (t: any) => t.id === taskId
+    );
+    if (!task) return;
+
+    if (args.length === 0) {
+      const tags = task.tags?.join(', ') || '(none)';
+      logger.info('LastLineModeHandler', `Tags: ${tags}`);
+    } else {
+      const newTag = args.join(' ');
+      const currentTags = task.tags || [];
+      if (!currentTags.includes(newTag)) {
+        taskDataManager.updateTaskProperty(taskId, 'tags', [
+          ...currentTags,
+          newTag,
+        ]);
+        logger.info('LastLineModeHandler', `Added tag: ${newTag}`);
+      }
     }
   }
 
