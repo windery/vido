@@ -11,6 +11,7 @@ export class Task {
   tags?: string[];
   priority?: TaskPriority;
   schedule?: Schedule;
+  isConfigExpanded?: boolean;
   isNewlyCreated?: boolean;
   cursorLine?: number;
   cursorColumn?: number;

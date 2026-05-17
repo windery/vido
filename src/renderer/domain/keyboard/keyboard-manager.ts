@@ -127,10 +127,6 @@ export class KeyboardManager {
         );
         break;
 
-      case EditorMode.TASK_CONFIG:
-        // TASK_CONFIG 模式所有键由组件层处理
-        break;
-
       default:
         logger.warn('KeyboardManager', `Unknown editor mode: ${editorMode}`);
     }

@@ -53,9 +53,6 @@ export function useTaskStateGetters() {
     () => stateRef.value.lastlineVisible || false
   );
   const isHelpVisible = computed(() => stateRef.value.isHelpVisible || false);
-  const isTaskConfigVisible = computed(
-    () => stateRef.value.isTaskConfigVisible || false
-  );
 
   return {
     // 基础状态
@@ -76,6 +73,5 @@ export function useTaskStateGetters() {
     lastlineContent,
     lastlineVisible,
     isHelpVisible,
-    isTaskConfigVisible,
   };
 }

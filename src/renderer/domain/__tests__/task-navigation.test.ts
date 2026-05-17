@@ -15,7 +15,6 @@ function makeState(tasks: Task[], overrides?: Partial<TaskDataState>): TaskDataS
     tasks,
     maxId: 100,
     clipboard: null,
-    isTaskConfigVisible: false,
     ...overrides,
   };
 }

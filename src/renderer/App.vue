@@ -7,9 +7,8 @@ import HelpPanel from "@components/HelpPanel.vue";
 
 import { onMounted, computed, ref } from "vue";
 import { useTaskState } from "@composables/use-task-state";
-import { EditorMode } from "@renderer/domain/editor";
 
-const { taskDataManager, isHelpVisible, isTaskConfigVisible, selectedTask, editorMode } = useTaskState();
+const { taskDataManager, isHelpVisible, selectedTask } = useTaskState();
 
 // TaskConfig组件的引用
 const taskConfigRef = ref();
@@ -25,22 +24,15 @@ const hideHelp = () => {
 
 // 使用响应式的任务配置状态
 const showTaskConfig = computed(() => {
-  return isTaskConfigVisible.value;
+  return selectedTask.value?.isConfigExpanded || false;
 });
 
 const hideTaskConfig = () => {
-  taskDataManager.exitTaskConfig();
+  taskDataManager.closeConfigPanel();
 };
 
 const handleTaskUpdate = (taskId: number, property: string, value: any) => {
   taskDataManager.updateTaskProperty(taskId, property, value);
-};
-
-const handleTaskConfigKeydown = (event: KeyboardEvent) => {
-  // 将键盘事件传递给TaskConfig组件处理
-  if (taskConfigRef.value && editorMode.value === EditorMode.TASK_CONFIG) {
-    taskConfigRef.value.handleKeydown(event);
-  }
 };
 
 onMounted(() => {
@@ -50,21 +42,6 @@ onMounted(() => {
   // 设置body可以接收焦点，用于键盘事件处理
   document.body.tabIndex = -1;
   document.body.style.outline = 'none';
-
-  // 监听全局键盘事件，用于TaskConfig模式
-  document.addEventListener('keydown', (event) => {
-    const target = event.target as HTMLElement;
-
-    // 处理TASK_CONFIG模式的键盘事件（包括测试事件）
-    if (editorMode.value === EditorMode.TASK_CONFIG) {
-      // 如果事件来自输入框，不要处理，让输入框自己处理
-      if (target?.tagName === 'INPUT' || target?.tagName === 'SELECT') {
-        return;
-      }
-
-      handleTaskConfigKeydown(event);
-    }
-  });
 });
 </script>
 

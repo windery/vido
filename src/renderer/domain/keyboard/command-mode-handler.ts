@@ -184,7 +184,7 @@ export class CommandModeHandler implements ModeHandler {
         if (this.keySequence === 'cc') {
           event.preventDefault();
           this.resetKeySequence();
-          taskDataManager.showTaskConfig();
+          taskDataManager.toggleConfigPanel();
           return true;
         }
         // 等待第二个c，设置超时

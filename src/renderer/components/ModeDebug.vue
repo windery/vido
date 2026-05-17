@@ -22,9 +22,6 @@
       <span v-else-if="editorMode === EditorMode.CONTENT_NAVIGATION" class="help-text">
         -- CONTENT-NAV -- (hjkl to move, i to insert)
       </span>
-      <span v-else-if="editorMode === EditorMode.TASK_CONFIG" class="help-text">
-        -- CONFIG -- (j/k to navigate, Enter to edit, Esc to exit editing/close)
-      </span>
       <span v-else class="help-text">
         Press ? for help
       </span>
@@ -58,8 +55,6 @@ const getModeText = (mode: EditorMode) => {
       } else {
         return 'LAST-LINE';
       }
-    case EditorMode.TASK_CONFIG:
-      return 'CONFIG';
     default:
       return 'UNKNOWN';
   }
@@ -94,8 +89,6 @@ const getModeClass = (mode: EditorMode) => {
       } else {
         return 'mode-last-line';
       }
-    case EditorMode.TASK_CONFIG:
-      return 'mode-config';
     default:
       return 'mode-unknown';
   }
