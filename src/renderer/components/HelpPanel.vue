@@ -21,7 +21,7 @@
             <div class="help-command"><span class="key">G</span> Go to last task</div>
             <div class="help-command"><span class="key">/</span> Search tasks</div>
             <div class="help-command"><span class="key">:</span> Enter command mode</div>
-            <div class="help-command"><span class="key">cc</span> Configure task (schedule/priority/tags)</div>
+            <div class="help-command"><span class="key">cc</span> Expand task config inline (schedule/priority/tags)</div>
             <div class="help-command"><span class="key">?</span> Show/hide this help</div>
           </div>
         </div>

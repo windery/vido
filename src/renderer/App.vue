@@ -2,16 +2,12 @@
 import ModeDebug from "./components/ModeDebug.vue";
 import TodoList from "@components/TodoList.vue";
 import LastLine from "@components/LastLine.vue";
-import TaskConfig from "@components/TaskConfig.vue";
 import HelpPanel from "@components/HelpPanel.vue";
 
-import { onMounted, computed, ref } from "vue";
+import { onMounted, computed } from "vue";
 import { useTaskState } from "@composables/use-task-state";
 
-const { taskDataManager, isHelpVisible, selectedTask } = useTaskState();
-
-// TaskConfig组件的引用
-const taskConfigRef = ref();
+const { isHelpVisible } = useTaskState();
 
 // 使用响应式的帮助状态
 const showHelp = computed(() => {
@@ -19,20 +15,8 @@ const showHelp = computed(() => {
 });
 
 const hideHelp = () => {
+  const { taskDataManager } = useTaskState();
   taskDataManager.toggleHelp();
-};
-
-// 使用响应式的任务配置状态
-const showTaskConfig = computed(() => {
-  return selectedTask.value?.isConfigExpanded || false;
-});
-
-const hideTaskConfig = () => {
-  taskDataManager.closeConfigPanel();
-};
-
-const handleTaskUpdate = (taskId: number, property: string, value: any) => {
-  taskDataManager.updateTaskProperty(taskId, property, value);
 };
 
 onMounted(() => {
@@ -53,10 +37,6 @@ onMounted(() => {
 
     <!-- Help Panel -->
     <HelpPanel :visible="showHelp" @close="hideHelp" />
-
-    <!-- Task Configuration Panel -->
-    <TaskConfig ref="taskConfigRef" :visible="showTaskConfig" :task="selectedTask" @close="hideTaskConfig"
-      @update-task="handleTaskUpdate" />
   </div>
 </template>
 
