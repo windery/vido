@@ -12,6 +12,7 @@ export class Task {
   priority?: TaskPriority;
   schedule?: Schedule;
   isConfigExpanded?: boolean;
+  configTab?: number;
   isNewlyCreated?: boolean;
   cursorLine?: number;
   cursorColumn?: number;

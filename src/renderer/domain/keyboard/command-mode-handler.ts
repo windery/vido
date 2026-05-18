@@ -45,6 +45,18 @@ export class CommandModeHandler implements ModeHandler {
 
     const count = this.countPrefix ? parseInt(this.countPrefix, 10) : 1;
 
+    // c + s/p/t → 直接打开特定配置 tab
+    if (this.keySequence === 'c') {
+      const tabMap: Record<string, number> = { s: 0, p: 1, t: 2 };
+      const tab = tabMap[key];
+      if (tab !== undefined) {
+        event.preventDefault();
+        this.resetAll();
+        taskDataManager.toggleConfigPanel(tab);
+        return true;
+      }
+    }
+
     switch (key) {
       case 'Escape':
         if (currentState.lastlineContent?.startsWith('/')) {

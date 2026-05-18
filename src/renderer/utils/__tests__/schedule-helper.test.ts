@@ -72,6 +72,30 @@ describe('parseScheduleFromString', () => {
     expect(s!.quickTime?.date).toBe('2026-05-15');
   });
 
+  it('parses compact datetime "202603061513" → YYYY-MM-DD HH:MM:SS', () => {
+    const s = parseScheduleFromString('202603061513');
+    expect(s!.type).toBe(ScheduleType.TIME);
+    expect(s!.quickTime?.time).toBe('2026-03-06 15:13:00');
+  });
+
+  it('parses compact date "20260306" → YYYY-MM-DD', () => {
+    const s = parseScheduleFromString('20260306');
+    expect(s!.type).toBe(ScheduleType.QUICK);
+    expect(s!.quickTime?.date).toBe('2026-03-06');
+  });
+
+  it('parses time-only "15:33" as today at that time', () => {
+    const s = parseScheduleFromString('15:33');
+    expect(s!.type).toBe(ScheduleType.TIME);
+    expect(s!.quickTime?.time).toMatch(/^\d{4}-\d{2}-\d{2} 15:33:00$/);
+  });
+
+  it('parses time-only "9:05" with leading hour', () => {
+    const s = parseScheduleFromString('9:05');
+    expect(s!.type).toBe(ScheduleType.TIME);
+    expect(s!.quickTime?.time).toMatch(/^\d{4}-\d{2}-\d{2} 09:05:00$/);
+  });
+
   it('parses datetime string', () => {
     const s = parseScheduleFromString('2026-05-15 14:30:00');
     expect(s!.type).toBe(ScheduleType.TIME);

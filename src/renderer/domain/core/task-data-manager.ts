@@ -340,7 +340,7 @@ export class TaskDataManager extends ApplicationStateManager {
     );
   }
 
-  toggleConfigPanel(): void {
+  toggleConfigPanel(tab?: number): void {
     const state = this.getTaskDataState();
     const selectedTaskId = state.selectedTaskId;
     if (!selectedTaskId) {
@@ -350,15 +350,19 @@ export class TaskDataManager extends ApplicationStateManager {
 
     const task = state.tasks.find((t) => t.id === selectedTaskId);
     const wasExpanded = !!task?.isConfigExpanded;
-    const nowExpanded = !wasExpanded;
+    // cs/cp/ct 直接设 tab 并打开；cc 切换开/关
+    const nowExpanded = tab !== undefined ? true : !wasExpanded;
 
     const tasks = state.tasks.map((t) => ({
       ...t,
       isConfigExpanded: t.id === selectedTaskId ? nowExpanded : false,
+      configTab: t.id === selectedTaskId && tab !== undefined ? tab : t.configTab,
     }));
 
+    const tabNames = ['schedule', 'priority', 'tags'];
     logger.info('TaskDataManager',
-      `toggleConfigPanel: task=${selectedTaskId} ${wasExpanded ? 'close' : 'open'}`);
+      `toggleConfigPanel: task=${selectedTaskId} ${nowExpanded ? 'open' : 'close'}` +
+      (tab !== undefined ? ` tab=${tabNames[tab]}` : ''));
 
     this.updateState({ tasks } as Partial<TaskDataState>, 'toggle-config');
   }

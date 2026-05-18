@@ -128,6 +128,32 @@ export function parseScheduleFromString(timeStr: string): Schedule | null {
     }
   }
 
+  // 202603061513 → 2026-03-06 15:13:00
+  if (/^\d{12}$/.test(trimmed)) {
+    const y = trimmed.slice(0, 4);
+    const m = trimmed.slice(4, 6);
+    const d = trimmed.slice(6, 8);
+    const hh = trimmed.slice(8, 10);
+    const mm = trimmed.slice(10, 12);
+    return createSpecificDateTimeSchedule(`${y}-${m}-${d} ${hh}:${mm}:00`);
+  }
+  // 20260306 → 2026-03-06
+  if (/^\d{8}$/.test(trimmed)) {
+    const y = trimmed.slice(0, 4);
+    const m = trimmed.slice(4, 6);
+    const d = trimmed.slice(6, 8);
+    return createSpecificDateSchedule(`${y}-${m}-${d}`);
+  }
+  // 15:33 或 15:33:00 → 今天的时间
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+    const today = getCurrentDate();
+    const parts = trimmed.split(':');
+    const hh = parts[0].padStart(2, '0');
+    const mm = parts[1];
+    const ss = parts[2] || '00';
+    return createSpecificDateTimeSchedule(`${today} ${hh}:${mm}:${ss}`);
+  }
+
   if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(trimmed)) {
     const dt = trimmed.split(':').length === 2 ? `${trimmed}:00` : trimmed;
     return createSpecificDateTimeSchedule(dt);

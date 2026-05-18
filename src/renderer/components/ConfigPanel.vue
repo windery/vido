@@ -59,7 +59,7 @@ const emit = defineEmits<{
   'close': [];
 }>();
 
-const currentTab = ref(0);
+const currentTab = ref(props.task.configTab ?? 0);
 const tabs = [
   { key: 'schedule', label: '日程', icon: '📅' },
   { key: 'priority', label: '优先级', icon: '⚡' },
