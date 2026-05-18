@@ -52,7 +52,7 @@ export class CommandModeHandler implements ModeHandler {
       if (configState !== undefined) {
         event.preventDefault();
         this.resetAll();
-        taskDataManager.setConfigState(selectedTaskId!, configState);
+        if (selectedTaskId) taskDataManager.setConfigState(selectedTaskId, configState);
         return true;
       }
     }
@@ -214,9 +214,11 @@ export class CommandModeHandler implements ModeHandler {
         if (this.keySequence === 'cc') {
           event.preventDefault();
           this.resetAll();
-          const task = (currentState as any).tasks?.find((t: any) => t.id === selectedTaskId);
-          const isOpen = !!task?.configState;
-          taskDataManager.setConfigState(selectedTaskId!, isOpen ? undefined : 'schedule');
+          if (selectedTaskId) {
+            const task = (currentState as any).tasks?.find((t: any) => t.id === selectedTaskId);
+            const isOpen = !!task?.configState;
+            taskDataManager.setConfigState(selectedTaskId, isOpen ? undefined : 'schedule');
+          }
           return true;
         }
         this.setKeySequenceTimeout();
