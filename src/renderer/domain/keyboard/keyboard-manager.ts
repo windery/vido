@@ -88,6 +88,18 @@ export class KeyboardManager {
     const key = event.key;
     const { editorMode } = currentState;
 
+    // 配置面板展开时：只响应 Esc 关闭，其他键由 ConfigPanel 内部处理
+    if (editorMode === EditorMode.COMMAND) {
+      const tasks = (currentState as any).tasks;
+      if (tasks?.some((t: any) => t.isConfigExpanded)) {
+        if (key === 'Escape') {
+          event.preventDefault();
+          this.taskDataManager.closeConfigPanel();
+        }
+        return;
+      }
+    }
+
     switch (editorMode) {
       case EditorMode.COMMAND:
         this.commandModeHandler.handleKey(event, key, this.taskDataManager, isInInputField);

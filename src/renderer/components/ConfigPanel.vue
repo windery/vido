@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import SchedulePanel from './config/SchedulePanel.vue';
 import { Task, TaskPriority } from '../domain/task';
 import { Schedule } from '../domain/schedule';
@@ -120,69 +120,84 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
+onMounted(() => {
+  panelRef.value?.focus();
+});
+
 defineExpose({ focus: () => panelRef.value?.focus() });
 </script>
 
 <style scoped>
 .config-panel {
-  background: rgba(30, 30, 32, 0.85);
-  backdrop-filter: blur(12px);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  padding: 12px;
-  margin-top: 4px;
+  background: transparent;
+  padding: 10px 0 4px 0;
+  margin-top: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   outline: none;
 }
 
 .config-tabs {
   display: flex;
-  gap: 4px;
-  margin-bottom: 10px;
+  gap: 2px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  padding: 2px;
 }
 
 .config-tab {
-  flex: 1; text-align: center; padding: 6px 0; border-radius: 6px;
+  flex: 1; text-align: center; padding: 5px 0; border-radius: 5px;
   font-size: 11px; font-family: system-ui, -apple-system, sans-serif;
-  text-transform: uppercase; letter-spacing: 0.5px; color: #888;
+  font-weight: 500;
+  color: #888;
   cursor: pointer; background: transparent; transition: all 150ms ease;
 }
 
-.config-tab.active { color: #e1e1e1; background: rgba(255, 255, 255, 0.06); }
+.config-tab.active { color: #e1e1e1; background: rgba(255, 255, 255, 0.08); }
 .tab-icon { margin-right: 4px; }
 
-.config-body { min-height: 60px; }
+.config-body { min-height: 48px; }
+
+.priority-content {
+  display: flex;
+  gap: 6px;
+}
 
 .priority-option {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px; border-radius: 8px; background: #2a2a2e;
-  margin-bottom: 6px; cursor: pointer; transition: all 100ms ease;
+  flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 0; border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer; transition: all 100ms ease;
 }
 
-.priority-option:hover, .priority-option.active {
-  transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+.priority-option.active {
+  background: rgba(25, 118, 210, 0.15);
 }
 
-.priority-dot { width: 10px; height: 10px; border-radius: 50%; }
+.priority-dot { width: 8px; height: 8px; border-radius: 50%; }
 .priority-p1 .priority-dot { background: #f85149; }
 .priority-p2 .priority-dot { background: #d29922; }
 .priority-p3 .priority-dot { background: #58a6ff; }
 
-.priority-label { color: #e1e1e1; flex: 1; }
-.priority-hint { color: #666; font-size: 11px; }
+.priority-label { color: #e1e1e1; font-size: 12px; }
+.priority-hint { display: none; }
 
 .tags-current { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 
 .tag-badge {
-  background: #264f78; color: #79c0ff;
+  background: rgba(25, 118, 210, 0.15);
+  color: #58a6ff;
   padding: 3px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;
 }
 
 .tag-input {
-  width: 100%; padding: 8px 12px; border: 1px solid #3e3e42; border-radius: 6px;
-  background: #2e2e32; color: #e1e1e1; font-size: 13px; font-family: monospace;
+  width: 100%; padding: 8px 12px; border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #e1e1e1; font-size: 13px; font-family: monospace;
   box-sizing: border-box;
 }
 
-.tag-input:focus { outline: none; border-color: #1976D2; box-shadow: 0 0 0 2px rgba(25,118,210,0.3); }
+.tag-input:focus { outline: none; border-color: #1976D2; }
 </style>
