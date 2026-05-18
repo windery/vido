@@ -218,8 +218,10 @@ logger.error('ComponentName', 'error message', { error: errorObject });
 #### Automated Debugging Workflow
 
 ```bash
-# 1. Start the dev server (test API on port 3002)
+# 1. Kill existing instances (user's VS Code F5 or previous runs), then start dev server
 pkill -f "Electron.*vido" 2>/dev/null
+pkill -f "vite" 2>/dev/null
+sleep 1
 pnpm dev > /tmp/vido-dev.log 2>&1 &
 
 # 2. Wait for test API
