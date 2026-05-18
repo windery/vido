@@ -59,12 +59,29 @@
             @keydown.enter="saveTagInput" @keydown.escape="cancelTagInput" />
         </div>
 
-        <!-- Hint bar -->
-        <div v-else-if="task.configState === 'schedule'" class="hint-bar">
-          📅 1 今天  2 明天  3 下周  5 清除  Enter 自定义  j/k 切换
-        </div>
-        <div v-else-if="task.configState === 'priority'" class="hint-bar">
-          ⚡ 1 P1  2 P2  3 P3  j/k 切换
+        <!-- Config panel -->
+        <div v-else-if="task.configState" class="config-panel">
+          <!-- Schedule -->
+          <template v-if="task.configState === 'schedule'">
+            <div class="config-pills">
+              <span class="config-pill"><kbd>1</kbd> 今天</span>
+              <span class="config-pill"><kbd>2</kbd> 明天</span>
+              <span class="config-pill"><kbd>3</kbd> 下周</span>
+              <span class="config-pill"><kbd>5</kbd> 清除</span>
+              <span class="config-pill config-pill-enter"><kbd>⏎</kbd> 自定义</span>
+            </div>
+          </template>
+          <!-- Priority -->
+          <template v-else-if="task.configState === 'priority'">
+            <div class="config-pills">
+              <span class="config-pill priority-p1"><kbd>1</kbd> P1 高</span>
+              <span class="config-pill priority-p2"><kbd>2</kbd> P2 中</span>
+              <span class="config-pill priority-p3"><kbd>3</kbd> P3 低</span>
+            </div>
+          </template>
+          <div class="config-footer">
+            <kbd>j</kbd><kbd>k</kbd> 切换配置 · <kbd>Esc</kbd> 退出
+          </div>
         </div>
     </div>
 </template>
@@ -427,11 +444,82 @@ watchEffect(() => {
   box-shadow: 0 0 0 1px rgba(25, 118, 210, 0.2);
 }
 
-.hint-bar {
-  padding: 4px 12px 6px 68px;
+/* Config panel */
+.config-panel {
+  margin: 2px 12px 6px 68px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.config-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.config-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.04);
   font-size: 12px;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #ccc;
+  transition: background 100ms;
+  cursor: default;
+}
+
+.config-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.config-pill-enter {
+  background: rgba(25, 118, 210, 0.12);
+  color: #64b5f6;
+}
+
+.config-pill kbd {
+  font-family: 'SF Mono', 'Monaco', monospace;
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #999;
+}
+
+.config-pill-enter kbd {
+  background: rgba(25, 118, 210, 0.25);
+  color: #90caf9;
+}
+
+.priority-p1 { color: #f87168; background: rgba(248, 81, 73, 0.08); }
+.priority-p1:hover { background: rgba(248, 81, 73, 0.15); }
+.priority-p2 { color: #e2b04a; background: rgba(210, 153, 34, 0.08); }
+.priority-p2:hover { background: rgba(210, 153, 34, 0.15); }
+.priority-p3 { color: #6cb6ff; background: rgba(88, 166, 255, 0.08); }
+.priority-p3:hover { background: rgba(88, 166, 255, 0.15); }
+
+.config-footer {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 10px;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #666;
+}
+
+.config-footer kbd {
+  font-family: 'SF Mono', 'Monaco', monospace;
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
   color: #888;
+  margin: 0 1px;
 }
 
 .schedule-indicator {
