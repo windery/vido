@@ -72,11 +72,12 @@ export class CommandModeHandler implements ModeHandler {
           const task = (currentState as any).tasks?.find((t: any) => t.id === selectedTaskId);
           if (task?.configState) {
             this.navigateConfig(taskDataManager, selectedTaskId, task.configState, 'next');
-          } else {
-            this.repeatAction(() => taskDataManager.selectNext(), count);
-            this.scrollToSelectedTask();
+            this.resetAll();
+            return true;
           }
         }
+        this.repeatAction(() => taskDataManager.selectNext(), count);
+        this.scrollToSelectedTask();
         this.resetAll();
         return true;
 
@@ -86,11 +87,12 @@ export class CommandModeHandler implements ModeHandler {
           const task = (currentState as any).tasks?.find((t: any) => t.id === selectedTaskId);
           if (task?.configState) {
             this.navigateConfig(taskDataManager, selectedTaskId, task.configState, 'prev');
-          } else {
-            this.repeatAction(() => taskDataManager.selectPrevious(), count);
-            this.scrollToSelectedTask();
+            this.resetAll();
+            return true;
           }
         }
+        this.repeatAction(() => taskDataManager.selectPrevious(), count);
+        this.scrollToSelectedTask();
         this.resetAll();
         return true;
 
