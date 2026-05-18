@@ -43,8 +43,8 @@
             @content-keydown="handleContentKeydown" @content-input="handleContentInput"
             @textarea-ref="handleTextareaRef" />
 
-        <!-- Schedule 时间输入框 -->
-        <div v-if="task.scheduleInputActive" class="config-input-row">
+        <!-- Schedule 输入框 -->
+        <div v-if="task.configState === 'scheduleInput'" class="config-input-row">
           <span class="config-input-icon">📅</span>
           <input ref="scheduleInputRef" v-model="scheduleInputValue" class="config-input"
             placeholder="20260306  或  15:33  或  202603061533"
@@ -52,25 +52,25 @@
         </div>
 
         <!-- Tag 输入框 -->
-        <div v-else-if="task.tagInputActive" class="config-input-row">
+        <div v-else-if="task.configState === 'tags'" class="config-input-row">
           <span class="config-input-icon">🏷</span>
           <input ref="tagInputRef" v-model="tagInputValue" class="config-input"
             placeholder="输入标签名，Enter 保存"
             @keydown.enter="saveTagInput" @keydown.escape="cancelTagInput" />
         </div>
 
-        <!-- Hint bar: cc/cs/cp/ct 时出现，操作引导 -->
-        <div v-else-if="task.isConfigExpanded" class="hint-bar">
-          <span v-if="task.focusedConfigItem === 0">📅</span>
-          <span v-else-if="task.focusedConfigItem === 1">⚡</span>
-          <span v-else-if="task.focusedConfigItem === 2">🏷</span>
-          {{ hintText }}
+        <!-- Hint bar -->
+        <div v-else-if="task.configState === 'schedule'" class="hint-bar">
+          📅 1 今天  2 明天  3 下周  5 清除  Enter 自定义  j/k 切换
+        </div>
+        <div v-else-if="task.configState === 'priority'" class="hint-bar">
+          ⚡ 1 P1  2 P2  3 P3  j/k 切换
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watchEffect, computed } from 'vue';
+import { ref, nextTick, watchEffect } from 'vue';
 import { Task, TaskState, TaskPriority } from '../domain/task';
 import { getScheduleDisplayText, isScheduleExpired, parseScheduleFromString } from '../utils/schedule-helper';
 import TaskContent from './TaskContent.vue';
@@ -174,7 +174,7 @@ const scheduleInputRef = ref<HTMLInputElement>();
 const scheduleInputValue = ref('');
 
 watchEffect(() => {
-  if (props.task.scheduleInputActive) {
+  if (props.task.configState === 'scheduleInput') {
     scheduleInputValue.value = '';
     nextTick(() => scheduleInputRef.value?.focus());
   }
@@ -185,17 +185,15 @@ const saveScheduleInput = () => {
   if (val) {
     const s = parseScheduleFromString(val);
     if (s) {
-      const taskState = useTaskState();
-      taskState.taskDataManager.updateTaskProperty(props.task.id, 'schedule', s);
+      const tdm = useTaskState().taskDataManager;
+      tdm.updateTaskProperty(props.task.id, 'schedule', s);
     }
   }
-  const taskState = useTaskState();
-  taskState.taskDataManager.deactivateScheduleInput(props.task.id);
+  useTaskState().taskDataManager.setConfigState(props.task.id, 'schedule');
 };
 
 const cancelScheduleInput = () => {
-  const taskState = useTaskState();
-  taskState.taskDataManager.deactivateScheduleInput(props.task.id);
+  useTaskState().taskDataManager.setConfigState(props.task.id, 'schedule');
 };
 
 // tag 输入
@@ -203,7 +201,7 @@ const tagInputRef = ref<HTMLInputElement>();
 const tagInputValue = ref('');
 
 watchEffect(() => {
-  if (props.task.tagInputActive) {
+  if (props.task.configState === 'tags') {
     tagInputValue.value = '';
     nextTick(() => tagInputRef.value?.focus());
   }
@@ -212,31 +210,20 @@ watchEffect(() => {
 const saveTagInput = () => {
   const val = tagInputValue.value.trim();
   if (val) {
-    const taskState = useTaskState();
+    const tdm = useTaskState().taskDataManager;
     const currentTags = props.task.tags || [];
     if (!currentTags.includes(val)) {
-      taskState.taskDataManager.updateTaskProperty(props.task.id, 'tags', [...currentTags, val]);
+      tdm.updateTaskProperty(props.task.id, 'tags', [...currentTags, val]);
     }
   }
-  const taskState = useTaskState();
-  taskState.taskDataManager.deactivateTagInput(props.task.id);
+  useTaskState().taskDataManager.setConfigState(props.task.id, 'schedule');
 };
 
 const cancelTagInput = () => {
-  const taskState = useTaskState();
-  taskState.taskDataManager.deactivateTagInput(props.task.id);
+  useTaskState().taskDataManager.setConfigState(props.task.id, 'schedule');
 };
 
-// hint-bar 文本
-const hintText = computed(() => {
-  const focus = props.task.focusedConfigItem ?? -1;
-  switch (focus) {
-    case 0: return '1 今天  2 明天  3 下周  4 自定义  5 清除  Enter 输入';
-    case 1: return '1 P1  2 P2  3 P3  j/k 切换';
-    case 2: return 'Enter 输入标签名';
-    default: return 'cs 日程  cp 优先级  ct 标签  h/l 切换';
-  }
-});
+// hint-bar 文本 —— 已内联在 template
 
 const getPriorityClass = (priority?: TaskPriority) => {
     switch (priority) {

@@ -340,79 +340,18 @@ export class TaskDataManager extends ApplicationStateManager {
     );
   }
 
-  toggleConfigPanel(tab?: number): void {
+  /**
+   * 统一配置状态管理
+   * configState: undefined=关闭, 'schedule'=日程, 'scheduleInput'=日程输入,
+   *             'priority'=优先级, 'tags'=标签输入
+   */
+  setConfigState(taskId: number, configState: string | undefined): void {
     const state = this.getTaskDataState();
-    const selectedTaskId = state.selectedTaskId;
-    if (!selectedTaskId) {
-      logger.warn('TaskDataManager', 'toggleConfigPanel: no task selected');
-      return;
-    }
-
-    const task = state.tasks.find((t) => t.id === selectedTaskId);
-    const wasExpanded = !!task?.isConfigExpanded;
-    // cs/cp/ct 直接设 tab 并打开；cc 切换开/关
-    const nowExpanded = tab !== undefined ? true : !wasExpanded;
-
     const tasks = state.tasks.map((t) => ({
       ...t,
-      isConfigExpanded: t.id === selectedTaskId ? nowExpanded : false,
-      configTab: t.id === selectedTaskId && tab !== undefined ? tab : t.configTab,
-      focusedConfigItem: t.id === selectedTaskId && tab !== undefined ? tab : -1,
-      tagInputActive: t.id === selectedTaskId && tab === 2 ? true : false,
+      configState: t.id === taskId ? configState : undefined,
     }));
-
-    const tabNames = ['schedule', 'priority', 'tags'];
-    logger.info('TaskDataManager',
-      `toggleConfigPanel: task=${selectedTaskId} ${nowExpanded ? 'open' : 'close'}` +
-      (tab !== undefined ? ` tab=${tabNames[tab]}` : ''));
-
-    this.updateState({ tasks } as Partial<TaskDataState>, 'toggle-config');
-  }
-
-  closeConfigPanel(): void {
-    const state = this.getTaskDataState();
-    const tasks = state.tasks.map((task) => ({ ...task, isConfigExpanded: false }));
-    logger.info('TaskDataManager', 'closeConfigPanel');
-    this.updateState({ tasks } as Partial<TaskDataState>, 'close-config');
-  }
-
-  focusConfigItem(taskId: number, focus: number): void {
-    const state = this.getTaskDataState();
-    const tasks = state.tasks.map((t) =>
-      t.id === taskId ? { ...t, focusedConfigItem: focus } : t
-    );
-    this.updateState({ tasks } as Partial<TaskDataState>, 'config-focus');
-  }
-
-  activateScheduleInput(taskId: number): void {
-    const state = this.getTaskDataState();
-    const tasks = state.tasks.map((t) =>
-      t.id === taskId ? { ...t, scheduleInputActive: true, isConfigExpanded: true } : t
-    );
-    this.updateState({ tasks } as Partial<TaskDataState>, 'schedule-input');
-  }
-
-  deactivateScheduleInput(taskId: number): void {
-    const state = this.getTaskDataState();
-    const tasks = state.tasks.map((t) =>
-      t.id === taskId ? { ...t, scheduleInputActive: false } : t
-    );
-    this.updateState({ tasks } as Partial<TaskDataState>, 'schedule-input');
-  }
-
-  activateTagInput(taskId: number): void {
-    const state = this.getTaskDataState();
-    const tasks = state.tasks.map((t) =>
-      t.id === taskId ? { ...t, tagInputActive: true, isConfigExpanded: true } : t
-    );
-    this.updateState({ tasks } as Partial<TaskDataState>, 'tag-input');
-  }
-
-  deactivateTagInput(taskId: number): void {
-    const state = this.getTaskDataState();
-    const tasks = state.tasks.map((t) =>
-      t.id === taskId ? { ...t, tagInputActive: false } : t
-    );
-    this.updateState({ tasks } as Partial<TaskDataState>, 'tag-input');
+    logger.info('TaskDataManager', `setConfigState: task=${taskId} state=${configState || 'closed'}`);
+    this.updateState({ tasks } as Partial<TaskDataState>, 'config-state');
   }
 }

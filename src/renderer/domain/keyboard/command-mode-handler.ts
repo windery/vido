@@ -45,14 +45,14 @@ export class CommandModeHandler implements ModeHandler {
 
     const count = this.countPrefix ? parseInt(this.countPrefix, 10) : 1;
 
-    // c + s/p/t → 直接打开特定配置 tab
+    // c + s/p/t → 直接打开特定配置
     if (this.keySequence === 'c') {
-      const tabMap: Record<string, number> = { s: 0, p: 1, t: 2 };
-      const tab = tabMap[key];
-      if (tab !== undefined) {
+      const stateMap: Record<string, string> = { s: 'schedule', p: 'priority', t: 'tags' };
+      const configState = stateMap[key];
+      if (configState !== undefined) {
         event.preventDefault();
         this.resetAll();
-        taskDataManager.toggleConfigPanel(tab);
+        taskDataManager.setConfigState(selectedTaskId!, configState);
         return true;
       }
     }
@@ -68,15 +68,29 @@ export class CommandModeHandler implements ModeHandler {
 
       case 'j':
         event.preventDefault();
-        this.repeatAction(() => taskDataManager.selectNext(), count);
-        this.scrollToSelectedTask();
+        if (selectedTaskId) {
+          const task = (currentState as any).tasks?.find((t: any) => t.id === selectedTaskId);
+          if (task?.configState) {
+            this.navigateConfig(taskDataManager, selectedTaskId, task.configState, 'next');
+          } else {
+            this.repeatAction(() => taskDataManager.selectNext(), count);
+            this.scrollToSelectedTask();
+          }
+        }
         this.resetAll();
         return true;
 
       case 'k':
         event.preventDefault();
-        this.repeatAction(() => taskDataManager.selectPrevious(), count);
-        this.scrollToSelectedTask();
+        if (selectedTaskId) {
+          const task = (currentState as any).tasks?.find((t: any) => t.id === selectedTaskId);
+          if (task?.configState) {
+            this.navigateConfig(taskDataManager, selectedTaskId, task.configState, 'prev');
+          } else {
+            this.repeatAction(() => taskDataManager.selectPrevious(), count);
+            this.scrollToSelectedTask();
+          }
+        }
         this.resetAll();
         return true;
 
@@ -198,7 +212,9 @@ export class CommandModeHandler implements ModeHandler {
         if (this.keySequence === 'cc') {
           event.preventDefault();
           this.resetAll();
-          taskDataManager.toggleConfigPanel();
+          const task = (currentState as any).tasks?.find((t: any) => t.id === selectedTaskId);
+          const isOpen = !!task?.configState;
+          taskDataManager.setConfigState(selectedTaskId!, isOpen ? undefined : 'schedule');
           return true;
         }
         this.setKeySequenceTimeout();
@@ -226,6 +242,17 @@ export class CommandModeHandler implements ModeHandler {
     for (let i = 0; i < count; i++) {
       action();
     }
+  }
+
+  private navigateConfig(tdm: TaskDataManager, taskId: number, current: string, dir: 'next' | 'prev'): void {
+    const cycle = ['schedule', 'priority', 'tags'];
+    // scheduleInput/tags 输入状态不参与 j/k 切换，先回到 browse
+    const idx = cycle.indexOf(current);
+    const baseIdx = idx >= 0 ? idx : 0;
+    const nextIdx = dir === 'next'
+      ? (baseIdx + 1) % cycle.length
+      : (baseIdx - 1 + cycle.length) % cycle.length;
+    tdm.setConfigState(taskId, cycle[nextIdx]);
   }
 
   private resetAll(): void {

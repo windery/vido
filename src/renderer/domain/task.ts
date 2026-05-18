@@ -11,11 +11,8 @@ export class Task {
   tags?: string[];
   priority?: TaskPriority;
   schedule?: Schedule;
-  isConfigExpanded?: boolean;
-  configTab?: number;
-  focusedConfigItem?: number;
-  scheduleInputActive?: boolean;
-  tagInputActive?: boolean;
+  // 'schedule' | 'scheduleInput' | 'priority' | 'tags' | undefined
+  configState?: string;
   isNewlyCreated?: boolean;
   cursorLine?: number;
   cursorColumn?: number;

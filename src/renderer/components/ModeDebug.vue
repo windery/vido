@@ -22,7 +22,7 @@
       <span v-else-if="editorMode === EditorMode.CONTENT_NAVIGATION" class="help-text">
         -- CONTENT-NAV -- (hjkl to move, i to insert)
       </span>
-      <span v-else-if="selectedTask?.isConfigExpanded" class="help-text">
+      <span v-else-if="selectedTask?.configState" class="help-text">
         -- CONFIG -- (cs schedule  cp priority  ct tags  Esc close)
       </span>
       <span v-else class="help-text">

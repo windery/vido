@@ -91,12 +91,11 @@ export class KeyboardManager {
     const key = event.key;
     const { editorMode } = currentState;
 
-    // 配置面板展开时：路由到 ConfigKeyHandler（schedule 输入框激活时放行）
+    // 配置展开时：路由到 ConfigKeyHandler
     if (editorMode === EditorMode.COMMAND) {
       const tasks = (currentState as any).tasks;
-      const expanded = tasks?.find((t: any) => t.isConfigExpanded);
-      if (expanded) {
-        if (expanded.scheduleInputActive || expanded.tagInputActive) return; // 输入框激活，按键由 input 处理
+      const configured = tasks?.find((t: any) => t.configState);
+      if (configured) {
         if (this.configKeyHandler.handleKey(event, key, this.taskDataManager)) {
           return;
         }

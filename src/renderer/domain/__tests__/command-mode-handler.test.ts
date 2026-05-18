@@ -59,7 +59,7 @@ function createMockTDM(taskList: Task[]) {
     deleteSelectedTask: vi.fn(),
     copySelectedTask: vi.fn(),
     pasteTask: vi.fn(),
-    showTaskConfig: vi.fn(),
+    setConfigState: vi.fn(),
   };
 }
 
@@ -90,7 +90,7 @@ describe('CommandModeHandler', () => {
       deleteSelectedTask: vi.fn(),
       copySelectedTask: vi.fn(),
       pasteTask: vi.fn(),
-      showTaskConfig: vi.fn(),
+      setConfigState: vi.fn(),
     };
   });
 
