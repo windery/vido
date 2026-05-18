@@ -15,6 +15,7 @@ export class Task {
   configTab?: number;
   focusedConfigItem?: number;
   scheduleInputActive?: boolean;
+  tagInputActive?: boolean;
   isNewlyCreated?: boolean;
   cursorLine?: number;
   cursorColumn?: number;

@@ -358,6 +358,7 @@ export class TaskDataManager extends ApplicationStateManager {
       isConfigExpanded: t.id === selectedTaskId ? nowExpanded : false,
       configTab: t.id === selectedTaskId && tab !== undefined ? tab : t.configTab,
       focusedConfigItem: t.id === selectedTaskId && tab !== undefined ? tab : -1,
+      tagInputActive: t.id === selectedTaskId && tab === 2 ? true : false,
     }));
 
     const tabNames = ['schedule', 'priority', 'tags'];
@@ -397,5 +398,21 @@ export class TaskDataManager extends ApplicationStateManager {
       t.id === taskId ? { ...t, scheduleInputActive: false } : t
     );
     this.updateState({ tasks } as Partial<TaskDataState>, 'schedule-input');
+  }
+
+  activateTagInput(taskId: number): void {
+    const state = this.getTaskDataState();
+    const tasks = state.tasks.map((t) =>
+      t.id === taskId ? { ...t, tagInputActive: true, isConfigExpanded: true } : t
+    );
+    this.updateState({ tasks } as Partial<TaskDataState>, 'tag-input');
+  }
+
+  deactivateTagInput(taskId: number): void {
+    const state = this.getTaskDataState();
+    const tasks = state.tasks.map((t) =>
+      t.id === taskId ? { ...t, tagInputActive: false } : t
+    );
+    this.updateState({ tasks } as Partial<TaskDataState>, 'tag-input');
   }
 }

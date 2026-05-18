@@ -130,17 +130,10 @@ export class ConfigKeyHandler {
     tdm: TaskDataManager,
     taskId: number
   ): boolean {
-    // 任意可输入字符开始标签输入
-    if (key.length === 1 && !['Shift', 'Control', 'Alt', 'Meta'].includes(key)) {
+    // Enter 激活标签输入框
+    if (key === 'Enter') {
       event.preventDefault();
-      const state = tdm.getTaskDataState();
-      const task = state.tasks.find((t: any) => t.id === taskId);
-      const newTag = key;
-      const currentTags = task?.tags || [];
-      if (!currentTags.includes(newTag)) {
-        tdm.updateTaskProperty(taskId, 'tags', [...currentTags, newTag]);
-      }
-      this.clearFocus(tdm, taskId);
+      tdm.activateTagInput(taskId);
       return true;
     }
     return false;

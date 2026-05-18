@@ -96,7 +96,7 @@ export class KeyboardManager {
       const tasks = (currentState as any).tasks;
       const expanded = tasks?.find((t: any) => t.isConfigExpanded);
       if (expanded) {
-        if (expanded.scheduleInputActive) return; // 输入框激活，按键由 input 处理
+        if (expanded.scheduleInputActive || expanded.tagInputActive) return; // 输入框激活，按键由 input 处理
         if (this.configKeyHandler.handleKey(event, key, this.taskDataManager)) {
           return;
         }

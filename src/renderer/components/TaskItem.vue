@@ -44,15 +44,19 @@
             @textarea-ref="handleTextareaRef" />
 
         <!-- Schedule 时间输入框 -->
-        <div v-if="task.scheduleInputActive" class="schedule-input-row">
-          <input
-            ref="scheduleInputRef"
-            v-model="scheduleInputValue"
-            class="schedule-time-input"
-            placeholder="20260306 或 15:33 或 202603061533"
-            @keydown.enter="saveScheduleInput"
-            @keydown.escape="cancelScheduleInput"
-          />
+        <div v-if="task.scheduleInputActive" class="config-input-row">
+          <span class="config-input-icon">📅</span>
+          <input ref="scheduleInputRef" v-model="scheduleInputValue" class="config-input"
+            placeholder="20260306  或  15:33  或  202603061533"
+            @keydown.enter="saveScheduleInput" @keydown.escape="cancelScheduleInput" />
+        </div>
+
+        <!-- Tag 输入框 -->
+        <div v-else-if="task.tagInputActive" class="config-input-row">
+          <span class="config-input-icon">🏷</span>
+          <input ref="tagInputRef" v-model="tagInputValue" class="config-input"
+            placeholder="输入标签名，Enter 保存"
+            @keydown.enter="saveTagInput" @keydown.escape="cancelTagInput" />
         </div>
 
         <!-- Hint bar: cc/cs/cp/ct 时出现，操作引导 -->
@@ -194,13 +198,42 @@ const cancelScheduleInput = () => {
   taskState.taskDataManager.deactivateScheduleInput(props.task.id);
 };
 
+// tag 输入
+const tagInputRef = ref<HTMLInputElement>();
+const tagInputValue = ref('');
+
+watchEffect(() => {
+  if (props.task.tagInputActive) {
+    tagInputValue.value = '';
+    nextTick(() => tagInputRef.value?.focus());
+  }
+});
+
+const saveTagInput = () => {
+  const val = tagInputValue.value.trim();
+  if (val) {
+    const taskState = useTaskState();
+    const currentTags = props.task.tags || [];
+    if (!currentTags.includes(val)) {
+      taskState.taskDataManager.updateTaskProperty(props.task.id, 'tags', [...currentTags, val]);
+    }
+  }
+  const taskState = useTaskState();
+  taskState.taskDataManager.deactivateTagInput(props.task.id);
+};
+
+const cancelTagInput = () => {
+  const taskState = useTaskState();
+  taskState.taskDataManager.deactivateTagInput(props.task.id);
+};
+
 // hint-bar 文本
 const hintText = computed(() => {
   const focus = props.task.focusedConfigItem ?? -1;
   switch (focus) {
     case 0: return '1 今天  2 明天  3 下周  4 自定义  5 清除  Enter 输入';
     case 1: return '1 P1  2 P2  3 P3  j/k 切换';
-    case 2: return '输入字符添加标签';
+    case 2: return 'Enter 输入标签名';
     default: return 'cs 日程  cp 优先级  ct 标签  h/l 切换';
   }
 });
@@ -370,31 +403,48 @@ watchEffect(() => {
     font-size: 12px;
 }
 
-.schedule-input-row {
-  padding: 2px 12px 4px 68px;
+.config-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 68px;
+  background: rgba(255, 255, 255, 0.015);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
-.schedule-time-input {
-  width: 220px;
-  padding: 2px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #e1e1e1;
-  font-size: 12px;
-  font-family: monospace;
+.config-input-icon {
+  font-size: 13px;
+  flex-shrink: 0;
 }
 
-.schedule-time-input:focus {
+.config-input {
+  flex: 1;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #d4d4d4;
+  font-size: 13px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  min-width: 0;
+}
+
+.config-input::placeholder {
+  color: #6e7681;
+}
+
+.config-input:focus {
   outline: none;
   border-color: #1976D2;
+  box-shadow: 0 0 0 1px rgba(25, 118, 210, 0.2);
 }
 
 .hint-bar {
-  padding: 2px 12px 4px 68px;
-  font-size: 11px;
-  font-family: system-ui, -apple-system, sans-serif;
-  color: #666;
+  padding: 4px 12px 6px 68px;
+  font-size: 12px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  color: #888;
 }
 
 .schedule-indicator {
