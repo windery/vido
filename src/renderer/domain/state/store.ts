@@ -51,6 +51,7 @@ export class Store {
       this.manager = saved;
       logger.info('Store', `Loaded ${this.manager.list.items.length} tasks`);
     }
+    this.changed();
   }
 
   // ======== 状态转换 ========

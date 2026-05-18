@@ -30,10 +30,10 @@ export class TaskListManager {
     logger.info('Manager', `Selected task: ${id}`);
   }
 
-  selectNext(): void { this.list = this.list.selectNext(); }
-  selectPrevious(): void { this.list = this.list.selectPrevious(); }
-  goToFirst(): void { this.list = this.list.goToFirst(); }
-  goToLast(): void { this.list = this.list.goToLast(); }
+  selectNext(): void { this.list = this.list.selectNext(); logger.info('Manager', `Selected task: ${this.list.selected?.id}`); }
+  selectPrevious(): void { this.list = this.list.selectPrevious(); logger.info('Manager', `Selected task: ${this.list.selected?.id}`); }
+  goToFirst(): void { this.list = this.list.goToFirst(); logger.info('Manager', `Selected task: ${this.list.selected?.id}`); }
+  goToLast(): void { this.list = this.list.goToLast(); logger.info('Manager', `Selected task: ${this.list.selected?.id}`); }
 
   // ======== CRUD ========
 
