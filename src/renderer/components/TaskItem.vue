@@ -43,27 +43,17 @@
             @content-keydown="handleContentKeydown" @content-input="handleContentInput"
             @textarea-ref="handleTextareaRef" />
 
-        <!-- Schedule 输入框 -->
-        <div v-if="task.configState === 'scheduleInput'" class="config-input-row">
-          <span class="config-input-icon">📅</span>
-          <input ref="scheduleInputRef" v-model="scheduleInputValue" class="config-input"
-            placeholder="20260306  或  15:33  或  202603061533"
-            @keydown.enter="saveScheduleInput" @keydown.escape="cancelScheduleInput" />
-        </div>
-
-        <!-- Tag 输入框 -->
-        <div v-else-if="task.configState === 'tagsInput'" class="config-input-row">
-          <span class="config-input-icon">🏷</span>
-          <input ref="tagInputRef" v-model="tagInputValue" class="config-input"
-            placeholder="输入标签名，Enter 保存"
-            @keydown.enter="saveTagInput" @keydown.escape="cancelTagInput" />
-        </div>
-
         <!-- Config panel -->
-        <div v-else-if="task.configState" class="config-panel">
+        <div v-if="task.configState" class="config-panel">
           <!-- Schedule -->
-          <template v-if="task.configState === 'schedule'">
-            <div class="config-pills">
+          <template v-if="task.configState === 'schedule' || task.configState === 'scheduleInput'">
+            <div v-if="task.configState === 'scheduleInput'" class="config-input-row">
+              <span class="config-input-icon">📅</span>
+              <input ref="scheduleInputRef" v-model="scheduleInputValue" class="config-input"
+                placeholder="20260306  或  15:33  或  202603061533"
+                @keydown.enter="saveScheduleInput" @keydown.escape="cancelScheduleInput" />
+            </div>
+            <div v-else class="config-pills">
               <span class="config-pill"><kbd>1</kbd> 今天</span>
               <span class="config-pill"><kbd>2</kbd> 明天</span>
               <span class="config-pill"><kbd>3</kbd> 下周</span>
@@ -79,13 +69,19 @@
               <span class="config-pill priority-p3"><kbd>3</kbd> P3 低</span>
             </div>
           </template>
-          <!-- Tags browse -->
-          <template v-else-if="task.configState === 'tags'">
-            <div class="config-pills">
-              <span v-if="task.tags?.length" class="config-tags-display">
-                <span v-for="t in task.tags" :key="t" class="config-tag">#{{ t }}</span>
-              </span>
-              <span v-else class="config-empty-hint">无标签</span>
+          <!-- Tags -->
+          <template v-else-if="task.configState === 'tags' || task.configState === 'tagsInput'">
+            <div v-if="task.tags?.length" class="config-tags-display">
+              <span v-for="t in task.tags" :key="t" class="config-tag">#{{ t }}</span>
+            </div>
+            <span v-else class="config-empty-hint">无标签</span>
+            <div v-if="task.configState === 'tagsInput'" class="config-input-row">
+              <span class="config-input-icon">🏷</span>
+              <input ref="tagInputRef" v-model="tagInputValue" class="config-input"
+                placeholder="输入标签名，Enter 保存"
+                @keydown.enter="saveTagInput" @keydown.escape="cancelTagInput" />
+            </div>
+            <div v-else class="config-pills" style="margin-top:6px">
               <span class="config-pill config-pill-enter"><kbd>⏎</kbd> 添加</span>
               <span class="config-pill"><kbd>c</kbd> 清除</span>
             </div>
