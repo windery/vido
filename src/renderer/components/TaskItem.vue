@@ -39,7 +39,6 @@
         </div>
 
         <!-- Config Panel (inline expansion) -->
-        <Transition name="config-expand">
           <div v-if="task.isConfigExpanded" class="config-wrapper">
             <ConfigPanel
                 :task="task"
@@ -47,7 +46,6 @@
                 @close="onConfigClose"
             />
           </div>
-        </Transition>
 
         <!-- Task Content Component -->
         <TaskContent v-if="task.selected && task.id" :task="task" @cursor-update="handleCursorUpdate"
@@ -333,30 +331,7 @@ watchEffect(() => {
 }
 
 .config-wrapper {
-  max-height: 0;
-  overflow: hidden;
   margin-top: 4px;
-}
-
-.config-expand-enter-active {
-  transition: max-height 200ms cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 200ms cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
-}
-.config-expand-leave-active {
-  transition: max-height 150ms cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
-}
-.config-expand-enter-from,
-.config-expand-leave-to {
-  max-height: 0;
-  opacity: 0;
-}
-.config-expand-enter-to,
-.config-expand-leave-from {
-  max-height: 300px;
-  opacity: 1;
 }
 
 .schedule-indicator {

@@ -343,13 +343,22 @@ export class TaskDataManager extends ApplicationStateManager {
   toggleConfigPanel(): void {
     const state = this.getTaskDataState();
     const selectedTaskId = state.selectedTaskId;
-    if (!selectedTaskId) return;
+    if (!selectedTaskId) {
+      logger.warn('TaskDataManager', 'toggleConfigPanel: no task selected');
+      return;
+    }
 
-    const tasks = state.tasks.map((task) =>
-      task.id === selectedTaskId
-        ? { ...task, isConfigExpanded: !task.isConfigExpanded }
-        : { ...task, isConfigExpanded: false }
-    );
+    const task = state.tasks.find((t) => t.id === selectedTaskId);
+    const wasExpanded = !!task?.isConfigExpanded;
+    const nowExpanded = !wasExpanded;
+
+    const tasks = state.tasks.map((t) => ({
+      ...t,
+      isConfigExpanded: t.id === selectedTaskId ? nowExpanded : false,
+    }));
+
+    logger.info('TaskDataManager',
+      `toggleConfigPanel: task=${selectedTaskId} ${wasExpanded ? 'close' : 'open'}`);
 
     this.updateState({ tasks } as Partial<TaskDataState>, 'toggle-config');
   }
@@ -357,6 +366,7 @@ export class TaskDataManager extends ApplicationStateManager {
   closeConfigPanel(): void {
     const state = this.getTaskDataState();
     const tasks = state.tasks.map((task) => ({ ...task, isConfigExpanded: false }));
+    logger.info('TaskDataManager', 'closeConfigPanel');
     this.updateState({ tasks } as Partial<TaskDataState>, 'close-config');
   }
 }
