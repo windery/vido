@@ -4,7 +4,7 @@
  */
 
 import { ModeHandler } from './base-handler';
-import { TaskDataManager } from '../core/task-data-manager';
+import { Store } from '../state/store';
 import { nextTick } from 'vue';
 import { logger } from '../../utils/logger';
 
@@ -14,7 +14,7 @@ export class ContentNavigationModeHandler implements ModeHandler {
   handleKey(
     event: KeyboardEvent,
     key: string,
-    taskDataManager: TaskDataManager,
+    taskDataManager: Store,
     _isInInputField: boolean
   ): boolean {
     switch (key) {
@@ -122,7 +122,7 @@ export class ContentNavigationModeHandler implements ModeHandler {
     this.keySequence = '';
   }
 
-  private enableContentEditing(taskDataManager: TaskDataManager): void {
+  private enableContentEditing(taskDataManager: Store): void {
     const state = taskDataManager.getTaskDataState();
     const taskId = state.selectedTaskId;
     if (!taskId) return;
@@ -172,7 +172,7 @@ export class ContentNavigationModeHandler implements ModeHandler {
     });
   }
 
-  private moveToAppendPosition(taskDataManager: TaskDataManager): void {
+  private moveToAppendPosition(taskDataManager: Store): void {
     const state = taskDataManager.getTaskDataState();
     const task = state.tasks?.find((t: any) => t.selected);
     if (!task) return;

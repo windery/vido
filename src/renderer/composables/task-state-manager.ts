@@ -1,66 +1,52 @@
 /**
  * 全局任务状态管理器
- * 负责管理TaskDataManager实例和全局状态同步
+ * 基于 DDD store + TaskListManager
  */
 
 import { ref } from 'vue';
-import { TaskDataManager } from '../domain/core/task-data-manager';
+import { store, Store } from '../domain/state/store';
 import { logger } from '../utils/logger';
 
-// 全局单例实例
-let globalTaskDataManager: TaskDataManager | null = null;
-let globalStateRef: any = null;
-let isObserverSetup = false;
+export { store };
 
-/**
- * 获取全局TaskDataManager实例
- */
-export function getTaskDataManager(): TaskDataManager {
-  if (!globalTaskDataManager) {
-    globalTaskDataManager = new TaskDataManager();
+let isInit = false;
 
-    // 异步加载数据
-    globalTaskDataManager.loadTasks().catch((error) => {
-      logger.error('TaskStateManager', 'Failed to load tasks', { error });
-    });
-
-    logger.info('TaskStateManager', 'TaskDataManager instance created');
+export function getTaskDataManager(): Store {
+  if (!isInit) {
+    store.init().catch((e) => logger.error('TaskStateManager', 'Failed to load tasks', { error: e }));
+    isInit = true;
   }
-  return globalTaskDataManager;
+  return store;
 }
 
-/**
- * 获取全局响应式状态引用
- */
-export function getGlobalStateRef() {
-  const taskDataManager = getTaskDataManager();
+let globalStateRef: any = null;
 
+export function getGlobalStateRef() {
   if (!globalStateRef) {
-    globalStateRef = ref(taskDataManager.getTaskDataState());
+    globalStateRef = ref({
+      ...store.state,
+      tasks: store.manager.list.items,
+      maxId: store.manager.maxId,
+      clipboard: store.manager.clipboard,
+    });
     logger.info('TaskStateManager', 'Global state ref created');
   }
 
-  // 设置观察者（只设置一次）
-  if (!isObserverSetup) {
-    taskDataManager.subscribe({
-      update: (event: any) => {
-        globalStateRef.value = taskDataManager.getTaskDataState();
-        logger.info('TaskStateManager', `State updated: ${event.type}`);
-      },
-    });
-    isObserverSetup = true;
-    logger.info('TaskStateManager', 'Observer setup completed');
-  }
+  const tasks = store.manager.list.items;
+  const maxId = store.manager.maxId;
+  const clipboard = store.manager.clipboard;
+  globalStateRef.value = {
+    ...store.state,
+    tasks,
+    maxId,
+    clipboard,
+  };
 
   return globalStateRef;
 }
 
-/**
- * 重置全局状态（用于测试）
- */
-export function resetGlobalState() {
-  globalTaskDataManager = null;
+export function resetGlobalState(): void {
   globalStateRef = null;
-  isObserverSetup = false;
+  isInit = false;
   logger.info('TaskStateManager', 'Global state reset');
 }

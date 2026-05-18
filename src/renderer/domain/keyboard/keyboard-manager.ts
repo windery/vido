@@ -3,10 +3,10 @@
  * 根据编辑器模式将按键分发给对应的处理器
  */
 
-import { ApplicationStateManager } from '../core/application-state-manager';
 import { logger } from '../../utils/logger';
 import { EditorMode } from '../editor';
-import { TaskDataManager } from '../core/task-data-manager';
+import { Store } from '../state/store';
+import { store } from '../state/store';
 import {
   CommandModeHandler,
   TitleEditModeHandler,
@@ -17,19 +17,18 @@ import {
 } from './index';
 import { ConfigKeyHandler } from './config-key-handler';
 
-let globalTaskDataManager: TaskDataManager | null = null;
+let globalStore: Store | null = null;
 
-async function getGlobalTaskDataManager(): Promise<TaskDataManager> {
-  if (!globalTaskDataManager) {
+async function getGlobalStore(): Promise<Store> {
+  if (!globalStore) {
     const { useTaskState } = await import('../../composables/use-task-state');
-    globalTaskDataManager = useTaskState().taskDataManager;
+    globalStore = useTaskState().taskDataManager;
   }
-  return globalTaskDataManager;
+  return globalStore;
 }
 
 export class KeyboardManager {
-  private stateManager: ApplicationStateManager;
-  private taskDataManager: TaskDataManager;
+  private store: Store;
 
   private commandModeHandler: CommandModeHandler;
   private titleEditModeHandler: TitleEditModeHandler;
@@ -40,8 +39,7 @@ export class KeyboardManager {
   private configKeyHandler: ConfigKeyHandler;
 
   constructor() {
-    this.taskDataManager = new TaskDataManager();
-    this.stateManager = this.taskDataManager;
+    this.store = store;
 
     this.commandModeHandler = new CommandModeHandler();
     this.titleEditModeHandler = new TitleEditModeHandler();
@@ -50,17 +48,6 @@ export class KeyboardManager {
     this.lastLineModeHandler = new LastLineModeHandler();
     this.helpModeHandler = new HelpModeHandler();
     this.configKeyHandler = new ConfigKeyHandler();
-
-    this.initializeTaskDataManager();
-  }
-
-  private async initializeTaskDataManager(): Promise<void> {
-    try {
-      this.taskDataManager = await getGlobalTaskDataManager();
-      this.stateManager = this.taskDataManager;
-    } catch (error) {
-      logger.error('KeyboardManager', 'Failed to initialize TaskDataManager', { error });
-    }
   }
 
   /** 注入滚动回调，建立 domain → UI 的桥梁 */
@@ -69,14 +56,14 @@ export class KeyboardManager {
   }
 
   handleKeyEvent(event: KeyboardEvent): void {
-    const currentState = this.stateManager.getState();
+    const currentState = this.store.getState();
     const activeElement = document.activeElement;
     const isInInputField =
       activeElement instanceof HTMLInputElement ||
       activeElement instanceof HTMLTextAreaElement;
 
     if (currentState.isHelpVisible) {
-      this.helpModeHandler.handleKey(event, this.taskDataManager);
+      this.helpModeHandler.handleKey(event, this.store);
       return;
     }
 
@@ -96,7 +83,7 @@ export class KeyboardManager {
       const tasks = (currentState as any).tasks;
       const configured = tasks?.find((t: any) => t.configState);
       if (configured) {
-        if (this.configKeyHandler.handleKey(event, key, this.taskDataManager)) {
+        if (this.configKeyHandler.handleKey(event, key, this.store)) {
           return;
         }
       }
@@ -104,19 +91,19 @@ export class KeyboardManager {
 
     switch (editorMode) {
       case EditorMode.COMMAND:
-        this.commandModeHandler.handleKey(event, key, this.taskDataManager, isInInputField);
+        this.commandModeHandler.handleKey(event, key, this.store, isInInputField);
         break;
       case EditorMode.TITLE_EDIT:
-        this.titleEditModeHandler.handleKey(event, key, this.taskDataManager, isInInputField);
+        this.titleEditModeHandler.handleKey(event, key, this.store, isInInputField);
         break;
       case EditorMode.CONTENT_NAVIGATION:
-        this.contentNavigationModeHandler.handleKey(event, key, this.taskDataManager, isInInputField);
+        this.contentNavigationModeHandler.handleKey(event, key, this.store, isInInputField);
         break;
       case EditorMode.CONTENT_EDIT:
-        this.contentEditModeHandler.handleKey(event, key, this.taskDataManager, isInInputField);
+        this.contentEditModeHandler.handleKey(event, key, this.store, isInInputField);
         break;
       case EditorMode.LAST_LINE:
-        this.lastLineModeHandler.handleKey(event, key, this.taskDataManager, isInInputField);
+        this.lastLineModeHandler.handleKey(event, key, this.store, isInInputField);
         break;
       default:
         logger.warn('KeyboardManager', `Unknown editor mode: ${editorMode}`);

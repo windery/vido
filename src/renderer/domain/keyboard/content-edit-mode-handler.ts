@@ -3,13 +3,13 @@
  */
 
 import { ModeHandler } from './base-handler';
-import { TaskDataManager } from '../core/task-data-manager';
+import { Store } from '../state/store';
 
 export class ContentEditModeHandler implements ModeHandler {
   handleKey(
     event: KeyboardEvent,
     key: string,
-    taskDataManager: TaskDataManager,
+    taskDataManager: Store,
     _isInInputField: boolean
   ): boolean {
     if (key === 'Escape') {

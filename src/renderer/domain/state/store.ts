@@ -22,7 +22,7 @@ export interface AppState {
   isHelpVisible: boolean;
 }
 
-class Store {
+export class Store {
   manager: TaskListManager = new TaskListManager();
   state: AppState;
   private sm = new StateMachine();
@@ -98,6 +98,74 @@ class Store {
       this.state.cursorPosition = { line: task.cursorLine ?? 0, column: task.cursorColumn ?? 0 };
     }
   }
+
+  // ======== 兼容旧 TaskDataManager API ========
+
+  getState(): any {
+    return {
+      editorMode: this.state.editorMode,
+      taskState: this.state.taskState,
+      selectedTaskId: this.state.selectedTaskId ?? this.manager.list.selected?.id,
+      cursorPosition: this.state.cursorPosition,
+      isHelpVisible: this.state.isHelpVisible,
+      lastlineContent: this.state.lastlineContent,
+      lastlineVisible: this.state.lastlineVisible,
+      tasks: this.manager.list.items,
+    };
+  }
+
+  getTaskDataState(): any {
+    return {
+      ...this.getState(),
+      maxId: this.manager.maxId,
+      clipboard: this.manager.clipboard,
+      tasks: this.manager.list.items,
+    };
+  }
+
+  async saveTasks(): Promise<void> {
+    await this.manager.save();
+  }
+
+  get selectedTask(): any { return this.manager.list.selected; }
+  get isSearching(): boolean { return this.manager.list.isSearching; }
+  get filteredTasks(): any[] { return this.manager.list.all; }
+
+  // 转发 manager 方法
+  selectTask(id: number): void { this.manager.selectTask(id); this.syncSelection(); }
+  selectNext(): void { this.manager.selectNext(); this.syncSelection(); }
+  selectPrevious(): void { this.manager.selectPrevious(); this.syncSelection(); }
+  goToFirst(): void { this.manager.goToFirst(); this.syncSelection(); }
+  goToLast(): void { this.manager.goToLast(); this.syncSelection(); }
+  createNewTask(title?: string, after?: boolean): any { return this.manager.createNewTask(title, after); }
+  deleteSelectedTask(): void { this.manager.deleteSelectedTask(); }
+  toggleTaskCompletion(): void { this.manager.toggleTaskCompletion(); }
+  updateTaskProperty(id: number, key: string, val: any): void { this.manager.updateTaskProperty(id, key, val); }
+  startTitleEditing(): void { this.manager.startTitleEditing(); }
+  startContentNavigation(): void { this.manager.updateSelectedTaskStatus(4); }
+  setConfigState(id: number, s: string | undefined): void { this.manager.setConfigState(id, s); }
+  updateTaskCursorPosition(id: number, l: number, c: number): void { this.manager.updateTaskCursor(id, l, c); }
+  insertNewLineBelow(): void { this.manager.insertNewLineBelow(); }
+  moveCursorUp(): void { this.manager.moveCursorUp(); }
+  moveCursorDown(): void { this.manager.moveCursorDown(); }
+  moveCursorLeft(): void { this.manager.moveCursorLeft(); }
+  moveCursorRight(): void { this.manager.moveCursorRight(); }
+  moveCursorToLineStart(): void { this.manager.moveCursorToLineStart(); }
+  moveCursorToLineEnd(): void { this.manager.moveCursorToLineEnd(); }
+  moveCursorToFirstLine(): void { this.manager.moveCursorToFirstLine(); }
+  moveCursorToLastLine(): void { this.manager.moveCursorToLastLine(); }
+  moveCursorWordForward(): void {} // TODO: implement word nav
+  moveCursorWordBackward(): void {}
+  moveCursorWordEnd(): void {}
+  sortTasks(type: string): void { this.manager.sortTasks(type); }
+  copySelectedTask(): void { this.manager.copySelectedTask(); }
+  pasteTask(): void { this.manager.pasteTask(); }
+  exitContentNavigation(): void { this.manager.updateSelectedTaskStatus(1); }
+  stopEditing(): void { /* no-op */ }
+  startEditingAtCursor(): void { this.manager.updateSelectedTaskStatus(2); }
+  getDebugInfo(): any { return {}; }
+  updateLastlineContent(content: string): void { this.state.lastlineContent = content; }
+  updateCursorPosition(line: number, col: number): void { this.state.cursorPosition = { line, column: col }; }
 }
 
 export const store = new Store();

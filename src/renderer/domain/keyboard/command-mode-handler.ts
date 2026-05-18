@@ -4,7 +4,7 @@
  */
 
 import { ModeHandler } from './base-handler';
-import { TaskDataManager } from '../core/task-data-manager';
+import { Store } from '../state/store';
 import { logger } from '../../utils/logger';
 
 export class CommandModeHandler implements ModeHandler {
@@ -21,7 +21,7 @@ export class CommandModeHandler implements ModeHandler {
   handleKey(
     event: KeyboardEvent,
     key: string,
-    taskDataManager: TaskDataManager,
+    taskDataManager: Store,
     isInInputField: boolean
   ): boolean {
     if (isInInputField) {
@@ -244,7 +244,7 @@ export class CommandModeHandler implements ModeHandler {
     }
   }
 
-  private navigateConfig(tdm: TaskDataManager, taskId: number, current: string, dir: 'next' | 'prev'): void {
+  private navigateConfig(tdm: Store, taskId: number, current: string, dir: 'next' | 'prev'): void {
     const cycle = ['schedule', 'priority', 'tags'];
     // scheduleInput/tags 输入状态不参与 j/k 切换，先回到 browse
     const idx = cycle.indexOf(current);

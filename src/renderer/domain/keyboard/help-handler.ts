@@ -2,12 +2,12 @@
  * 帮助模式处理器
  */
 
-import { TaskDataManager } from '../core/task-data-manager';
+import { Store } from '../state/store';
 
 export class HelpModeHandler {
   private keySequence: string = '';
 
-  handleKey(event: KeyboardEvent, taskDataManager: TaskDataManager): boolean {
+  handleKey(event: KeyboardEvent, taskDataManager: Store): boolean {
     event.preventDefault();
 
     // 处理多键序列

@@ -3,7 +3,7 @@
  * 根据 task.configState 分发按键
  */
 
-import { TaskDataManager } from '../core/task-data-manager';
+import { Store } from '../state/store';
 import { TaskPriority } from '../task';
 import { parseScheduleFromString } from '../../utils/schedule-helper';
 
@@ -11,7 +11,7 @@ export class ConfigKeyHandler {
   handleKey(
     event: KeyboardEvent,
     key: string,
-    taskDataManager: TaskDataManager
+    taskDataManager: Store
   ): boolean {
     const state = taskDataManager.getTaskDataState();
     const task = state.tasks.find((t: any) => t.configState);
@@ -43,7 +43,7 @@ export class ConfigKeyHandler {
     }
   }
 
-  private handleSchedule(e: KeyboardEvent, key: string, tdm: TaskDataManager, taskId: number): boolean {
+  private handleSchedule(e: KeyboardEvent, key: string, tdm: Store, taskId: number): boolean {
     const map: Record<string, string> = { '1': 'today', '2': 'tomorrow', '3': 'next_week', '5': 'clear' };
     if (map[key]) {
       e.preventDefault();
@@ -59,7 +59,7 @@ export class ConfigKeyHandler {
     return false;
   }
 
-  private handlePriority(e: KeyboardEvent, key: string, tdm: TaskDataManager, taskId: number): boolean {
+  private handlePriority(e: KeyboardEvent, key: string, tdm: Store, taskId: number): boolean {
     const map: Record<string, TaskPriority> = { '1': TaskPriority.HIGH, '2': TaskPriority.MEDIUM, '3': TaskPriority.LOW };
     if (map[key]) {
       e.preventDefault();

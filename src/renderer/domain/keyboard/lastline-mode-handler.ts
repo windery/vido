@@ -3,7 +3,7 @@
  */
 
 import { ModeHandler } from './base-handler';
-import { TaskDataManager } from '../core/task-data-manager';
+import { Store } from '../state/store';
 import { TaskPriority } from '../task';
 import { logger } from '../../utils/logger';
 import {
@@ -17,7 +17,7 @@ export class LastLineModeHandler implements ModeHandler {
   handleKey(
     event: KeyboardEvent,
     key: string,
-    taskDataManager: TaskDataManager,
+    taskDataManager: Store,
     _isInInputField: boolean
   ): boolean {
     // 检查是否处于输入法组合状态
@@ -41,7 +41,7 @@ export class LastLineModeHandler implements ModeHandler {
     return false;
   }
 
-  private executeLastLineCommand(taskDataManager: TaskDataManager): void {
+  private executeLastLineCommand(taskDataManager: Store): void {
     const currentState = taskDataManager.getState();
     const content = currentState.lastlineContent;
 
@@ -58,7 +58,7 @@ export class LastLineModeHandler implements ModeHandler {
 
   private executeVimCommand(
     command: string,
-    taskDataManager: TaskDataManager
+    taskDataManager: Store
   ): void {
     const cmd = command.trim().toLowerCase();
     const [baseCmd, ...args] = cmd.split(' ');
@@ -109,7 +109,7 @@ export class LastLineModeHandler implements ModeHandler {
 
   private executeSearch(
     searchTerm: string,
-    _taskDataManager: TaskDataManager
+    _taskDataManager: Store
   ): void {
     logger.info('LastLineModeHandler', `Executing search: ${searchTerm}`);
     // 搜索逻辑已在TaskDataManager中实现
@@ -129,7 +129,7 @@ export class LastLineModeHandler implements ModeHandler {
    */
   private setTaskSchedule(
     args: string[],
-    taskDataManager: TaskDataManager
+    taskDataManager: Store
   ): void {
     const selectedTaskId = taskDataManager.getState().selectedTaskId;
     if (!selectedTaskId) {
@@ -173,7 +173,7 @@ export class LastLineModeHandler implements ModeHandler {
   /**
    * 显示任务时间安排信息
    */
-  private showTaskSchedule(taskDataManager: TaskDataManager): void {
+  private showTaskSchedule(taskDataManager: Store): void {
     const selectedTaskId = taskDataManager.getState().selectedTaskId;
     if (!selectedTaskId) {
       logger.warn(
@@ -209,7 +209,7 @@ export class LastLineModeHandler implements ModeHandler {
 
   private setTaskPriority(
     args: string[],
-    taskDataManager: TaskDataManager
+    taskDataManager: Store
   ): void {
     const taskId = taskDataManager.getState().selectedTaskId;
     if (!taskId) {
@@ -250,7 +250,7 @@ export class LastLineModeHandler implements ModeHandler {
 
   private setTaskTags(
     args: string[],
-    taskDataManager: TaskDataManager
+    taskDataManager: Store
   ): void {
     const taskId = taskDataManager.getState().selectedTaskId;
     if (!taskId) {

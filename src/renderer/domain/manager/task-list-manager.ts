@@ -109,6 +109,7 @@ export class TaskListManager {
 
   setConfigState(taskId: number, state: string | undefined): void {
     this.list = updateProperty(this.list, taskId, 'configState', state);
+    logger.info('Manager', `setConfigState: task=${taskId} state=${state || 'closed'}`);
   }
 
   // ======== 持久化 ========
