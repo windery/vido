@@ -8,7 +8,15 @@ const pkg = createRequire(import.meta.url)('../package.json')
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // write .debug.env
-const envContent = Object.entries(pkg.debug.env).map(([key, val]) => `${key}=${val}`)
+const envEntries = { ...pkg.debug.env }
+
+// fnm Node 优先，避免 brew Node 的 icu4c 兼容问题
+const fnmDefault = path.join(process.env.HOME, '.local/share/fnm/aliases/default/bin')
+if (fs.existsSync(fnmDefault)) {
+  envEntries.PATH = `${fnmDefault}:${process.env.PATH || ''}`
+}
+
+const envContent = Object.entries(envEntries).map(([key, val]) => `${key}=${val}`)
 fs.writeFileSync(path.join(__dirname, '.debug.env'), envContent.join('\n'))
 
 // bootstrap
