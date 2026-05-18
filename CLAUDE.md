@@ -16,15 +16,23 @@ This file provides guidance to Claude Code when working with this repository.
 4. **Loop**: Can they chain operations without extra steps? Can they switch between modes?
 5. **Edge cases**: Empty state, cancel, error, multi-step operations
 
-**Example — config panel flow:**
+**Example — config panel state machine:**
 ```
-cc → schedule pills shown → j/k → priority pills → 1 (select P1) → back to schedule
-                            → Enter → input field → Enter (save) → back to schedule
-                            → Esc → close config
-```
-Every action returns to a known state. The user never gets "stuck" in a sub-mode with no way back.
+每个 config type 有两个子状态：quick（快捷选择）和 editing（输入编辑）
 
-**Violation example**: tag input saved → stayed in tags browse. User had to press j/k to leave, couldn't just press Esc to close. Fixed by returning to `'schedule'` after tag save (same as all other actions).
+schedule:    schedule ──Enter──→ scheduleInput ──Enter/Esc──→ schedule
+priority:    priority  (只有 quick，1/2/3 直接选，选后留在 priority)
+tags:        tags ──Enter──→ tagsInput ──Enter/Esc──→ tags
+
+j/k 在 quick 状态间切换:  schedule ←→ priority ←→ tags
+Esc 在任何状态关闭配置
+```
+**Rules:**
+1. quick → Enter → editing（打开输入框）
+2. editing → Enter → quick（保存，回到同类型的 quick）
+3. editing → Esc → quick（取消，回到同类型的 quick，内容不保存）
+4. quick → j/k → 切换到另一个类型的 quick
+5. 操作完成后不改配置类型——加完标签留在 tags，选完优先级留在 priority
 
 ### Operation Philosophy
 
