@@ -43,8 +43,20 @@
             @content-keydown="handleContentKeydown" @content-input="handleContentInput"
             @textarea-ref="handleTextareaRef" />
 
+        <!-- Schedule 时间输入框 -->
+        <div v-if="task.scheduleInputActive" class="schedule-input-row">
+          <input
+            ref="scheduleInputRef"
+            v-model="scheduleInputValue"
+            class="schedule-time-input"
+            placeholder="20260306 或 15:33 或 202603061533"
+            @keydown.enter="saveScheduleInput"
+            @keydown.escape="cancelScheduleInput"
+          />
+        </div>
+
         <!-- Hint bar: cc/cs/cp/ct 时出现，操作引导 -->
-        <div v-if="task.isConfigExpanded" class="hint-bar">
+        <div v-else-if="task.isConfigExpanded" class="hint-bar">
           <span v-if="task.focusedConfigItem === 0">📅</span>
           <span v-else-if="task.focusedConfigItem === 1">⚡</span>
           <span v-else-if="task.focusedConfigItem === 2">🏷</span>
@@ -56,7 +68,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watchEffect, computed } from 'vue';
 import { Task, TaskState, TaskPriority } from '../domain/task';
-import { getScheduleDisplayText, isScheduleExpired } from '../utils/schedule-helper';
+import { getScheduleDisplayText, isScheduleExpired, parseScheduleFromString } from '../utils/schedule-helper';
 import TaskContent from './TaskContent.vue';
 import { useTaskState } from '../composables/use-task-state';
 
@@ -151,6 +163,35 @@ const handleContentInput = (value: string) => {
 
 const handleTextareaRef = (taskId: number, textarea: HTMLTextAreaElement | null) => {
     emit('textarea-ref', taskId, textarea);
+};
+
+// schedule 时间输入
+const scheduleInputRef = ref<HTMLInputElement>();
+const scheduleInputValue = ref('');
+
+watchEffect(() => {
+  if (props.task.scheduleInputActive) {
+    scheduleInputValue.value = '';
+    nextTick(() => scheduleInputRef.value?.focus());
+  }
+});
+
+const saveScheduleInput = () => {
+  const val = scheduleInputValue.value.trim();
+  if (val) {
+    const s = parseScheduleFromString(val);
+    if (s) {
+      const taskState = useTaskState();
+      taskState.taskDataManager.updateTaskProperty(props.task.id, 'schedule', s);
+    }
+  }
+  const taskState = useTaskState();
+  taskState.taskDataManager.deactivateScheduleInput(props.task.id);
+};
+
+const cancelScheduleInput = () => {
+  const taskState = useTaskState();
+  taskState.taskDataManager.deactivateScheduleInput(props.task.id);
 };
 
 // hint-bar 文本
@@ -327,6 +368,26 @@ watchEffect(() => {
 .inline-tag {
     color: #79c0ff;
     font-size: 12px;
+}
+
+.schedule-input-row {
+  padding: 2px 12px 4px 68px;
+}
+
+.schedule-time-input {
+  width: 220px;
+  padding: 2px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e1e1e1;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.schedule-time-input:focus {
+  outline: none;
+  border-color: #1976D2;
 }
 
 .hint-bar {

@@ -22,6 +22,9 @@
       <span v-else-if="editorMode === EditorMode.CONTENT_NAVIGATION" class="help-text">
         -- CONTENT-NAV -- (hjkl to move, i to insert)
       </span>
+      <span v-else-if="selectedTask?.isConfigExpanded" class="help-text">
+        -- CONFIG -- (cs schedule  cp priority  ct tags  Esc close)
+      </span>
       <span v-else class="help-text">
         Press ? for help
       </span>
@@ -34,7 +37,7 @@ import { EditorMode } from '../domain/editor';
 import { useTaskState } from '../composables/use-task-state';
 
 // 使用新的统一状态管理架构
-const { editorMode, lastlineContent } = useTaskState();
+const { editorMode, lastlineContent, selectedTask } = useTaskState();
 
 const getModeText = (mode: EditorMode) => {
   switch (mode) {

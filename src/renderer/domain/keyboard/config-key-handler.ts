@@ -80,9 +80,8 @@ export class ConfigKeyHandler {
     }
 
     if (key === 'Enter' || key === '/') {
-      // 进入自定义输入——暂时不实现 UI 输入框，用 lastline 命令
       event.preventDefault();
-      logger.info('ConfigKeyHandler', 'schedule custom input (use :sched command)');
+      tdm.activateScheduleInput(taskId);
       return true;
     }
 

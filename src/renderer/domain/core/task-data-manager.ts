@@ -382,4 +382,20 @@ export class TaskDataManager extends ApplicationStateManager {
     );
     this.updateState({ tasks } as Partial<TaskDataState>, 'config-focus');
   }
+
+  activateScheduleInput(taskId: number): void {
+    const state = this.getTaskDataState();
+    const tasks = state.tasks.map((t) =>
+      t.id === taskId ? { ...t, scheduleInputActive: true, isConfigExpanded: true } : t
+    );
+    this.updateState({ tasks } as Partial<TaskDataState>, 'schedule-input');
+  }
+
+  deactivateScheduleInput(taskId: number): void {
+    const state = this.getTaskDataState();
+    const tasks = state.tasks.map((t) =>
+      t.id === taskId ? { ...t, scheduleInputActive: false } : t
+    );
+    this.updateState({ tasks } as Partial<TaskDataState>, 'schedule-input');
+  }
 }
