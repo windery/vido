@@ -52,7 +52,7 @@
         </div>
 
         <!-- Tag 输入框 -->
-        <div v-else-if="task.configState === 'tags'" class="config-input-row">
+        <div v-else-if="task.configState === 'tagsInput'" class="config-input-row">
           <span class="config-input-icon">🏷</span>
           <input ref="tagInputRef" v-model="tagInputValue" class="config-input"
             placeholder="输入标签名，Enter 保存"
@@ -67,7 +67,7 @@
               <span class="config-pill"><kbd>1</kbd> 今天</span>
               <span class="config-pill"><kbd>2</kbd> 明天</span>
               <span class="config-pill"><kbd>3</kbd> 下周</span>
-              <span class="config-pill"><kbd>5</kbd> 清除</span>
+              <span class="config-pill"><kbd>c</kbd> 清除</span>
               <span class="config-pill config-pill-enter"><kbd>⏎</kbd> 自定义</span>
             </div>
           </template>
@@ -77,6 +77,17 @@
               <span class="config-pill priority-p1"><kbd>1</kbd> P1 高</span>
               <span class="config-pill priority-p2"><kbd>2</kbd> P2 中</span>
               <span class="config-pill priority-p3"><kbd>3</kbd> P3 低</span>
+            </div>
+          </template>
+          <!-- Tags browse -->
+          <template v-else-if="task.configState === 'tags'">
+            <div class="config-pills">
+              <span v-if="task.tags?.length" class="config-tags-display">
+                <span v-for="t in task.tags" :key="t" class="config-tag">#{{ t }}</span>
+              </span>
+              <span v-else class="config-empty-hint">无标签</span>
+              <span class="config-pill config-pill-enter"><kbd>⏎</kbd> 添加</span>
+              <span class="config-pill"><kbd>c</kbd> 清除</span>
             </div>
           </template>
           <div class="config-footer">
@@ -218,7 +229,7 @@ const tagInputRef = ref<HTMLInputElement>();
 const tagInputValue = ref('');
 
 watchEffect(() => {
-  if (props.task.configState === 'tags') {
+  if (props.task.configState === 'tagsInput') {
     tagInputValue.value = '';
     nextTick(() => tagInputRef.value?.focus());
   }
@@ -233,11 +244,11 @@ const saveTagInput = () => {
       tdm.updateTaskProperty(props.task.id, 'tags', [...currentTags, val]);
     }
   }
-  useTaskState().taskDataManager.setConfigState(props.task.id, 'schedule');
+  useTaskState().taskDataManager.setConfigState(props.task.id, 'tags');
 };
 
 const cancelTagInput = () => {
-  useTaskState().taskDataManager.setConfigState(props.task.id, 'schedule');
+  useTaskState().taskDataManager.setConfigState(props.task.id, 'tags');
 };
 
 // hint-bar 文本 —— 已内联在 template
@@ -510,6 +521,28 @@ watchEffect(() => {
   font-size: 10px;
   font-family: system-ui, -apple-system, sans-serif;
   color: #666;
+}
+
+.config-tags-display {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.config-tag {
+  padding: 4px 10px;
+  border-radius: 5px;
+  background: rgba(25, 118, 210, 0.1);
+  color: #64b5f6;
+  font-size: 12px;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.config-empty-hint {
+  color: #666;
+  font-size: 12px;
+  font-family: system-ui, -apple-system, sans-serif;
+  align-self: center;
 }
 
 .config-footer kbd {

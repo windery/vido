@@ -138,6 +138,17 @@ This application embodies **programmer values**: rigorous, concise, efficient. U
 - **Immediate feedback**: 200ms transitions, no decorative delays
 - **Progressive disclosure**: Common options visible; advanced behind input/custom
 - **4.5:1 contrast ratio** minimum for all text
+- **Clear action**: `c` key = clear/remove (schedule clear, tags clear). Never use numeric keys for destructive actions.
+
+**Visual Design (CRITICAL)**:
+- **Premium, minimal, unified** — every element must feel like part of one cohesive design system. No "stuck on" looking panels.
+- **Pill buttons** for option groups — rounded, subtle background, keyboard shortcut badge inside `<kbd>`
+- **Color coding** only where semantic (priority red/yellow/blue, schedule blue accent)
+- **Panel background**: `rgba(255,255,255,0.02)` with `rgba(255,255,255,0.05)` border — barely visible, lets content breathe
+- **Typography**: UI labels in system font (SF Pro), content in monospace. Never mix within the same element.
+- **Spacing**: 8px grid, generous padding. No cramped layouts.
+- **Hover/active states**: subtle `rgba(255,255,255,0.04 → 0.08)` background transition, never `transform: translateY` for config items
+- **Footer bar**: thin top border, muted text, keyboard hints. Consistent across all config tabs.
 
 ### Implementation Requirements
 - Every UI change must enhance productivity and reduce cognitive load
