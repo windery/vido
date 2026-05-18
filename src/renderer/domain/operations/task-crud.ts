@@ -1,7 +1,7 @@
 import { Task, TaskState, TaskPriority } from '../task';
 import { TaskList } from '../entities/task-list';
 
-let idCounter = 100;
+let idCounter = 0;
 
 export function setMaxId(id: number): void { idCounter = Math.max(idCounter, id); }
 export function nextId(): number { return ++idCounter; }
