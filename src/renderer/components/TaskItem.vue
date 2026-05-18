@@ -43,15 +43,13 @@
             @content-keydown="handleContentKeydown" @content-input="handleContentInput"
             @textarea-ref="handleTextareaRef" />
 
-        <!-- Value row: 始终展示当前配置值 -->
-        <div v-if="task.selected" class="value-row">
-          <span :class="['value-item', { focused: task.focusedConfigItem === 0 }]">📅 {{ scheduleLabel }}</span>
-          <span :class="['value-item', { focused: task.focusedConfigItem === 1 }]">⚡ {{ priorityLabel }}</span>
-          <span :class="['value-item', { focused: task.focusedConfigItem === 2 }]">🏷 {{ tagsLabel }}</span>
+        <!-- Hint bar: cc/cs/cp/ct 时出现，操作引导 -->
+        <div v-if="task.isConfigExpanded" class="hint-bar">
+          <span v-if="task.focusedConfigItem === 0">📅</span>
+          <span v-else-if="task.focusedConfigItem === 1">⚡</span>
+          <span v-else-if="task.focusedConfigItem === 2">🏷</span>
+          {{ hintText }}
         </div>
-
-        <!-- Hint bar: cc 展开后出现，内容随焦点变化 -->
-        <div v-if="task.isConfigExpanded" class="hint-bar">{{ hintText }}</div>
     </div>
 </template>
 
@@ -154,15 +152,6 @@ const handleContentInput = (value: string) => {
 const handleTextareaRef = (taskId: number, textarea: HTMLTextAreaElement | null) => {
     emit('textarea-ref', taskId, textarea);
 };
-
-// value-row 文本
-const scheduleLabel = computed(() =>
-  props.task.schedule ? getScheduleDisplayText(props.task.schedule) : '--'
-);
-const priorityLabel = computed(() => props.task.priority || 'P2');
-const tagsLabel = computed(() =>
-  (props.task.tags && props.task.tags.length > 0) ? props.task.tags.join(' ') : '--'
-);
 
 // hint-bar 文本
 const hintText = computed(() => {
@@ -340,31 +329,11 @@ watchEffect(() => {
     font-size: 12px;
 }
 
-.value-row {
-  display: flex;
-  gap: 12px;
-  padding: 4px 12px 4px 88px; /* 对齐 task-content 的内边距 */
-  font-size: 11px;
-  font-family: system-ui, -apple-system, sans-serif;
-  color: #888;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.value-item {
-  cursor: default;
-  transition: color 150ms;
-}
-
-.value-item.focused {
-  color: #e1e1e1;
-}
-
 .hint-bar {
-  padding: 4px 12px 6px 88px;
+  padding: 2px 12px 4px 68px;
   font-size: 11px;
   font-family: system-ui, -apple-system, sans-serif;
   color: #666;
-  min-height: 20px;
 }
 
 .schedule-indicator {
