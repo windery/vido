@@ -1,26 +1,25 @@
 import { computed } from 'vue';
-import { store } from '../domain/state/store';
+import { Task } from '../domain/task';
 import { getGlobalStateRef } from './task-state-manager';
 
 export function useTaskList() {
   const stateRef = getGlobalStateRef();
 
   return {
-    tasks: computed(() => {
-      void stateRef.value; // 依赖触发
-      return store.manager.list.items;
-    }),
-    selectedTask: computed(() => {
-      void stateRef.value;
-      return store.manager.list.selected;
-    }),
+    tasks: computed(() => stateRef.value.tasks),
+    selectedTask: computed<Task | null>(() =>
+      stateRef.value.tasks.find((t: Task) => t.selected) || null
+    ),
     filteredTasks: computed(() => {
-      void stateRef.value;
-      return store.manager.list.all;
+      const filter = stateRef.value.lastlineContent;
+      if (!filter || !filter.startsWith('/')) return stateRef.value.tasks;
+      const term = filter.slice(1);
+      return term ? stateRef.value.tasks.filter((t: Task) => t.title.includes(term) || t.content.includes(term)) : stateRef.value.tasks;
     }),
     isSearching: computed(() => {
-      void stateRef.value;
-      return store.manager.list.isSearching;
+      const f = stateRef.value.lastlineContent;
+      return !!(f && f.startsWith('/') && f.length > 1);
     }),
   };
 }
+

@@ -22,6 +22,42 @@ Do not imitate terminal vim's visual appearance. The UI should feel premium and 
 - **Progressive disclosure**: show common options immediately, reveal advanced options on demand
 - **Immediate feedback**: 200ms transitions, no decorative delays
 
+## Environment Setup
+
+### Prerequisites
+
+- **Node.js >= 20** (tested on v22, v24). Use a version manager — **never** install Node via Homebrew (icu4c linking breaks on upgrade).
+  ```bash
+  # Recommended: fnm (Fast Node Manager)
+  curl -fsSL https://fnm.vercel.app/install | bash
+  fnm install 22
+  fnm use 22
+  # Or: nvm, volta — any version manager works
+  ```
+- **pnpm** — required package manager
+  ```bash
+  corepack enable && corepack prepare pnpm@latest --activate
+  ```
+
+### Quick Start
+
+```bash
+git clone <repo-url> && cd vido
+pnpm install
+pnpm dev          # starts Vite + Electron with HMR
+```
+
+### VS Code Debug (F5)
+
+`pnpm dev` gives HMR for rapid iteration. VS Code F5 launches Electron with debugger attached for stepping through code. Both work — use `pnpm dev` for UI work, F5 for logic debugging.
+
+**If F5 fails with `Library not loaded: libicui18n`:** your system Node is from Homebrew and icu4c was upgraded. Fix:
+```bash
+brew reinstall node        # relinks icu4c
+# OR switch to fnm (recommended):
+fnm use 22
+```
+
 ## Development Commands
 
 **Recommended: Use pnpm for better performance**
