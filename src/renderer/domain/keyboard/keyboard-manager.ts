@@ -17,15 +17,6 @@ import {
 } from './index';
 import { ConfigKeyHandler } from './config-key-handler';
 
-let globalStore: Store | null = null;
-
-async function getGlobalStore(): Promise<Store> {
-  if (!globalStore) {
-    const { useTaskState } = await import('../../composables/use-task-state');
-    globalStore = useTaskState().taskDataManager;
-  }
-  return globalStore;
-}
 
 export class KeyboardManager {
   private store: Store;
