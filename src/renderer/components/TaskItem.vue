@@ -38,28 +38,28 @@
             </div>
         </div>
 
-        <!-- Config Panel (inline expansion) -->
-          <div v-if="task.isConfigExpanded" class="config-wrapper">
-            <ConfigPanel
-                :task="task"
-                @update-task="onConfigUpdate"
-                @close="onConfigClose"
-            />
-          </div>
-
         <!-- Task Content Component -->
         <TaskContent v-if="task.selected && task.id" :task="task" @cursor-update="handleCursorUpdate"
             @content-keydown="handleContentKeydown" @content-input="handleContentInput"
             @textarea-ref="handleTextareaRef" />
+
+        <!-- Value row: 始终展示当前配置值 -->
+        <div v-if="task.selected" class="value-row">
+          <span :class="['value-item', { focused: task.focusedConfigItem === 0 }]">📅 {{ scheduleLabel }}</span>
+          <span :class="['value-item', { focused: task.focusedConfigItem === 1 }]">⚡ {{ priorityLabel }}</span>
+          <span :class="['value-item', { focused: task.focusedConfigItem === 2 }]">🏷 {{ tagsLabel }}</span>
+        </div>
+
+        <!-- Hint bar: cc 展开后出现，内容随焦点变化 -->
+        <div v-if="task.isConfigExpanded" class="hint-bar">{{ hintText }}</div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watchEffect } from 'vue';
+import { ref, nextTick, watchEffect, computed } from 'vue';
 import { Task, TaskState, TaskPriority } from '../domain/task';
 import { getScheduleDisplayText, isScheduleExpired } from '../utils/schedule-helper';
 import TaskContent from './TaskContent.vue';
-import ConfigPanel from './ConfigPanel.vue';
 import { useTaskState } from '../composables/use-task-state';
 
 interface Props {
@@ -155,15 +155,25 @@ const handleTextareaRef = (taskId: number, textarea: HTMLTextAreaElement | null)
     emit('textarea-ref', taskId, textarea);
 };
 
-const onConfigUpdate = (taskId: number, field: string, value: any) => {
-  const taskState = useTaskState();
-  taskState.taskDataManager.updateTaskProperty(taskId, field, value);
-};
+// value-row 文本
+const scheduleLabel = computed(() =>
+  props.task.schedule ? getScheduleDisplayText(props.task.schedule) : '--'
+);
+const priorityLabel = computed(() => props.task.priority || 'P2');
+const tagsLabel = computed(() =>
+  (props.task.tags && props.task.tags.length > 0) ? props.task.tags.join(' ') : '--'
+);
 
-const onConfigClose = () => {
-  const taskState = useTaskState();
-  taskState.taskDataManager.closeConfigPanel();
-};
+// hint-bar 文本
+const hintText = computed(() => {
+  const focus = props.task.focusedConfigItem ?? -1;
+  switch (focus) {
+    case 0: return '1 今天  2 明天  3 下周  4 自定义  5 清除  Enter 输入';
+    case 1: return '1 P1  2 P2  3 P3  j/k 切换';
+    case 2: return '输入字符添加标签';
+    default: return 'cs 日程  cp 优先级  ct 标签  h/l 切换';
+  }
+});
 
 const getPriorityClass = (priority?: TaskPriority) => {
     switch (priority) {
@@ -330,8 +340,31 @@ watchEffect(() => {
     font-size: 12px;
 }
 
-.config-wrapper {
-  margin-top: 4px;
+.value-row {
+  display: flex;
+  gap: 12px;
+  padding: 4px 12px 4px 88px; /* 对齐 task-content 的内边距 */
+  font-size: 11px;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #888;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.value-item {
+  cursor: default;
+  transition: color 150ms;
+}
+
+.value-item.focused {
+  color: #e1e1e1;
+}
+
+.hint-bar {
+  padding: 4px 12px 6px 88px;
+  font-size: 11px;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #666;
+  min-height: 20px;
 }
 
 .schedule-indicator {

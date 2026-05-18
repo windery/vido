@@ -357,6 +357,7 @@ export class TaskDataManager extends ApplicationStateManager {
       ...t,
       isConfigExpanded: t.id === selectedTaskId ? nowExpanded : false,
       configTab: t.id === selectedTaskId && tab !== undefined ? tab : t.configTab,
+      focusedConfigItem: t.id === selectedTaskId && tab !== undefined ? tab : -1,
     }));
 
     const tabNames = ['schedule', 'priority', 'tags'];
@@ -372,5 +373,13 @@ export class TaskDataManager extends ApplicationStateManager {
     const tasks = state.tasks.map((task) => ({ ...task, isConfigExpanded: false }));
     logger.info('TaskDataManager', 'closeConfigPanel');
     this.updateState({ tasks } as Partial<TaskDataState>, 'close-config');
+  }
+
+  focusConfigItem(taskId: number, focus: number): void {
+    const state = this.getTaskDataState();
+    const tasks = state.tasks.map((t) =>
+      t.id === taskId ? { ...t, focusedConfigItem: focus } : t
+    );
+    this.updateState({ tasks } as Partial<TaskDataState>, 'config-focus');
   }
 }

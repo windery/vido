@@ -15,6 +15,7 @@ import {
   LastLineModeHandler,
   HelpModeHandler,
 } from './index';
+import { ConfigKeyHandler } from './config-key-handler';
 
 let globalTaskDataManager: TaskDataManager | null = null;
 
@@ -36,6 +37,7 @@ export class KeyboardManager {
   private contentEditModeHandler: ContentEditModeHandler;
   private lastLineModeHandler: LastLineModeHandler;
   private helpModeHandler: HelpModeHandler;
+  private configKeyHandler: ConfigKeyHandler;
 
   constructor() {
     this.taskDataManager = new TaskDataManager();
@@ -47,6 +49,7 @@ export class KeyboardManager {
     this.contentEditModeHandler = new ContentEditModeHandler();
     this.lastLineModeHandler = new LastLineModeHandler();
     this.helpModeHandler = new HelpModeHandler();
+    this.configKeyHandler = new ConfigKeyHandler();
 
     this.initializeTaskDataManager();
   }
@@ -88,15 +91,13 @@ export class KeyboardManager {
     const key = event.key;
     const { editorMode } = currentState;
 
-    // 配置面板展开时：只响应 Esc 关闭，其他键由 ConfigPanel 内部处理
+    // 配置面板展开时：路由到 ConfigKeyHandler
     if (editorMode === EditorMode.COMMAND) {
       const tasks = (currentState as any).tasks;
       if (tasks?.some((t: any) => t.isConfigExpanded)) {
-        if (key === 'Escape') {
-          event.preventDefault();
-          this.taskDataManager.closeConfigPanel();
+        if (this.configKeyHandler.handleKey(event, key, this.taskDataManager)) {
+          return;
         }
-        return;
       }
     }
 

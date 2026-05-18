@@ -13,6 +13,7 @@ export class Task {
   schedule?: Schedule;
   isConfigExpanded?: boolean;
   configTab?: number;
+  focusedConfigItem?: number;
   isNewlyCreated?: boolean;
   cursorLine?: number;
   cursorColumn?: number;
