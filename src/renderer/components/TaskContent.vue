@@ -11,7 +11,7 @@
       </textarea>
         </div>
 
-        <div v-else-if="task.status === TaskState.SELECTED || task.status === TaskState.VIEWING"
+        <div v-else-if="task.status === TaskState.SELECTED || task.status === TaskState.VIEWING || task.status === TaskState.TITLE_EDITING"
             class="content-display">
             <div v-if="task.content" class="markdown-display">
                 <div v-html="renderMarkdown(task.content)"></div>
