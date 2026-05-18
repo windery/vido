@@ -1,6 +1,6 @@
 /**
  * 全局任务状态管理器
- * 基于 DDD store + TaskListManager
+ * 通过 afterChange 回调同步 store → Vue reactive ref
  */
 
 import { ref } from 'vue';
@@ -19,34 +19,34 @@ export function getTaskDataManager(): Store {
   return store;
 }
 
-let globalStateRef: any = null;
+// 全局响应式状态 ref —— store 每次改动后调用 sync 更新
+const globalStateRef = ref<any>(buildState());
+
+function buildState(): any {
+  return {
+    editorMode: store.state.editorMode,
+    taskState: store.state.taskState,
+    selectedTaskId: store.manager.list.selected?.id,
+    cursorPosition: store.state.cursorPosition,
+    isHelpVisible: store.state.isHelpVisible,
+    lastlineContent: store.state.lastlineContent,
+    lastlineVisible: store.state.lastlineVisible,
+    tasks: store.manager.list.items,
+    maxId: store.manager.maxId,
+    clipboard: store.manager.clipboard,
+  };
+}
+
+// Store 每次修改后调用此函数
+store.afterChange(() => {
+  globalStateRef.value = buildState();
+});
 
 export function getGlobalStateRef() {
-  if (!globalStateRef) {
-    globalStateRef = ref({
-      ...store.state,
-      tasks: store.manager.list.items,
-      maxId: store.manager.maxId,
-      clipboard: store.manager.clipboard,
-    });
-    logger.info('TaskStateManager', 'Global state ref created');
-  }
-
-  const tasks = store.manager.list.items;
-  const maxId = store.manager.maxId;
-  const clipboard = store.manager.clipboard;
-  globalStateRef.value = {
-    ...store.state,
-    tasks,
-    maxId,
-    clipboard,
-  };
-
   return globalStateRef;
 }
 
 export function resetGlobalState(): void {
-  globalStateRef = null;
   isInit = false;
   logger.info('TaskStateManager', 'Global state reset');
 }
