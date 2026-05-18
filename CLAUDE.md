@@ -6,6 +6,26 @@ This file provides guidance to Claude Code when working with this repository.
 
 **This program is designed for programmers, embodying programmer characteristics: rigorous, concise, and efficient. It should align with programmer thinking patterns.**
 
+### Scenario-Driven Design (CRITICAL)
+
+**Think in user scenarios, not isolated features.** Before implementing any interaction, trace the full user flow end-to-end:
+
+1. **Entry**: How does the user enter this mode? (keyboard shortcut, state transition)
+2. **Operation**: What actions can they perform? List ALL possible actions.
+3. **Exit**: What happens after each action? Where does the user land?
+4. **Loop**: Can they chain operations without extra steps? Can they switch between modes?
+5. **Edge cases**: Empty state, cancel, error, multi-step operations
+
+**Example — config panel flow:**
+```
+cc → schedule pills shown → j/k → priority pills → 1 (select P1) → back to schedule
+                            → Enter → input field → Enter (save) → back to schedule
+                            → Esc → close config
+```
+Every action returns to a known state. The user never gets "stuck" in a sub-mode with no way back.
+
+**Violation example**: tag input saved → stayed in tags browse. User had to press j/k to leave, couldn't just press Esc to close. Fixed by returning to `'schedule'` after tag save (same as all other actions).
+
 ### Operation Philosophy
 
 **Vim is an interaction paradigm, not a visual style.**

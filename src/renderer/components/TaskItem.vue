@@ -244,11 +244,11 @@ const saveTagInput = () => {
       tdm.updateTaskProperty(props.task.id, 'tags', [...currentTags, val]);
     }
   }
-  useTaskState().taskDataManager.setConfigState(props.task.id, 'tags');
+  useTaskState().taskDataManager.setConfigState(props.task.id, 'schedule');
 };
 
 const cancelTagInput = () => {
-  useTaskState().taskDataManager.setConfigState(props.task.id, 'tags');
+  useTaskState().taskDataManager.setConfigState(props.task.id, 'schedule');
 };
 
 // hint-bar 文本 —— 已内联在 template
