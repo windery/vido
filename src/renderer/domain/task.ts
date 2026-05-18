@@ -4,18 +4,17 @@ export class Task {
   id: number;
   title: string;
   content: string;
-  completed?: boolean;
-  selected?: boolean;
-  status?: TaskState;
+  completed: boolean;
+  selected: boolean;
+  status: TaskState;
   remind?: TaskRemind;
   tags?: string[];
   priority?: TaskPriority;
   schedule?: Schedule;
-  // 'schedule' | 'scheduleInput' | 'priority' | 'tags' | undefined
   configState?: string;
   isNewlyCreated?: boolean;
-  cursorLine?: number;
-  cursorColumn?: number;
+  cursorLine: number;
+  cursorColumn: number;
 
   constructor(id?: number) {
     this.id = id || 0;
