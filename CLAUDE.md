@@ -74,6 +74,28 @@ This application embodies **programmer values**: rigorous, concise, efficient. U
 - **Focus ring**: blue inner glow `box-shadow: 0 0 0 2px rgba(25,118,210,0.3)`
 - **Selection**: blue left border slides in, background gradient transition
 
+## DDD Architecture Rules (CRITICAL)
+
+**Bounded contexts MUST be separated.** Each composable/file belongs to exactly one context:
+- `domain/entities/` — data objects (Task, TaskList, Schedule)
+- `domain/operations/` — pure functions: `(data, ...args) => data`
+- `domain/manager/` — composes operations, mutable state holder
+- `domain/state/` — reactive store (editor mode + UI state)
+- `composables/use-task-list.ts` — task data getters ONLY
+- `composables/use-task-state-getters.ts` — editor/UI state getters ONLY
+
+**❌ DO NOT:**
+- Put editor state (`lastlineContent`, `editorMode`) in task getters
+- Put task filtering logic in Vue composables (belongs on TaskList entity)
+- Create pass-through composables that just wrap `store.xxx()`
+- Mix task/editor/UI concerns in a single file
+
+**✅ DO:**
+- `TaskList.all` for filtered tasks, `TaskList.isSearching` for search state
+- `store.state.editorMode` for editor mode, `store.state.lastlineContent` for command input
+- Composables read `store.manager.list` (tasks) and `store.state` (editor) separately
+- Domain operations accept `TaskList` as parameter, return new `TaskList`
+
 **Interaction Principles**:
 - **Keyboard-first**: All interactions keyboard accessible, visual cues enhance discoverability
 - **Inline over overlay**: No modal dialogs; expand in place
@@ -86,62 +108,27 @@ This application embodies **programmer values**: rigorous, concise, efficient. U
 - Test all interfaces in dark mode first (primary use case)
 - Design for extended usage (reduce eye strain, optimize for flow state)
 
-## Architecture Overview
+## Architecture
 
-Vido is a vim-style todo manager built with Electron + Vue 3 + TypeScript, strictly following vim paradigms with keyboard-only interaction.
-
-### 3-Layer Architecture
-
-**1. Domain Layer** (`src/domain/`)
-- `application-state-manager.ts` - Primary state manager  
-- `state-machine.ts` - State transition logic
-- `keyboard-handler.ts` - Pure business logic keyboard handling
-- `observer.ts` - Decoupled communication interface
-
-**2. Application Layer** (`src/composables/`)
-- `useApplicationState.ts` - Vue reactive state adapter
-- `useKeyboardActions` - Keyboard operation Composable
-- `useStateDebug` - Debug Composable
-
-**3. UI Layer** (`src/components/`)
-- `TodoList.vue` - Main UI component
-- `LastLine.vue` - Command line interface
-- `ModeDebug.vue` - Debug interface
-
-### Key Components
-
-**Unified Keyboard Manager** (`src/utils/keyboard-manager.ts`):
-- Editor state-based event distribution
-- Entity information awareness (task, position, selection)
-- Global event handling with mode-specific logic
-- vim-style key sequences support (`dd`, `gg`, `yy`)
-- Direct ApplicationStateManager integration
-
-**State Management Flow**:
-1. `ApplicationState` interface defines complete state
-2. `ApplicationStateManager.transition()` handles changes
-3. `useApplicationState()` provides Vue reactive binding
-4. Observer pattern notifies UI of state changes
-
-### Architecture Status (CRITICAL)
-
-**✅ New Architecture Complete**:
-- Old Pinia stores completely removed
-- Unified keyboard system (keyboard-manager.ts only)
-- Pure state management through useTaskState()
-- Complete test suite based on new architecture
-
-**❌ Prohibited Patterns**:
-```typescript
-// ❌ NEVER use these - immediately delete
-import { useApplicationState } from '../composables/useApplicationState';
-import { taskStore } from '../store/task';
-import { editorStore } from '../store/editor';
-
-// ✅ ONLY use this pattern
-import { useTaskState } from '../composables/use-task-state';
-const { tasks, selectedTask, selectTask, transition } = useTaskState();
 ```
+domain/
+  entities/    Task, TaskList, Schedule     ← data objects
+  operations/  纯函数 (data, args) => data   ← no side effects
+  manager/     TaskListManager              ← composes operations
+  state/       Store (reactive singleton)   ← editor mode + UI state
+  keyboard/    Mode handlers                ← key dispatch
+
+composables/
+  use-task-list.ts         ← task data getters ONLY
+  use-task-state-getters.ts ← editor/UI state ONLY
+  use-task-state.ts        ← unified entry
+```
+
+**Data flow:** `keyboard → Store.transition() → afterChange() → Vue ref → re-render`
+
+**State:** `Store.state` is reactive (editorMode, lastline, help). `Store.manager` holds TaskListManager (list + operations).
+
+**Imports:** `import { store } from '../domain/state/store'` for domain access. `import { useTaskState } from '../composables/use-task-state'` for Vue components.
 
 ## Testing System
 
@@ -292,14 +279,18 @@ grep -E "(KeyboardManager|State transition)" ~/.vido/log/vido-$(date +%Y-%m-%d).
 - **Vim Conventions**: Standard bindings (`hjkl`, `dd`, `yy`, `gg`, `G`)
 
 ### File Structure
-- `src/domain/` - Core business logic (keyboard, state machine, types)
-- `src/components/` - Vue components (TodoList, LastLine, ModeDebug)
-- `src/utils/` - Utilities (logger, keyboard manager, test API)
-- Mouse interactions globally disabled via CSS (keyboard-only)
+- `src/domain/entities/` - Data objects (Task, TaskList, Schedule)
+- `src/domain/operations/` - Pure functions (task-crud, task-persistence)
+- `src/domain/manager/` - TaskListManager (composes operations)
+- `src/domain/state/` - Store (reactive singleton)
+- `src/domain/keyboard/` - Mode handlers (command, content-nav, etc.)
+- `src/components/` - Vue components
+- `src/composables/` - Vue reactive bindings (use-task-list, use-task-state-getters)
+- `src/utils/` - logger, date-formatter, test-client
 
 ### Development Requirements
-- **Always verify changes** - Use API testing and log analysis
-- **Log all data changes** - Use `logger.info()` for modifications
-- **Check logs first** - Review before investigating code issues
-- **Keyboard-first design** - All interactions must be keyboard accessible
-- **State transitions logged** - Help debug unexpected behavior
+- **DDD boundaries** - Each file belongs to ONE bounded context (task / editor / UI)
+- **Log-first debugging** - Always check `~/.vido/log/` before reading code
+- **Automated testing** - Use `curl` to port 3002 for key simulation, then verify logs
+- **Keyboard-first** - All interactions keyboard accessible, no mouse
+- **Immutable data** - Domain operations return new objects, never mutate in place

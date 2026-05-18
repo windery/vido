@@ -5,12 +5,12 @@
 
 import { Task, TaskState } from '../domain/task';
 import { getTaskDataManager } from './task-state-manager';
-import { useTaskStateGetters } from './use-task-state-getters';
+import { useTaskList } from './use-task-list';
 import { logger } from '../utils/logger';
 
 export function useCursor() {
   const taskDataManager = getTaskDataManager();
-  const { tasks } = useTaskStateGetters();
+  const { tasks } = useTaskList();
 
   // ============ 光标移动 ============
   const moveCursorUp = () => {
