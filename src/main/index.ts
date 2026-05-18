@@ -68,8 +68,10 @@ async function createWindow() {
   if (VITE_DEV_SERVER_URL) {
     // #298
     win.loadURL(VITE_DEV_SERVER_URL);
-    // Open devTool if the app is not packaged
-    win.webContents.openDevTools();
+    // VS Code F5 已通过 port 9229 连接调试器，不需要再弹 DevTools 抢焦点
+    if (!process.env.VSCODE_DEBUG) {
+      win.webContents.openDevTools({ mode: 'detach' });
+    }
   } else {
     win.loadFile(indexHtml);
   }
