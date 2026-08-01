@@ -146,9 +146,8 @@ onMounted(() => {
 
 .content-editor.content-nav {
     cursor: text;
-    caret-color: var(--accent);
-    caret-shape: block;
-    /* vim 风格块光标：可见、闪烁 */
+    /* vim 风格块光标：由 ::selection 反白当前字符模拟，隐藏原生竖线 caret */
+    caret-color: transparent;
 }
 
 .content-editor.content-nav::selection {

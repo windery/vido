@@ -46,7 +46,7 @@ Esc 在任何状态关闭配置
 - **Inline over overlay**: avoid modal dialogs; expand and collapse content in place to preserve user's spatial context
 - **Keyboard-first, not keyboard-only**: keyboard is primary, but visual cues (hover states, transitions, focus rings) enhance discoverability
 - **Progressive disclosure**: show common options immediately, reveal advanced options on demand
-- **Immediate feedback**: 200ms transitions, no decorative delays
+- **Immediate feedback (vim-instant)**: cursor movement, navigation, and scrolling are instant with zero animation; all other feedback transitions ≤ 150ms (prefer ≤ 100ms); no decorative delays, ever — vim responds in the same frame you press a key, this app must too
 
 ## Environment Setup
 
@@ -161,7 +161,7 @@ This application embodies **programmer values**: rigorous, concise, efficient. T
 **Interaction Principles**:
 - **Keyboard-first**: All interactions keyboard accessible, visual cues enhance discoverability
 - **Inline over overlay**: No modal dialogs; expand in place
-- **Immediate feedback**: 200ms transitions, no decorative delays
+- **Immediate feedback (vim-instant)**: cursor movement, navigation, and scrolling are instant with zero animation; all other feedback transitions ≤ 150ms (prefer ≤ 100ms); no decorative delays, ever — vim responds in the same frame you press a key, this app must too
 - **Progressive disclosure**: Common options visible; advanced behind input/custom
 - **4.5:1 contrast ratio** minimum for all text
 - **Clear action**: `c` key = clear/remove (schedule clear, tags clear). Never use numeric keys for destructive actions.

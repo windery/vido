@@ -29,6 +29,7 @@ import { Task, TaskState } from '../domain/task';
 import { useTaskState } from '../composables/use-task-state';
 import { getKeyboardManager } from '../domain/keyboard/keyboard-manager';
 import { logger } from '../utils/logger';
+import { computeNavSelection } from '../utils/cursor';
 
 // Components
 import VimHeader from './VimHeader.vue';
@@ -168,15 +169,23 @@ const updateContentWithCursorLocal = (textarea: HTMLTextAreaElement, task: Task)
         lines.push('');
     }
 
-    // 计算光标偏移（字符位置）
+    // 计算光标行的行首偏移（字符位置）
     let offset = 0;
     for (let i = 0; i < task.cursorLine; i++) {
         offset += lines[i].length + 1; // +1 for newline
     }
-    offset += Math.min(task.cursorColumn, lines[task.cursorLine].length);
+    const lineText = lines[task.cursorLine] || '';
+    const col = Math.min(task.cursorColumn, lineText.length);
 
-    // 移动原生闪烁 caret 到光标位置，不再注入空格占位
-    textarea.setSelectionRange(offset, offset);
+    // 内容导航模式：选中当前字符显示 vim 块光标（::selection 反白），对齐设计源
+    if (task.status === TaskState.CONTENT_NAVIGATION) {
+        const [start, end] = computeNavSelection(offset, col, lineText);
+        textarea.setSelectionRange(start, end);
+        return;
+    }
+
+    // 编辑模式：折叠光标（原生闪烁 caret）
+    textarea.setSelectionRange(offset + col, offset + col);
 };
 
 const scrollToTask = (taskId: number) => {
