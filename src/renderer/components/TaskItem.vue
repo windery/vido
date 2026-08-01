@@ -324,6 +324,8 @@ watchEffect(() => {
 .task-line.selected {
     background: var(--bg-selected);
     color: var(--text-bright);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+        0 0 14px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .task-line.selected::before {

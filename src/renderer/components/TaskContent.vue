@@ -108,12 +108,16 @@ onMounted(() => {
     opacity: 0;
     max-height: 0;
     overflow: hidden;
-    transition: opacity 0.15s ease, max-height 0.15s ease, padding 0.1s ease;
+    transition: opacity 0.12s ease, max-height 0.12s ease, padding 0.08s ease;
 }
 
 .task-content-area.show {
     opacity: 1;
     max-height: 60vh;
+    border-left-width: 4px;
+    border-left-color: var(--accent-bright);
+    background: color-mix(in srgb, var(--bg-content) 92%, var(--accent) 8%);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .content-editor {
