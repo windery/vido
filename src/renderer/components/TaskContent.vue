@@ -113,7 +113,7 @@ onMounted(() => {
 
 .task-content-area.show {
     opacity: 1;
-    max-height: 500px;
+    max-height: 60vh;
 }
 
 .content-editor {
@@ -128,7 +128,9 @@ onMounted(() => {
     width: 100%;
     min-height: 24px;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: calc(60vh - 24px);
     height: auto;
     display: block;
     caret-color: var(--accent-bright);
