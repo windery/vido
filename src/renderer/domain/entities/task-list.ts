@@ -5,6 +5,15 @@
 
 import { Task, TaskState } from '../task';
 
+/** 搜索匹配（与 vido.html 一致：大小写不敏感，匹配标题/内容/标签） */
+export function taskMatchesSearch(t: Task, term: string): boolean {
+  if (!term) return true;
+  const q = term.toLowerCase();
+  return (t.title || '').toLowerCase().includes(q)
+    || (t.content || '').toLowerCase().includes(q)
+    || (t.tags || []).some((x) => x.toLowerCase().includes(q));
+}
+
 export class TaskList {
   constructor(readonly items: Task[], readonly searchFilter?: string) {}
 

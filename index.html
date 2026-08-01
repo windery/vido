@@ -8,6 +8,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
   <title>Vido</title>
+  <script>
+    // 在应用 JS 加载前应用已保存的主题，避免浅色偏好出现深色闪屏
+    try {
+      var p = JSON.parse(localStorage.getItem('vido.prefs.v1') || '{}');
+      if (p.theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.documentElement.classList.add('dark');
+      }
+      if (p.lang === 'en') {
+        document.documentElement.lang = 'en';
+      } else {
+        document.documentElement.lang = 'zh-CN';
+      }
+    } catch (e) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  </script>
   <style>
     html,
     body {

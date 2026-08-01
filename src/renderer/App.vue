@@ -20,9 +20,6 @@ const hideHelp = () => {
 };
 
 onMounted(() => {
-  // 设置为深色模式，像vim编辑器
-  document.body.classList.add('dark');
-
   // 设置body可以接收焦点，用于键盘事件处理
   document.body.tabIndex = -1;
   document.body.style.outline = 'none';
@@ -55,8 +52,8 @@ body {
   height: 100%;
   overflow: hidden;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace;
-  background: #1e1e1e;
-  color: #d4d4d4;
+  background: var(--bg);
+  color: var(--text);
 }
 
 .app {
@@ -65,7 +62,7 @@ body {
   max-width: 100vw;
   display: flex;
   flex-direction: column;
-  background: #1e1e1e;
+  background: var(--bg);
   overflow: hidden;
   box-sizing: border-box;
   padding: 8px;
@@ -79,10 +76,15 @@ body {
   pointer-events: none !important;
 }
 
-/* Re-enable pointer events only for input elements when in edit mode */
+/* Re-enable pointer events only for input elements and header action buttons */
 input,
 textarea {
   pointer-events: auto !important;
+}
+
+.hdr-btn {
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }
 
 /* NOTE: Removed hover style overrides to prevent white background issues */

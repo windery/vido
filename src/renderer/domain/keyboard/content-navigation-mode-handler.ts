@@ -64,6 +64,26 @@ export class ContentNavigationModeHandler implements ModeHandler {
         taskDataManager.moveCursorRight();
         return true;
 
+      case 'ArrowUp':
+        event.preventDefault();
+        taskDataManager.moveCursorUp();
+        return true;
+
+      case 'ArrowDown':
+        event.preventDefault();
+        taskDataManager.moveCursorDown();
+        return true;
+
+      case 'ArrowLeft':
+        event.preventDefault();
+        taskDataManager.moveCursorLeft();
+        return true;
+
+      case 'ArrowRight':
+        event.preventDefault();
+        taskDataManager.moveCursorRight();
+        return true;
+
       case 'w':
         event.preventDefault();
         taskDataManager.moveCursorWordForward();
@@ -132,8 +152,7 @@ export class ContentNavigationModeHandler implements ModeHandler {
     const cursorCol = task?.cursorColumn ?? 0;
     const rawContent = task?.content || '';
 
-    logger.info('ContentNavigationModeHandler',
-      `enableContentEditing: task=${taskId} cursorLine=${cursorLine} cursorCol=${cursorCol} contentLen=${rawContent.length}`);
+    logger.debug('ContentNavigationModeHandler', 'enableContentEditing', { taskId, cursorLine, cursorCol, contentLen: rawContent.length });
 
     // 等 Vue 完成 DOM 更新后再操作 textarea，避免 :value 绑定覆盖我们的设置
     nextTick(() => {
@@ -145,7 +164,6 @@ export class ContentNavigationModeHandler implements ModeHandler {
         }
 
         // 恢复原始内容——CONTENT_NAVIGATION 模式下 textarea 有光标占位符
-        const beforeValue = el.value;
         el.value = rawContent;
         el.removeAttribute('readonly');
         el.readOnly = false;
@@ -163,11 +181,6 @@ export class ContentNavigationModeHandler implements ModeHandler {
         offset += clampedCol;
 
         el.setSelectionRange(offset, offset);
-
-        logger.info('ContentNavigationModeHandler',
-          `enableContentEditing: beforeLen=${beforeValue.length} afterLen=${el.value.length} ` +
-          `offset=${offset} selStart=${el.selectionStart} selEnd=${el.selectionEnd} ` +
-          `charAtCursor="${lineText[clampedCol] || '(end)'}"`);
       }, 0);
     });
   }
@@ -185,8 +198,7 @@ export class ContentNavigationModeHandler implements ModeHandler {
     const currentCol = task.cursorColumn || 0;
     const newCol = currentCol >= line.length ? line.length : currentCol + 1;
 
-    logger.info('ContentNavigationModeHandler',
-      `moveToAppendPosition: task=${task.id} line=${currentLine} col ${currentCol}→${newCol} content="${content.slice(0, 30)}"`);
+    logger.debug('ContentNavigationModeHandler', 'moveToAppendPosition', { taskId: task.id, line: currentLine, col: newCol });
 
     taskDataManager.updateTaskCursorPosition(task.id, currentLine, newCol);
   }

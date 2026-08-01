@@ -3,7 +3,7 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
+  color-scheme: dark;
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
 
@@ -12,15 +12,226 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+
+  /* ===== Terminal Purist 设计令牌：深色（默认） ===== */
+  --bg: #121212;
+  --bg-panel: #1e1e20;
+  --bg-header: #1e1e20;
+  --bg-footer: #1e1e20;
+  --bg-input: #2a2a2e;
+  --bg-content: #17171a;
+  --bg-hover: rgba(255, 255, 255, 0.025);
+  --bg-selected: linear-gradient(90deg, #143623, #1c4a2e);
+  --bg-markdown-code: #2a2a2e;
+  --border: #3e3e42;
+  --border-strong: #5a5a5a;
+  --surface: rgba(255, 255, 255, 0.02);
+  --surface-hover: rgba(255, 255, 255, 0.04);
+  --surface-active: rgba(255, 255, 255, 0.08);
+  --surface-input: rgba(255, 255, 255, 0.03);
+  --border-surface: rgba(255, 255, 255, 0.05);
+  --border-input: rgba(255, 255, 255, 0.08);
+  --text: #e1e1e1;
+  --text-bright: #ffffff;
+  --text-header: #a0a0a0;
+  --text-muted: #a0a0a0;
+  --text-dim: #888888;
+  --text-faint: #666666;
+  --accent: #59d98a;
+  --accent-bright: #8af0ab;
+  --accent-dim: rgba(89, 217, 138, 0.14);
+  --accent-contrast: #062b11;
+  --logo-border: rgba(89, 217, 138, 0.35);
+  --accent-soft: rgba(89, 217, 138, 0.14);
+  --accent-text: #8af0ab;
+  --accent-text-bright: #8af0ab;
+  --status: #4fc1ff;
+  --check: #4fc1ff;
+  --prompt: #f9e79f;
+  --p1: #f85149;
+  --p2: #d29922;
+  --p3: #58a6ff;
+  --tag: #58a6ff;
+  --schedule: #4fc1ff;
+  --active-grad: linear-gradient(90deg, #143623, #1c4a2e);
+  --row-hover: rgba(255, 255, 255, 0.025);
+  --ln: #6b6b72;
+  --ln-selected: #8af0ab;
+  --nav-sel-fg: #0c0c0c;
+  --overlay: rgba(0, 0, 0, 0.72);
+  --shadow: rgba(0, 0, 0, 0.35);
+  --scroll-track: #161618;
+  --scroll-thumb: #3a3a3e;
+  --scroll-thumb-hover: #4a4a50;
+  --status-bar-bg: #1c4a2e;
+  --selection-bg: #59d98a;
+  --code-bg: #2a2a2e;
+  --code-color: #f9e79f;
+  --markdown-heading: #ffffff;
+  --markdown-strong: #ffffff;
+  --markdown-em: #58a6ff;
+  --key-bg: #2a2a2e;
+  --key-color: #e1e1e1;
+  --help-h3: #8af0ab;
+  --title-editor-focus: rgba(89, 217, 138, 0.25);
+  --input-focus: rgba(89, 217, 138, 0.2);
+  --link: #8af0ab;
+  --link-hover: #59d98a;
+  --mode-badge-bg: rgba(255, 255, 255, 0.05);
+  --mode-normal: #79c0ff;
+  --mode-insert: #7ee787;
+  --mode-lastline: #ffa657;
+  --mode-help: #8b949e;
+  --progress-bg: #2a2a2e;
+  --lastline-bg: #17171a;
+  --lastline-shadow: rgba(0, 0, 0, 0.35);
+  --config-bg: rgba(255, 255, 255, 0.02);
+  --config-border: rgba(255, 255, 255, 0.06);
+  --pill-bg: rgba(255, 255, 255, 0.04);
+  --pill-hover: rgba(255, 255, 255, 0.08);
+  --pill-kbd-bg: rgba(255, 255, 255, 0.08);
+  --pill-enter-kbd-bg: rgba(89, 217, 138, 0.3);
+  --pill-enter-kbd-fg: #8af0ab;
+  --pill-p1-fg: #f87168;
+  --pill-p1-bg: rgba(248, 81, 73, 0.09);
+  --pill-p1-hover: rgba(248, 81, 73, 0.16);
+  --pill-p2-fg: #e2b04a;
+  --pill-p2-bg: rgba(210, 153, 34, 0.09);
+  --pill-p2-hover: rgba(210, 153, 34, 0.16);
+  --pill-p3-fg: #6cb6ff;
+  --pill-p3-bg: rgba(88, 166, 255, 0.09);
+  --pill-p3-hover: rgba(88, 166, 255, 0.16);
+  --config-footer-border: rgba(255, 255, 255, 0.04);
+  --config-kbd-bg: rgba(255, 255, 255, 0.06);
+  --config-kbd-fg: #888888;
+  --border-soft: rgba(255, 255, 255, 0.06);
+  --filter-chip-bg: rgba(79, 193, 255, 0.1);
+  --surface-2: #2a2a2e;
+  --surface-3: #333337;
+  --text-2: #a0a0a0;
+  --text-3: #888888;
+  --md-heading: #ffffff;
+  --glass: rgba(30, 30, 32, 0.85);
+  --glass-shadow: rgba(0, 0, 0, 0.6);
+  --mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Monaco', 'Roboto Mono', 'Source Code Pro', monospace;
+  --ui: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ===== Terminal Purist 浅色主题覆盖 ===== */
+[data-theme='light'] {
+  color-scheme: light;
+  color: rgba(0, 0, 0, 0.87);
+  background-color: #f6f6f8;
+
+  --bg: #f6f6f8;
+  --bg-panel: #ffffff;
+  --bg-header: #ffffff;
+  --bg-footer: #ffffff;
+  --bg-input: #ffffff;
+  --bg-content: #ffffff;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-selected: linear-gradient(90deg, #d9efdf, #e9f6ec);
+  --bg-markdown-code: #ececf1;
+  --border: #d8d8e0;
+  --border-strong: #b0b0b6;
+  --surface: rgba(0, 0, 0, 0.02);
+  --surface-hover: rgba(0, 0, 0, 0.04);
+  --surface-active: rgba(0, 0, 0, 0.08);
+  --surface-input: rgba(0, 0, 0, 0.03);
+  --border-surface: rgba(0, 0, 0, 0.06);
+  --border-input: rgba(0, 0, 0, 0.12);
+  --text: #1b1b20;
+  --text-bright: #111114;
+  --text-header: #565660;
+  --text-muted: #565660;
+  --text-dim: #8a8a94;
+  --text-faint: #a0a0a8;
+  --accent: #1a7f3e;
+  --accent-bright: #145c2d;
+  --accent-dim: rgba(26, 127, 62, 0.12);
+  --accent-contrast: #ffffff;
+  --logo-border: rgba(26, 127, 62, 0.4);
+  --accent-soft: rgba(26, 127, 62, 0.12);
+  --accent-text: #145c2d;
+  --accent-text-bright: #145c2d;
+  --status: #0a7ab0;
+  --check: #0a7ab0;
+  --prompt: #9a7b00;
+  --p1: #d33a32;
+  --p2: #a0700c;
+  --p3: #2568c4;
+  --tag: #2568c4;
+  --schedule: #0a7ab0;
+  --active-grad: linear-gradient(90deg, #d9efdf, #e9f6ec);
+  --row-hover: rgba(0, 0, 0, 0.04);
+  --ln: #9c9ca6;
+  --ln-selected: #145c2d;
+  --nav-sel-fg: #ffffff;
+  --overlay: rgba(25, 25, 35, 0.45);
+  --shadow: rgba(0, 0, 0, 0.15);
+  --scroll-track: #e9e9ef;
+  --scroll-thumb: #c3c3cd;
+  --scroll-thumb-hover: #a6a6b2;
+  --status-bar-bg: #1a7f3e;
+  --selection-bg: #1a7f3e;
+  --code-bg: #ececf1;
+  --code-color: #8a6d00;
+  --markdown-heading: #1b1b20;
+  --markdown-strong: #1b1b20;
+  --markdown-em: #2568c4;
+  --key-bg: #e4e4e8;
+  --key-color: #333336;
+  --help-h3: #145c2d;
+  --title-editor-focus: rgba(26, 127, 62, 0.2);
+  --input-focus: rgba(26, 127, 62, 0.18);
+  --link: #145c2d;
+  --link-hover: #1a7f3e;
+  --mode-badge-bg: rgba(0, 0, 0, 0.05);
+  --mode-normal: #1a63c4;
+  --mode-insert: #1e7a34;
+  --mode-lastline: #c2571e;
+  --mode-help: #8a8a94;
+  --progress-bg: #e4e4ec;
+  --lastline-bg: #ffffff;
+  --lastline-shadow: rgba(0, 0, 0, 0.12);
+  --config-bg: rgba(0, 0, 0, 0.02);
+  --config-border: rgba(0, 0, 0, 0.09);
+  --pill-bg: rgba(0, 0, 0, 0.045);
+  --pill-hover: rgba(0, 0, 0, 0.08);
+  --pill-kbd-bg: rgba(0, 0, 0, 0.06);
+  --pill-enter-kbd-bg: rgba(26, 127, 62, 0.2);
+  --pill-enter-kbd-fg: #145c2d;
+  --pill-p1-fg: #c0392b;
+  --pill-p1-bg: rgba(211, 58, 50, 0.09);
+  --pill-p1-hover: rgba(211, 58, 50, 0.16);
+  --pill-p2-fg: #96690a;
+  --pill-p2-bg: rgba(160, 112, 12, 0.09);
+  --pill-p2-hover: rgba(160, 112, 12, 0.16);
+  --pill-p3-fg: #2568c4;
+  --pill-p3-bg: rgba(37, 104, 196, 0.09);
+  --pill-p3-hover: rgba(37, 104, 196, 0.16);
+  --config-footer-border: rgba(0, 0, 0, 0.06);
+  --config-kbd-bg: rgba(0, 0, 0, 0.05);
+  --config-kbd-fg: #8a8a94;
+  --border-soft: rgba(0, 0, 0, 0.08);
+  --filter-chip-bg: rgba(10, 122, 176, 0.12);
+  --surface-2: #ececf1;
+  --surface-3: #e1e1e8;
+  --text-2: #565660;
+  --text-3: #8a8a94;
+  --md-heading: #1b1b20;
+  --glass: rgba(255, 255, 255, 0.94);
+  --glass-shadow: rgba(0, 0, 0, 0.22);
 }
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: var(--link);
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: var(--link-hover);
 }
 
 body {
@@ -30,8 +241,8 @@ body {
   height: 100vh;
   overflow: hidden;
   box-sizing: border-box;
-  background-color: #1e1e1e;
-  color: #d4d4d4;
+  background-color: var(--bg);
+  color: var(--text);
 }
 
 h1 {
@@ -46,20 +257,25 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: var(--bg-input);
+  color: var(--text);
   cursor: pointer;
   transition: border-color 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: var(--link);
 }
-button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+button:active {
+  transform: translateY(1px);
 }
 
 code {
-  background-color: #1a1a1a;
+  background-color: var(--code-bg);
+  color: var(--code-color);
   padding: 2px 4px;
   margin: 0 4px;
   border-radius: 4px;
@@ -79,25 +295,36 @@ code {
   box-sizing: border-box;
 }
 
-/* 强制使用深色主题，避免系统主题切换导致界面变白 */
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #d4d4d4;
-    background-color: #1e1e1e;
+/* ===== 响应式：窄屏收窄 header ===== */
+@media (max-width: 820px) {
+  .stat-block span:last-child,
+  .stats .stat-done-label {
+    display: none;
   }
-  body {
-    background-color: #1e1e1e;
-    color: #d4d4d4;
+  .progress-count {
+    display: none;
   }
-  a:hover {
-    color: #79c0ff;
+}
+
+@media (max-width: 560px) {
+  .header-actions {
+    gap: 4px;
   }
-  button {
-    background-color: #2d2d30;
-    color: #d4d4d4;
+  .file-status {
+    display: none;
   }
-  code {
-    background-color: #3c3c3c;
-    color: #f9e79f;
+  .progress-blocks {
+    letter-spacing: 0.5px;
+  }
+}
+
+/* ===== 减少动效偏好 ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

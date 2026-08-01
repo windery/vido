@@ -4,3 +4,6 @@ import { vi } from 'vitest';
 (window as any).electronAPI = {
   invoke: vi.fn(),
 };
+(window as any).vidoLogger = {
+  writeLog: vi.fn(),
+};

@@ -1,40 +1,60 @@
 // 日志系统 - 将调试信息记录到 ~/.vido/log 目录的物理文件中
+// 格式规范：`[ts] [LEVEL] [Module] message | key=value`，见 docs/superpowers/specs/2026-08-01-logging-design.md
 
-interface LogEntry {
-  timestamp: string;
-  level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
+export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
+
+export interface LogEntry {
+  level: LogLevel;
+  module: string;
+  message: string;
+  data?: any;
+}
+
+export const LEVEL_ORDER: Record<LogLevel, number> = {
+  DEBUG: 1,
+  INFO: 2,
+  WARN: 3,
+  ERROR: 4,
+};
+
+export const LOG_LEVEL: LogLevel =
+  ((import.meta.env.VITE_LOG_LEVEL as LogLevel) || 'INFO');
+
+/** 纯函数：按级别阈值判断是否输出 */
+export function shouldLog(level: LogLevel, threshold: LogLevel = LOG_LEVEL): boolean {
+  return LEVEL_ORDER[level] >= LEVEL_ORDER[threshold];
+}
+
+/** 纯函数：唯一日志格式来源。data 扁平化为 key=value，值 JSON.stringify 以可逆 */
+export function formatLogEntry(level: LogLevel, module: string, message: string, data?: any): string {
+  const ts = new Date().toISOString();
+  let line = `${ts} [${level}] [${module}] ${message}`;
+  if (data !== undefined && data !== null) {
+    const normalized = data instanceof Error ? { error: data.message } : data;
+    const parts = Object.entries(normalized).map(([k, v]) => `${k}=${JSON.stringify(v)}`);
+    if (parts.length > 0) line += ` | ${parts.join(' | ')}`;
+  }
+  return line;
+}
+
+interface QueueEntry {
+  level: LogLevel;
   module: string;
   message: string;
   data?: any;
 }
 
 class Logger {
-  private logQueue: string[] = [];
+  private logQueue: QueueEntry[] = [];
   private isWriting = false;
   private maxQueueSize = 500;
 
-  private formatLogEntry(level: LogEntry['level'], module: string, message: string, data?: any): string {
-    const ts = new Date().toISOString();
-    let logLine = `${ts} [${level}] [${module}] ${message}`;
-
-    if (data) {
-      try {
-        const dataStr = typeof data === 'object' ? JSON.stringify(data) : String(data);
-        logLine += ` | Data: ${dataStr}`;
-      } catch {
-        logLine += ` | Data: [circular object]`;
-      }
-    }
-
-    return logLine;
-  }
-
-  private async writeToFile(logEntry: string): Promise<void> {
+  private async writeToFile(entry: QueueEntry): Promise<void> {
     try {
       if (window.vidoLogger && window.vidoLogger.writeLog) {
-        await window.vidoLogger.writeLog(logEntry);
+        await window.vidoLogger.writeLog(entry);
       } else {
-        console.warn('File logging not available, entry:', logEntry);
+        console.warn('File logging not available, entry:', formatLogEntry(entry.level, entry.module, entry.message, entry.data));
       }
     } catch (error) {
       console.error('Failed to write log to file:', error);
@@ -64,20 +84,21 @@ class Logger {
     }
   }
 
-  private log(level: LogEntry['level'], module: string, message: string, data?: any): void {
-    const logEntry = this.formatLogEntry(level, module, message, data);
+  private log(level: LogLevel, module: string, message: string, data?: any): void {
+    if (!shouldLog(level)) return;
+    const entry: QueueEntry = { level, module, message, data };
 
     // 输出到控制台
     const consoleMethod = level === 'ERROR' ? 'error' :
                          level === 'WARN' ? 'warn' :
                          level === 'DEBUG' ? 'debug' : 'log';
-    console[consoleMethod](`[${new Date().toISOString()}] ${logEntry}`);
+    console[consoleMethod](formatLogEntry(level, module, message, data));
 
     // 队列满时丢弃最旧的日志
     if (this.logQueue.length >= this.maxQueueSize) {
       this.logQueue.shift();
     }
-    this.logQueue.push(logEntry);
+    this.logQueue.push(entry);
 
     // 异步处理队列
     this.processLogQueue().catch(error => {

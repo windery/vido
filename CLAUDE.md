@@ -36,12 +36,10 @@ Esc 在任何状态关闭配置
 
 ### Operation Philosophy
 
-**Vim is an interaction paradigm, not a visual style.**
+**Vim is an interaction paradigm, paired with a Terminal Purist visual language.**
 
 - **Interaction layer**: vim paradigm — modal editing (COMMAND / INSERT / VISUAL), keyboard-first, key sequences (`dd`, `yy`, `gg`, `G`), count prefixes (`3j`, `2dd`), zero mouse dependency
-- **Visual layer**: modern desktop application — refined typography, fluid animations, depth shadows, color hierarchy, glassmorphism accents
-
-Do not imitate terminal vim's visual appearance. The UI should feel premium and modern while retaining vim's efficient keyboard-driven operations.
+- **Visual layer**: Terminal Purist — phosphor-green accent (`#59d98a` dark / `#1a7f3e` light), mono display type, blinking block caret, uppercase mode badges with letter-spacing, inverted-block selection, ASCII `▰▱` progress bar. Terminal-informed but crisp and modern — never a fake-emulator skin.
 
 ### UX Principles
 
@@ -108,35 +106,35 @@ fnm use 22
 
 ## UI Design Principles (CRITICAL)
 
-**Material Design with programmer-friendly aesthetics**
+**Terminal Purist — programmer-grade Vim aesthetic**
 
 ### Core Philosophy
-This application embodies **programmer values**: rigorous, concise, efficient. UI should enhance productivity through clean, purposeful design.
+This application embodies **programmer values**: rigorous, concise, efficient. The visual language is *Terminal Purist*: phosphor-green accent, mono display type, modal badges, and inverted-block selection — terminal-informed, but rendered crisp and modern, never a fake-emulator skin.
 
 ### Design Standards
 
 **Typography & Colors**:
 - **Content font**: Monospace (SF Mono, JetBrains Mono, Fira Code) for task data
-- **UI font**: System UI (SF Pro / Segoe UI) for labels, hints, tab headers
-- **Primary**: #1976D2 (Material Blue 700), hover/focus accent #42a5f5
-- **Surface**: #121212 base, #1e1e20 cards, #2a2a2e inputs
-- **Text**: #E1E1E1 (primary), #A0A0A0 (secondary), #888 (hints)
-- **Priority colors**: P1 #f85149, P2 #d29922, P3 #58a6ff
-- **Glass surface**: `rgba(30,30,32,0.85)` + `backdrop-filter: blur(12px)` for panels
-- **Active**: blue left border + gradient background `#1a3a5c → #264f78`
+- **UI font**: System UI (SF Pro / PingFang SC) for labels, hints, badges
+- **Accent (dark)**: `#59d98a` phosphor green, bright `#8af0ab`, dim `rgba(89,217,138,.14)`, contrast text `#062b11`
+- **Accent (light)**: `#1a7f3e`, bright `#145c2d`, dim `rgba(26,127,62,.12)`, contrast text `#ffffff`
+- **Surface (dark)**: `#121212` base, `#1e1e20` panels, `#2a2a2e` inputs
+- **Text (dark)**: `#E1E1E1` primary, `#A0A0A0` secondary, `#888` hints
+- **Selected row**: green `--active-grad` (`#143623 → #1c4a2e` dark), `›` marker, line number `--ln-selected`
+- **Priority colors**: P1 `#f85149`, P2 `#d29922`, P3 `#58a6ff`
+- **Mode badges**: uppercase labels + `letter-spacing:.06em`, colored text via `--mode-*` tokens (normal blue, insert green, lastline orange)
 
 **Spacing & Layout**:
 - **8dp Grid System**: All spacing multiples of 8px (8px, 16px, 24px, 32px)
-- **Elevation**: 2dp, 4dp, 8dp, 16dp for different content layers
-- **Border Radius**: 4dp (small), 8dp (cards/panels)
-- **Minimum Touch**: 44dp for all interactive elements
+- **Border Radius**: 4px small, 6-8px cards/panels, header logo 5px
+- **Minimum Touch**: 44dp for interactive elements
 
 **Animation & Motion**:
 - **Expand/collapse**: 200ms cubic-bezier(0.16, 1, 0.3, 1), max-height + opacity
-- **Tab switch**: 150ms translateX slide
-- **Hover**: transform translateY(-1px) + box-shadow, 100ms
-- **Focus ring**: blue inner glow `box-shadow: 0 0 0 2px rgba(25,118,210,0.3)`
-- **Selection**: blue left border slides in, background gradient transition
+- **Logo caret**: `▮` blinking `1.06s step-end`, disabled under `prefers-reduced-motion`
+- **Hover/active**: background/border transition, `:active` 1px translateY press-down
+- **Focus ring**: green outline `2px var(--accent)` via `:focus-visible`
+- **Progress**: ASCII `▰▱` block bar + `done/total` count in header
 
 ## DDD Architecture Rules (CRITICAL)
 
@@ -247,9 +245,11 @@ curl -X POST http://localhost:3002/api/sequence \
 ### TDD Testing (Secondary Method)
 
 **Test Structure**:
-- `src/domain/__tests__/` - Core logic unit tests
-- `src/components/__tests__/` - UI component tests  
-- `src/test/integration/` - End-to-end workflows
+- `src/renderer/domain/__tests__/` - Core logic unit tests
+- `src/renderer/components/__tests__/` - UI component tests
+- `src/renderer/i18n/__tests__/` - i18n dictionary tests
+- `src/renderer/utils/__tests__/` - logger / schedule-helper pure-function tests
+- `src/main/__tests__/` - Main-process logger pure-function tests (`// @vitest-environment node`)
 - **Framework**: Vitest + Vue Test Utils + jsdom
 
 **Testing Workflow**:
@@ -257,6 +257,7 @@ curl -X POST http://localhost:3002/api/sequence \
 2. Use `pnpm test:watch` during development
 3. Run relevant test suite after each change
 4. Full test suite + typecheck before commit
+5. `pnpm test:coverage` for coverage report (needs `@vitest/coverage-v8`)
 
 ## Logging and Debugging
 
@@ -269,22 +270,68 @@ curl -X POST http://localhost:3002/api/sequence \
 import { logger } from './utils/logger';
 
 logger.info('ComponentName', 'action description');
-logger.warn('ComponentName', 'warning message'); 
+logger.warn('ComponentName', 'warning message');
 logger.error('ComponentName', 'error message', { error: errorObject });
 ```
+
+### Log Format (v2, CRITICAL)
+
+**Single line**: `[ts] [LEVEL] [Module] message | key=value`
+
+```
+[2026-08-01T12:00:00.000Z] [INFO] [Store] create task | id=5 | title="买牛奶" | selected=true
+```
+
+- **Timestamp**: ISO 8601 (`new Date().toISOString()`)
+- **data 扁平化**: `Object.entries(data).map(([k, v]) => \`${k}=${JSON.stringify(v)}\`)`，键值对之间用 ` | ` 连接；无 data 时不输出 ` | ` 后缀
+- **格式唯一来源**: 渲染进程 `src/renderer/utils/logger.ts` 与主进程 `src/main/logger.ts` 各有一份同构纯函数 `formatLogEntry(level, module, message, data?)`，禁止另写格式
+
+### Log Levels (v2, CRITICAL)
+
+| 级别 | 用途 |
+|---|---|
+| ERROR | 失败 / 异常（保存失败、加载失败、未知模式等） |
+| WARN | 可恢复异常（任务不存在、无效参数、非法优先级） |
+| INFO | **数据变更** + 关键事件（启动、模式切换、命令执行、保存/加载） |
+| DEBUG | 高频导航、光标、DOM 细节（默认不输出） |
+
+- **级别过滤**: 渲染进程 `import.meta.env.VITE_LOG_LEVEL`，主进程 `process.env.VIDO_LOG_LEVEL`，均默认 `'INFO'`；`shouldLog(level)` 为纯函数
+- **DevTools 默认关闭**；调试时 `VIDO_DEVTOOLS=1 pnpm dev` 再打开
+
+### Data Mutation Logging (v2, CRITICAL)
+
+**数据变更日志集中在 Store 层**（`src/renderer/domain/state/store.ts`，单一事实来源，handler 不重复打）。每条数据变更在变更后记录 `logger.info('Store', '<action>', { details })`：
+
+| 操作 | message | data |
+|---|---|---|
+| createNewTask | `create task` | `id, title` |
+| deleteSelectedTask | `delete task` | `id, title` |
+| toggleTaskCompletion | `toggle complete` | `id, completed` |
+| updateTaskProperty | `update task` | `id, field, value` |
+| pasteTask | `paste task` | `newId, fromId` |
+| sortTasks | `sort tasks` | `type, count` |
+| insertNewLineBelow | `insert line` | `taskId, line` |
+| undo / redo | `undo` / `redo` | `step, total, tasks` |
+| applySearch | `search` | `term, matches, selectedId` |
+| clearSearch | `clear search` | — |
+| save | `save` | `tasks, file` |
+
+**去冗余规则**: 高频导航（`selectTask`/`selectNext`/光标更新/DOM 聚焦/按键细节/IME 起止/ref sync）一律降为 DEBUG 或删除，不占用 INFO 噪音。导航选择在 `TaskListManager` 层记录（DEBUG），不重复打。
 
 ### Critical Rule: Log-First + Automated Debugging
 
 **Never ask the user to manually reproduce a bug. Use the test API to simulate operations and verify via logs.**
 
+**测试一律后台执行，不弹窗、不抢焦点、不打断用户工作**。用 `VIDO_BACKGROUND=1` 启动，窗口保持隐藏，一切状态通过日志观察。如果日志不足以判断运行情况，**先补日志再测**，而不是弹窗肉眼看。
+
 #### Automated Debugging Workflow
 
 ```bash
-# 1. Kill existing instances (user's VS Code F5 or previous runs), then start dev server
-pkill -f "Electron.*vido" 2>/dev/null
+# 1. Kill existing instances (user's VS Code F5 or previous runs), then start dev server in BACKGROUND
+pkill -f "node_modules/.pnpm/electron" 2>/dev/null
 pkill -f "vite" 2>/dev/null
 sleep 1
-pnpm dev > /tmp/vido-dev.log 2>&1 &
+VIDO_BACKGROUND=1 pnpm dev > /tmp/vido-dev.log 2>&1 &
 
 # 2. Wait for test API
 until curl -s --noproxy '*' http://localhost:3002/api/health | grep -q ok; do sleep 2; done
@@ -298,6 +345,8 @@ curl -s --noproxy '*' -X POST http://localhost:3002/api/sequence \
 tail -50 ~/.vido/log/vido-$(date +%Y-%m-%d).log | grep "TagName"
 ```
 
+**注意**: 编辑 `src/main/**` 会触发 vite-plugin-electron 重启 Electron。后台测试要重启时，用上面的 `pkill` 清掉旧实例再起，避免残留窗口抢焦点。
+
 #### Log Analysis Priority
 
 1. **Read logs FIRST** — `tail -100 ~/.vido/log/vido-$(date +%Y-%m-%d).log`
@@ -305,7 +354,7 @@ tail -50 ~/.vido/log/vido-$(date +%Y-%m-%d).log | grep "TagName"
 3. **Analyze logs to pinpoint the exact line/value**, then fix
 4. **After fixing, use test API to verify**, then check logs to confirm
 
-Every state change (mode transition, task selection, cursor position, config toggle) MUST be logged. If a code path isn't logged, add the log before debugging further.
+Every **data mutation** (create/delete/toggle/update/paste/sort/undo/redo/search/save) MUST produce a `[Store]` INFO log (see table above). State transitions and mode switches are logged at INFO. High-frequency selection/cursor/DOM detail goes to DEBUG. If a data mutation path isn't logged, add the log before debugging further.
 
 ### Log Analysis
 

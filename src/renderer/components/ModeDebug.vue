@@ -1,5 +1,5 @@
 <template>
-  <!-- Vim-style status line at bottom -->
+  <!-- Terminal Purist status line at bottom -->
   <div class="vim-status-line">
     <div class="status-left">
       <span class="mode-indicator" :class="getModeClass(editorMode)">
@@ -11,33 +11,53 @@
     </div>
     <div class="status-center">
       <span v-if="editorMode === EditorMode.TITLE_EDIT" class="help-text">
-        -- TITLE EDIT -- (editing task title)
+        {{ t('mode.titleEdit') }}
       </span>
       <span v-else-if="editorMode === EditorMode.CONTENT_EDIT" class="help-text">
-        -- INSERT -- (editing task content)
+        {{ t('mode.contentEdit') }}
       </span>
       <span v-else-if="editorMode === EditorMode.LAST_LINE" class="help-text">
         {{ getLastLineModeText() }}
       </span>
       <span v-else-if="editorMode === EditorMode.CONTENT_NAVIGATION" class="help-text">
-        -- CONTENT-NAV -- (hjkl to move, i to insert)
+        {{ t('mode.contentNav') }}
       </span>
       <span v-else-if="selectedTask?.configState" class="help-text">
-        -- CONFIG -- (cs schedule  cp priority  ct tags  Esc close)
+        {{ t('mode.config') }}
       </span>
       <span v-else class="help-text">
-        Press ? for help
+        {{ t('mode.help') }}
       </span>
+    </div>
+    <div class="status-right">
+      <span class="task-counter">{{ taskCounter }}</span>
+      <span v-if="posInfo" class="pos">{{ posInfo }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { EditorMode } from '../domain/editor';
 import { useTaskState } from '../composables/use-task-state';
+import { t } from '../i18n';
 
 // 使用新的统一状态管理架构
-const { editorMode, lastlineContent, selectedTask } = useTaskState();
+const { editorMode, lastlineContent, selectedTask, tasks, filteredTasks, cursorPosition } = useTaskState();
+
+// 右下角统计：可见/全部任务数
+const taskCounter = computed(() => {
+  return `${filteredTasks.value.length}/${tasks.value.length} ${t('status.tasks')}`;
+});
+
+// 光标位置：内容导航 / 编辑时显示「行 · 列」
+const posInfo = computed(() => {
+  if (editorMode.value === EditorMode.CONTENT_NAVIGATION || editorMode.value === EditorMode.CONTENT_EDIT) {
+    const pos = cursorPosition.value;
+    if (pos) return t('status.pos', { l: pos.line + 1, c: pos.column });
+  }
+  return '';
+});
 
 const getModeText = (mode: EditorMode) => {
   switch (mode) {
@@ -65,11 +85,11 @@ const getModeText = (mode: EditorMode) => {
 
 const getLastLineModeText = () => {
   if (lastlineContent.value.startsWith('/')) {
-    return '-- SEARCH -- (type your search query)';
+    return t('mode.search');
   } else if (lastlineContent.value.startsWith(':')) {
-    return '-- COMMAND -- (type vim command)';
+    return t('mode.command');
   } else {
-    return '-- LAST-LINE --';
+    return t('mode.lastLine');
   }
 };
 
@@ -104,83 +124,96 @@ const getModeClass = (mode: EditorMode) => {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 24px;
-  background: #007acc;
-  color: #ffffff;
+  height: 26px;
+  background: var(--surface);
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
   font-size: 12px;
   z-index: 1000;
-  padding: 0 8px;
+  padding: 0 12px;
+  border-top: 1px solid var(--border);
+  user-select: none;
+  box-sizing: border-box;
 }
 
 .status-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .status-center {
   flex: 1;
   text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .status-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  margin-left: 14px;
+  flex-shrink: 0;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.task-counter {
+  color: var(--text-3);
+}
+
+.pos {
+  color: var(--text-2);
 }
 
 .mode-indicator {
-  font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.2);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 1px 8px;
+  border-radius: 3px;
+  background: var(--mode-badge-bg);
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
 .mode-normal {
-  background: #4caf50 !important;
+  color: var(--mode-normal);
 }
 
-.mode-title-edit {
-  background: #e91e63 !important;
-}
-
+.mode-title-edit,
 .mode-content-edit {
-  background: #ff9800 !important;
+  color: var(--mode-insert);
 }
 
 .mode-visual {
-  background: #9c27b0 !important;
+  color: var(--p2);
 }
 
-.mode-command {
-  background: #2196f3 !important;
-}
-
-.mode-search {
-  background: #ff5722 !important;
-}
-
+.mode-command,
+.mode-search,
 .mode-last-line {
-  background: #607d8b !important;
+  color: var(--mode-lastline);
 }
 
-.mode-config {
-  background: #795548 !important;
-}
-
+.mode-config,
 .mode-unknown {
-  background: #f44336 !important;
+  color: var(--mode-help);
 }
 
 .file-info {
-  color: #e0e0e0;
+  color: var(--text-dim);
+  white-space: nowrap;
 }
 
 .help-text {
   font-style: italic;
-  color: #f0f0f0;
+  color: var(--text-muted);
 }
 </style>

@@ -32,4 +32,9 @@ yarn.lock
 
 # Auto-generated files
 auto-imports.d.ts
-components.d.ts.claude/worktrees/
+components.d.ts
+
+# Test / tooling artifacts
+coverage
+.playwright-mcp/
+.claude/worktrees/

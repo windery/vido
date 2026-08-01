@@ -19,9 +19,7 @@
                         @keydown.esc="stopTitleEditing" @compositionstart="handleCompositionStart"
                         @compositionend="handleCompositionEnd" />
                 </span>
-                <span v-else class="task-title" @dblclick="startTaskTitleEditing">
-                    {{ task.title || '[No title]' }}
-                </span>
+                <span v-else class="task-title" v-html="highlightTitle(task.title)" @dblclick="startTaskTitleEditing"></span>
 
                 <span v-if="task.tags && task.tags.length > 0" class="inline-tags">
                     <span v-for="tag in task.tags" :key="tag" class="inline-tag">#{{ tag }}</span>
@@ -32,7 +30,7 @@
                         📅{{ getScheduleDisplayText(task.schedule) }}
                     </span>
                     <span v-if="isScheduleExpired(task.schedule)" class="expired-indicator">
-                        (已过期)
+                        {{ t('task.expired') }}
                     </span>
                 </span>
             </div>
@@ -50,45 +48,43 @@
             <div v-if="task.configState === 'scheduleInput'" class="config-input-row">
               <span class="config-input-icon">📅</span>
               <input ref="scheduleInputRef" v-model="scheduleInputValue" class="config-input"
-                placeholder="20260306  或  15:33  或  202603061533"
+                :placeholder="t('config.schedulePlaceholder')"
                 @keydown.enter="saveScheduleInput" @keydown.escape="cancelScheduleInput" />
             </div>
             <div v-else class="config-pills">
-              <span class="config-pill"><kbd>1</kbd> 今天</span>
-              <span class="config-pill"><kbd>2</kbd> 明天</span>
-              <span class="config-pill"><kbd>3</kbd> 下周</span>
-              <span class="config-pill"><kbd>c</kbd> 清除</span>
-              <span class="config-pill config-pill-enter"><kbd>⏎</kbd> 自定义</span>
+              <span class="config-pill"><kbd>1</kbd> {{ t('config.today') }}</span>
+              <span class="config-pill"><kbd>2</kbd> {{ t('config.tomorrow') }}</span>
+              <span class="config-pill"><kbd>3</kbd> {{ t('config.nextWeek') }}</span>
+              <span class="config-pill"><kbd>c</kbd> {{ t('config.clear') }}</span>
+              <span class="config-pill config-pill-enter"><kbd>⏎</kbd> {{ t('config.custom') }}</span>
             </div>
           </template>
           <!-- Priority -->
           <template v-else-if="task.configState === 'priority'">
             <div class="config-pills">
-              <span class="config-pill priority-p1"><kbd>1</kbd> P1 高</span>
-              <span class="config-pill priority-p2"><kbd>2</kbd> P2 中</span>
-              <span class="config-pill priority-p3"><kbd>3</kbd> P3 低</span>
+              <span class="config-pill priority-p1"><kbd>1</kbd> P1 {{ t('config.high') }}</span>
+              <span class="config-pill priority-p2"><kbd>2</kbd> P2 {{ t('config.medium') }}</span>
+              <span class="config-pill priority-p3"><kbd>3</kbd> P3 {{ t('config.low') }}</span>
             </div>
           </template>
           <!-- Tags -->
           <template v-else-if="task.configState === 'tags' || task.configState === 'tagsInput'">
             <div v-if="task.tags?.length" class="config-tags-display">
-              <span v-for="t in task.tags" :key="t" class="config-tag">#{{ t }}</span>
+              <span v-for="tag in task.tags" :key="tag" class="config-tag">#{{ tag }}</span>
             </div>
-            <span v-else class="config-empty-hint">无标签</span>
+            <span v-else class="config-empty-hint">{{ t('config.noTags') }}</span>
             <div v-if="task.configState === 'tagsInput'" class="config-input-row">
               <span class="config-input-icon">🏷</span>
               <input ref="tagInputRef" v-model="tagInputValue" class="config-input"
-                placeholder="输入标签名，Enter 保存"
+                :placeholder="t('config.tagPlaceholder')"
                 @keydown.enter="saveTagInput" @keydown.escape="cancelTagInput" />
             </div>
             <div v-else class="config-pills" style="margin-top:6px">
-              <span class="config-pill config-pill-enter"><kbd>⏎</kbd> 添加</span>
-              <span class="config-pill"><kbd>c</kbd> 清除</span>
+              <span class="config-pill config-pill-enter"><kbd>⏎</kbd> {{ t('config.add') }}</span>
+              <span class="config-pill"><kbd>c</kbd> {{ t('config.clear') }}</span>
             </div>
           </template>
-          <div class="config-footer">
-            <kbd>j</kbd><kbd>k</kbd> 切换配置 · <kbd>Esc</kbd> 退出
-          </div>
+          <div class="config-footer" v-html="t('config.footer')"></div>
         </div>
     </div>
 </template>
@@ -99,10 +95,12 @@ import { Task, TaskState, TaskPriority } from '../domain/task';
 import { getScheduleDisplayText, isScheduleExpired, parseScheduleFromString } from '../utils/schedule-helper';
 import TaskContent from './TaskContent.vue';
 import { useTaskState } from '../composables/use-task-state';
+import { t } from '../i18n';
 
 interface Props {
     task: Task;
     index: number;
+    searchTerm?: string;
 }
 
 interface Emits {
@@ -247,7 +245,24 @@ const cancelTagInput = () => {
   useTaskState().taskDataManager.setConfigState(props.task.id, 'tags');
 };
 
-// hint-bar 文本 —— 已内联在 template
+// 标题搜索高亮：安全转义后包裹 <mark>，避免 XSS
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c] as string));
+}
+
+function highlightTitle(title: string): string {
+  if (!title) return t('task.noTitle');
+  const escaped = escapeHtml(title);
+  const term = (props.searchTerm || '').trim();
+  if (!term) return escaped;
+  const escapedTerm = escapeHtml(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (!escapedTerm) return escaped;
+  try {
+    return escaped.replace(new RegExp(escapedTerm, 'gi'), m => `<mark>${m}</mark>`);
+  } catch {
+    return escaped;
+  }
+}
 
 const getPriorityClass = (priority?: TaskPriority) => {
     switch (priority) {
@@ -261,8 +276,6 @@ const getPriorityClass = (priority?: TaskPriority) => {
             return 'priority-medium';
     }
 };
-
-// formatDate函数已移除，使用schedule-helper中的函数
 
 // 使用 watchEffect 来监听任务状态，确保在组件挂载时也能正确设置焦点
 watchEffect(() => {
@@ -293,22 +306,38 @@ watchEffect(() => {
 }
 
 .task-line {
+    position: relative;
     display: flex;
-    min-height: 24px;
-    padding: 4px 12px;
+    align-items: center;
+    min-height: 28px;
+    padding: 4px 10px 4px 6px;
     cursor: pointer;
     box-sizing: border-box;
-    border-radius: 2px;
+    border-radius: 3px;
     margin-bottom: 2px;
 }
 
 .task-line:hover {
-    background: #2a2d2e;
+    background: var(--bg-hover);
 }
 
 .task-line.selected {
-    background: #264f78;
-    color: #ffffff;
+    background: var(--bg-selected);
+    color: var(--text-bright);
+}
+
+.task-line.selected::before {
+    content: '›';
+    position: absolute;
+    left: 4px;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    line-height: 1;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 15px;
 }
 
 .task-line.completed {
@@ -317,17 +346,21 @@ watchEffect(() => {
 
 .task-line.completed .task-title {
     text-decoration: line-through;
-    color: #6e7681;
+    color: var(--text-dim);
 }
 
 .line-number {
     width: 40px;
     text-align: right;
-    color: #6e7681;
+    color: var(--ln);
     font-size: 12px;
     margin-right: 12px;
     user-select: none;
     flex-shrink: 0;
+}
+
+.task-line.selected .line-number {
+    color: var(--ln-selected);
 }
 
 .line-content {
@@ -340,7 +373,7 @@ watchEffect(() => {
 }
 
 .task-status {
-    color: #4fc1ff;
+    color: var(--status);
     font-weight: bold;
     width: 16px;
     flex-shrink: 0;
@@ -355,15 +388,15 @@ watchEffect(() => {
 }
 
 .priority-high {
-    color: #f85149;
+    color: var(--p1);
 }
 
 .priority-medium {
-    color: #d29922;
+    color: var(--p2);
 }
 
 .priority-low {
-    color: #3fb950;
+    color: var(--p3);
 }
 
 .editing-inline {
@@ -371,9 +404,9 @@ watchEffect(() => {
 }
 
 .title-editor {
-    background: #3c3c3c;
-    border: 1px solid #5a5a5a;
-    color: #d4d4d4;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
     padding: 2px 4px;
     border-radius: 2px;
     font-family: inherit;
@@ -385,12 +418,12 @@ watchEffect(() => {
 
 .title-editor:focus {
     outline: none;
-    border-color: #007acc;
-    background: #1e1e1e;
+    border-color: var(--title-editor-focus);
+    background: var(--bg-content);
 }
 
 .task-title {
-    color: #d4d4d4;
+    color: var(--text);
     flex: 1;
     min-width: 0;
     word-wrap: break-word;
@@ -400,7 +433,14 @@ watchEffect(() => {
 }
 
 .task-title:hover {
-    color: #ffffff;
+    color: var(--text-bright);
+}
+
+.task-title :deep(mark) {
+    background: var(--accent);
+    color: var(--accent-contrast);
+    border-radius: 2px;
+    padding: 0 1px;
 }
 
 .inline-tags {
@@ -410,18 +450,15 @@ watchEffect(() => {
 }
 
 .inline-tag {
-    color: #79c0ff;
+    color: var(--tag);
     font-size: 12px;
 }
 
 .config-input-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px 6px 68px;
-  background: rgba(255, 255, 255, 0.015);
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  gap: 7px;
+  padding: 6px 0;
 }
 
 .config-input-icon {
@@ -432,32 +469,38 @@ watchEffect(() => {
 .config-input {
   flex: 1;
   padding: 4px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--accent);
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.03);
-  color: #d4d4d4;
+  background: var(--surface-input);
+  color: var(--text);
   font-size: 13px;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
   min-width: 0;
+  box-shadow: 0 0 0 2px var(--input-focus);
 }
 
 .config-input::placeholder {
-  color: #6e7681;
+  color: var(--text-3);
+  font-style: italic;
 }
 
 .config-input:focus {
   outline: none;
-  border-color: #1976D2;
-  box-shadow: 0 0 0 1px rgba(25, 118, 210, 0.2);
 }
 
 /* Config panel */
 .config-panel {
-  margin: 2px 12px 6px 68px;
+  margin: 2px 8px 6px 70px;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--config-bg);
+  border: 1px solid var(--config-border);
   border-radius: 6px;
+  animation: cfgIn 0.16s var(--ease);
+}
+
+@keyframes cfgIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: none; }
 }
 
 .config-pills {
@@ -469,54 +512,59 @@ watchEffect(() => {
 .config-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   padding: 4px 10px;
   border-radius: 5px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--pill-bg);
+  border: 1px solid transparent;
   font-size: 12px;
-  font-family: system-ui, -apple-system, sans-serif;
-  color: #ccc;
-  transition: background 100ms;
+  font-family: var(--ui);
+  color: var(--text-2);
+  transition: background 100ms, color 100ms;
   cursor: default;
 }
 
 .config-pill:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--pill-hover);
+  color: var(--text);
 }
 
 .config-pill-enter {
-  background: rgba(25, 118, 210, 0.12);
-  color: #64b5f6;
+  background: var(--accent-dim);
+  color: var(--accent-bright);
 }
 
 .config-pill kbd {
   font-family: 'SF Mono', 'Monaco', monospace;
   font-size: 10px;
-  padding: 1px 4px;
+  padding: 1px 5px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #999;
+  background: var(--pill-kbd-bg);
+  color: var(--text-3);
 }
 
 .config-pill-enter kbd {
-  background: rgba(25, 118, 210, 0.25);
-  color: #90caf9;
+  background: var(--pill-enter-kbd-bg);
+  color: var(--pill-enter-kbd-fg);
 }
 
-.priority-p1 { color: #f87168; background: rgba(248, 81, 73, 0.08); }
-.priority-p1:hover { background: rgba(248, 81, 73, 0.15); }
-.priority-p2 { color: #e2b04a; background: rgba(210, 153, 34, 0.08); }
-.priority-p2:hover { background: rgba(210, 153, 34, 0.15); }
-.priority-p3 { color: #6cb6ff; background: rgba(88, 166, 255, 0.08); }
-.priority-p3:hover { background: rgba(88, 166, 255, 0.15); }
+.priority-p1 { color: var(--pill-p1-fg); background: var(--pill-p1-bg); }
+.priority-p1:hover { background: var(--pill-p1-hover); }
+.priority-p2 { color: var(--pill-p2-fg); background: var(--pill-p2-bg); }
+.priority-p2:hover { background: var(--pill-p2-hover); }
+.priority-p3 { color: var(--pill-p3-fg); background: var(--pill-p3-bg); }
+.priority-p3:hover { background: var(--pill-p3-hover); }
 
 .config-footer {
-  margin-top: 6px;
-  padding-top: 5px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  margin-top: 7px;
+  padding-top: 6px;
+  border-top: 1px solid var(--config-footer-border);
   font-size: 10px;
-  font-family: system-ui, -apple-system, sans-serif;
-  color: #666;
+  font-family: var(--ui);
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .config-tags-display {
@@ -526,28 +574,28 @@ watchEffect(() => {
 }
 
 .config-tag {
-  padding: 4px 10px;
-  border-radius: 5px;
-  background: rgba(25, 118, 210, 0.1);
-  color: #64b5f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--accent-dim);
+  color: var(--accent-bright);
   font-size: 12px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--ui);
 }
 
 .config-empty-hint {
-  color: #666;
+  color: var(--text-3);
   font-size: 12px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--ui);
   align-self: center;
 }
 
-.config-footer kbd {
+.config-footer :deep(kbd) {
   font-family: 'SF Mono', 'Monaco', monospace;
   font-size: 9px;
   padding: 1px 4px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #888;
+  background: var(--config-kbd-bg);
+  color: var(--config-kbd-fg);
   margin: 0 1px;
 }
 
@@ -559,12 +607,12 @@ watchEffect(() => {
 }
 
 .schedule-text {
-    color: #7dd3fc;
+    color: var(--schedule);
     font-size: 12px;
 }
 
 .expired-indicator {
-    color: #f85149;
+    color: var(--p1);
     font-size: 11px;
     font-style: italic;
 }

@@ -12,6 +12,7 @@
                 <!-- Task List -->
                 <div v-else class="buffer-content">
                     <TaskItem v-for="(task, index) in filteredTasks" :key="task.id" :task="task" :index="index"
+                        :search-term="searchTerm"
                         @row-click="handleRowClick" @start-title-editing="startTaskTitleEditing"
                         @title-input="handleTitleInput" @cursor-update="handleCursorUpdate"
                         @content-keydown="handleContentKeydown" @content-input="handleContentInput"
@@ -39,6 +40,7 @@ const {
     selectedTask,
     filteredTasks,
     isSearching,
+    lastlineContent,
     selectTask,
     startTitleEditing,
     updateCursorPosition,
@@ -47,6 +49,12 @@ const {
 
 const completedTasksCount = computed(() => {
     return filteredTasks.value.filter((task: Task) => task.completed).length;
+});
+
+// 搜索关键词：提取 /xxx 中的 xxx，用于任务标题高亮
+const searchTerm = computed(() => {
+    const f = lastlineContent.value;
+    return f && f.startsWith('/') && f.length > 1 ? f.slice(1) : '';
 });
 
 // 用于存储多个内容编辑textarea的refs
@@ -65,7 +73,7 @@ const cursorTracker = computed(() => {
 
 // Watch for cursor changes to update cursor display
 watchEffect(() => {
-    const tracker = cursorTracker.value;
+    void cursorTracker.value;
 
     const task = selectedTask.value;
     // 只在有选中任务时才记录日志，避免初始化时的undefined日志
@@ -76,7 +84,7 @@ watchEffect(() => {
                 const textarea = contentEditRefs.value.get(task.id);
                 if (textarea) {
                     updateContentWithCursorLocal(textarea, task);
-                    logger.info('TodoListRefactored', `Updated cursor for task ${task.id} at line ${task.cursorLine}, column ${task.cursorColumn}`);
+                    logger.debug('TodoListRefactored', `Updated cursor for task ${task.id} at line ${task.cursorLine}, column ${task.cursorColumn}`);
                 } else {
                     logger.warn('TodoListRefactored', `No textarea found for task ${task.id}`);
                 }
@@ -148,67 +156,27 @@ const handleContentKeydown = (event: KeyboardEvent, task: Task) => {
     }
 };
 
-const CURSOR_CHAR = ' '; // 使用空格字符作为光标
-
 const updateContentWithCursorLocal = (textarea: HTMLTextAreaElement, task: Task) => {
-    logger.info('TodoListRefactored', `updateContentWithCursor called for task ${task.id}, cursorLine: ${task.cursorLine}, cursorColumn: ${task.cursorColumn}`);
-
     if (task.cursorLine === undefined || task.cursorColumn === undefined) {
         logger.warn('TodoListRefactored', `updateContentWithCursor: missing cursor position for task ${task.id}`);
         return;
     }
 
-    const originalContent = task.content || '';
-    const lines = originalContent.split('\n');
-
+    const lines = (task.content || '').split('\n');
     // 确保光标行存在
     while (lines.length <= task.cursorLine) {
         lines.push('');
     }
 
-    const currentLine = lines[task.cursorLine] || '';
-    let displayContent = originalContent;
-    let charPosition = 0;
-
-    // 计算到目标行的字符位置
+    // 计算光标偏移（字符位置）
+    let offset = 0;
     for (let i = 0; i < task.cursorLine; i++) {
-        charPosition += lines[i].length + 1; // +1 for newline
+        offset += lines[i].length + 1; // +1 for newline
     }
-    charPosition += Math.min(task.cursorColumn, currentLine.length);
+    offset += Math.min(task.cursorColumn, lines[task.cursorLine].length);
 
-    // 检查是否在空行或行末
-    const isAtLineEnd = task.cursorColumn >= currentLine.length;
-    const isEmptyLine = currentLine.length === 0;
-
-    if (isEmptyLine || (isAtLineEnd && currentLine.length === 0)) {
-        // 空行：插入光标字符
-        const modifiedLines = [...lines];
-        modifiedLines[task.cursorLine] = CURSOR_CHAR;
-        displayContent = modifiedLines.join('\n');
-        textarea.value = displayContent;
-
-        // 重新计算位置
-        charPosition = 0;
-        for (let i = 0; i < task.cursorLine; i++) {
-            charPosition += modifiedLines[i].length + 1;
-        }
-        textarea.setSelectionRange(charPosition, charPosition + 1);
-
-    } else if (isAtLineEnd) {
-        // 行末但不是空行：在行末添加光标字符
-        const modifiedLines = [...lines];
-        modifiedLines[task.cursorLine] = currentLine + CURSOR_CHAR;
-        displayContent = modifiedLines.join('\n');
-        textarea.value = displayContent;
-
-        // 选中光标字符
-        textarea.setSelectionRange(charPosition, charPosition + 1);
-
-    } else {
-        // 非空行中间：选中当前字符
-        textarea.value = originalContent;
-        textarea.setSelectionRange(charPosition, charPosition + 1);
-    }
+    // 移动原生闪烁 caret 到光标位置，不再注入空格占位
+    textarea.setSelectionRange(offset, offset);
 };
 
 const scrollToTask = (taskId: number) => {
@@ -233,13 +201,13 @@ const scrollToTask = (taskId: number) => {
                         // 如果总高度超过容器高度，滚动到任务顶部
                         if (totalHeight > containerHeight * 0.8) {
                             taskElement.scrollIntoView({
-                                behavior: 'smooth',
+                                behavior: 'auto',
                                 block: 'start'
                             });
                         } else {
                             // 否则居中显示
                             taskElement.scrollIntoView({
-                                behavior: 'smooth',
+                                behavior: 'auto',
                                 block: 'center'
                             });
                         }
@@ -247,7 +215,7 @@ const scrollToTask = (taskId: number) => {
                 } else {
                     // 没有内容区域，正常居中显示
                     taskElement.scrollIntoView({
-                        behavior: 'smooth',
+                        behavior: 'auto',
                         block: 'center'
                     });
                 }
@@ -274,7 +242,7 @@ watch(selectedTask, (newTask, oldTask) => {
     // 处理不同状态的转换
     if (newTask && newTask.status === TaskState.CONTENT_NAVIGATION) {
         nextTick(() => {
-            logger.info('TodoListRefactored', 'focus on task, start content navigation, task id:', newTask.id);
+            logger.debug('TodoListRefactored', 'focus on task, start content navigation', { taskId: newTask.id });
 
             // 使用更长的延迟确保DOM完全渲染
             setTimeout(() => {
@@ -292,8 +260,6 @@ watch(selectedTask, (newTask, oldTask) => {
                 }
 
                 if (contentTextarea) {
-                    logger.info('TodoListRefactored', 'Found textarea, setting up content navigation');
-
                     // 确保textarea可见
                     contentTextarea.style.display = 'block';
                     contentTextarea.style.visibility = 'visible';
@@ -304,10 +270,6 @@ watch(selectedTask, (newTask, oldTask) => {
 
                     // 设置焦点
                     contentTextarea.focus();
-
-                    // 检查焦点是否成功
-                    const isFocused = document.activeElement === contentTextarea;
-                    logger.info('TodoListRefactored', 'Textarea focus result:', isFocused);
 
                     // 在内容导航模式下显示光标
                     if (newTask.cursorLine !== undefined && newTask.cursorColumn !== undefined) {
@@ -339,7 +301,7 @@ const registerTextareaRef = (taskId: number, textarea: HTMLTextAreaElement | nul
 };
 
 onMounted(() => {
-    logger.info('TodoListRefactored', 'Component mounted with refactored architecture');
+    logger.debug('TodoListRefactored', 'Component mounted');
 
     // 注入滚动回调到键盘管理器，HMR 重渲染时重新注册
     const km = getKeyboardManager();
@@ -369,7 +331,7 @@ onMounted(() => {
             }
             task.cursorLine = line;
             task.cursorColumn = column;
-            logger.info('TodoListRefactored', `Saved cursor position for task ${taskId}: line=${line}, column=${column}`);
+            logger.debug('TodoListRefactored', `Saved cursor position for task ${taskId}`, { line, column });
         }
     });
 });
@@ -381,8 +343,8 @@ onMounted(() => {
     /* Leave space for status line and padding */
     display: flex;
     flex-direction: column;
-    background: #1e1e1e;
-    color: #d4d4d4;
+    background: var(--bg);
+    color: var(--text);
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
     font-size: 14px;
     line-height: 1.4;
@@ -409,9 +371,9 @@ onMounted(() => {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    background: #1e1e1e;
+    background: var(--bg);
     border-radius: 0 0 4px 4px;
-    border: 1px solid #3e3e42;
+    border: 1px solid var(--border);
     border-top: none;
 }
 

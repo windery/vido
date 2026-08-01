@@ -19,7 +19,7 @@ describe('ContentNavigationModeHandler', () => {
       id: 1,
       content: '',
       selected: true,
-      status: 4, // CONTENT_NAVIGATION
+      status: 2, // TaskState.CONTENT_NAVIGATION
       cursorLine: 0,
       cursorColumn: 0,
     };

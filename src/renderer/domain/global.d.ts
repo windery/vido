@@ -10,7 +10,7 @@ declare global {
     };
     
     vidoLogger: {
-      writeLog: (logEntry: string) => Promise<void>;
+      writeLog: (logEntry: { level: string; module: string; message: string; data?: any }) => Promise<void>;
     };
   }
 }

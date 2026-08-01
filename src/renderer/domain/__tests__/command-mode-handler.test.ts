@@ -54,7 +54,8 @@ describe('CommandModeHandler', () => {
       toggleTaskCompletion: vi.fn(), toggleHelp: vi.fn(),
       createNewTask: vi.fn(() => ({ id: 99, title: '' })),
       deleteSelectedTask: vi.fn(), copySelectedTask: vi.fn(), pasteTask: vi.fn(),
-      setConfigState: vi.fn(),
+      setConfigState: vi.fn(), undo: vi.fn(), redo: vi.fn(),
+      searchNext: vi.fn(),
     };
   });
 
@@ -68,6 +69,11 @@ describe('CommandModeHandler', () => {
     handler.handleKey(makeEvent('j'), 'j', mockTDM, false);
     expect(mockTDM.selectNext).toHaveBeenCalledTimes(3);
   });
+
+  it('u calls undo', () => { handler.handleKey(makeEvent('u'), 'u', mockTDM, false); expect(mockTDM.undo).toHaveBeenCalled(); });
+  it('Ctrl+R calls redo', () => { handler.handleKey(new KeyboardEvent('keydown', { key: 'r', ctrlKey: true, bubbles: true }), 'r', mockTDM, false); expect(mockTDM.redo).toHaveBeenCalled(); });
+  it('n calls searchNext(1)', () => { handler.handleKey(makeEvent('n'), 'n', mockTDM, false); expect(mockTDM.searchNext).toHaveBeenCalledWith(1); });
+  it('N calls searchNext(-1)', () => { handler.handleKey(makeEvent('N'), 'N', mockTDM, false); expect(mockTDM.searchNext).toHaveBeenCalledWith(-1); });
 });
 
 describe('CommandModeHandler integration with TaskList', () => {

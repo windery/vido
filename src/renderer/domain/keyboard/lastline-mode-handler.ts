@@ -6,6 +6,8 @@ import { ModeHandler } from './base-handler';
 import { Store } from '../state/store';
 import { TaskPriority } from '../task';
 import { logger } from '../../utils/logger';
+import { setTheme, setLang, prefs } from '../state/prefs';
+import { t } from '../../i18n';
 import {
   createTodaySchedule,
   parseScheduleFromString,
@@ -102,6 +104,16 @@ export class LastLineModeHandler implements ModeHandler {
       case 'tag':
         this.setTaskTags(args, taskDataManager);
         break;
+      case 'theme':
+        this.setTheme(args);
+        break;
+      case 'clear':
+        taskDataManager.clearSearch();
+        break;
+      case 'lang':
+      case 'language':
+        this.setLanguage(args);
+        break;
       default:
         logger.warn('LastLineModeHandler', `Unknown vim command: ${command}`);
     }
@@ -109,18 +121,19 @@ export class LastLineModeHandler implements ModeHandler {
 
   private executeSearch(
     searchTerm: string,
-    _taskDataManager: Store
+    taskDataManager: Store
   ): void {
     logger.info('LastLineModeHandler', `Executing search: ${searchTerm}`);
-    // 搜索逻辑已在TaskDataManager中实现
-    // 注意：搜索状态需要在状态转换时保持
+    // UI 过滤由 lastlineContent 驱动（composables/use-task-list），
+    // 这里仅确保选中项落在匹配集合内（与 vido.html 一致）。
+    taskDataManager.applySearch(searchTerm);
   }
 
   private executeQuit(): void {
     if (typeof window !== 'undefined' && (window as any).ipcRenderer) {
       (window as any).ipcRenderer.send('quit-app');
     } else {
-      alert('Quit function available in Electron environment');
+      alert(t('msg.quitFallback'));
     }
   }
 
@@ -280,51 +293,23 @@ export class LastLineModeHandler implements ModeHandler {
   }
 
   /**
-   * 解析日期时间字符串
+   * 切换主题：:theme dark | :theme light | :theme（无参数切换）
    */
-  private parseDateTime(dateStr: string): Date | null {
-    // 支持多种格式（用于文档说明）
-    const _formats = [
-      // ISO格式
-      /^\d{4}-\d{2}-\d{2}$/,
-      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/,
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/,
-      // 简化格式
-      /^\d{2}-\d{2}$/, // MM-DD
-      /^\d{2}-\d{2} \d{2}:\d{2}$/, // MM-DD HH:MM
-    ];
+  private setTheme(args: string[]): void {
+    const arg = args[0]?.toLowerCase();
+    if (arg === 'dark') setTheme('dark');
+    else if (arg === 'light') setTheme('light');
+    else setTheme(prefs.theme === 'dark' ? 'light' : 'dark');
+  }
 
-    try {
-      // 尝试直接解析
-      let parsedDate = new Date(dateStr);
-      if (!isNaN(parsedDate.getTime())) {
-        return parsedDate;
-      }
-
-      // 处理简化格式
-      if (/^\d{2}-\d{2}$/.test(dateStr)) {
-        // MM-DD格式，使用当前年份
-        const currentYear = new Date().getFullYear();
-        parsedDate = new Date(`${currentYear}-${dateStr}`);
-        if (!isNaN(parsedDate.getTime())) {
-          return parsedDate;
-        }
-      }
-
-      if (/^\d{2}-\d{2} \d{2}:\d{2}$/.test(dateStr)) {
-        // MM-DD HH:MM格式，使用当前年份
-        const currentYear = new Date().getFullYear();
-        const [datePart, timePart] = dateStr.split(' ');
-        parsedDate = new Date(`${currentYear}-${datePart}T${timePart}`);
-        if (!isNaN(parsedDate.getTime())) {
-          return parsedDate;
-        }
-      }
-
-      return null;
-    } catch (error) {
-      return null;
-    }
+  /**
+   * 切换语言：:lang zh | :lang en | :lang（无参数切换）
+   */
+  private setLanguage(args: string[]): void {
+    const arg = args[0]?.toLowerCase();
+    if (arg === 'zh' || arg === 'cn' || arg === '中文') setLang('zh');
+    else if (arg === 'en' || arg === 'english') setLang('en');
+    else setLang(prefs.lang === 'zh' ? 'en' : 'zh');
   }
 
   /**

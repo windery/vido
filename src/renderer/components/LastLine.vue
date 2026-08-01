@@ -21,8 +21,8 @@ const {
 
 // 添加调试日志
 onMounted(() => {
-  logger.info('LastLine', 'LastLine component mounted');
-  logger.info('LastLine', `Initial state: isLastLineVisible=${isLastLineVisible.value}, lastlineContent="${lastlineContent.value}"`);
+  logger.debug('LastLine', 'LastLine component mounted');
+  logger.debug('LastLine', 'Initial state', { isLastLineVisible: isLastLineVisible.value, lastlineContent: lastlineContent.value });
 });
 
 const inputRef = ref<HTMLInputElement | null>(null);
@@ -78,7 +78,6 @@ const getPromptSymbol = () => {
 };
 
 const handleAnyKeydown = (event: KeyboardEvent) => {
-  logger.info('LastLine', `handleAnyKeydown called with key: ${event.key}`);
   // Allow normal typing, ESC and Enter are handled separately
   if (event.key === 'Tab') {
     event.preventDefault();
@@ -97,7 +96,7 @@ const handleEnterKey = (event: KeyboardEvent) => {
     return; // 让输入法完成组合
   }
   event.preventDefault();
-  logger.info('LastLine', 'handleEnterKey called - delegating to global keyboard handler');
+  logger.debug('LastLine', 'handleEnterKey called - delegating to global keyboard handler');
   // 不在组件内处理命令逻辑，而是通过全局键盘管理器处理
   // 这样保持统一的事件处理流程
 };
@@ -105,13 +104,11 @@ const handleEnterKey = (event: KeyboardEvent) => {
 // 输入法组合开始
 const handleCompositionStart = () => {
   isComposing.value = true;
-  logger.info('LastLine', 'IME composition started');
 };
 
 // 输入法组合结束
 const handleCompositionEnd = () => {
   isComposing.value = false;
-  logger.info('LastLine', 'IME composition ended');
 };
 
 // 命令补全功能
@@ -119,7 +116,7 @@ const handleTabCompletion = () => {
   const content = lastlineContent.value;
   if (content.startsWith(':')) {
     const command = content.substring(1).toLowerCase();
-    const availableCommands = ['help', 'quit', 'q', 'write', 'w', 'wq'];
+    const availableCommands = ['help', 'theme', 'lang', 'sort', 'new', 'delete', 'schedule', 'sched', 'time', 'p', 't', 'quit', 'q', 'write', 'w', 'wq'];
     const matchingCommands = availableCommands.filter(cmd => cmd.startsWith(command));
 
     if (matchingCommands.length === 1) {
@@ -134,10 +131,8 @@ const handleTabCompletion = () => {
 
 // 监听lastline可见性变化，自动聚焦输入框
 watch(isLastLineVisible, (visible) => {
-  logger.info('LastLine', `isLastLineVisible changed to: ${visible}`);
   if (visible) {
     nextTick(() => {
-      logger.info('LastLine', 'Focusing input after visibility change');
       inputRef.value?.focus();
     });
   }
@@ -156,28 +151,28 @@ onMounted(() => {
 <style scoped>
 .vim-command-line {
   position: fixed;
-  bottom: 24px;
+  bottom: 26px;
   /* Above status line */
   left: 0;
   right: 0;
-  height: 32px;
-  background: #1e1e1e;
-  color: #d4d4d4;
+  height: 34px;
+  background: var(--lastline-bg);
+  color: var(--text);
   display: flex;
   align-items: center;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
   font-size: 14px;
   z-index: 999;
-  border-top: 1px solid #3e3e42;
+  border-top: 1px solid var(--border);
   padding: 0 12px;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 -2px 8px var(--lastline-shadow);
 }
 
 .prompt-symbol {
-  color: #f9e79f;
+  color: var(--p2);
   margin-right: 8px;
   flex-shrink: 0;
-  font-weight: 500;
+  font-weight: 700;
   font-size: 15px;
 }
 
@@ -185,7 +180,7 @@ onMounted(() => {
   flex: 1;
   background: transparent;
   border: none;
-  color: #d4d4d4;
+  color: var(--text);
   font-family: inherit;
   font-size: inherit;
   outline: none;
@@ -196,12 +191,18 @@ onMounted(() => {
 }
 
 .command-input::placeholder {
-  color: #6e7681;
+  color: var(--text-dim);
   font-style: italic;
 }
 
 .command-input:focus {
-  color: #ffffff;
+  color: var(--text-bright);
+}
+
+.command-input:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* 添加一些动画效果 */

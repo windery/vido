@@ -9,6 +9,7 @@ import {
   startTitleEditing, sortTasks, copySelected, pasteTask,
   insertNewLineBelow, moveCursorUp, moveCursorDown, moveCursorLeft, moveCursorRight,
   moveCursorToLineStart, moveCursorToLineEnd, moveCursorToFirstLine, moveCursorToLastLine,
+  moveCursorWordForward, moveCursorWordBackward, moveCursorWordEnd,
 } from '../operations/task-crud';
 import { saveTasks, loadTasks } from '../operations/task-persistence';
 import { logger } from '../../utils/logger';
@@ -27,13 +28,13 @@ export class TaskListManager {
 
   selectTask(id: number): void {
     this.list = this.list.selectTask(id);
-    logger.info('Manager', `Selected task: ${id}`);
+    logger.debug('Manager', `Selected task: ${id}`);
   }
 
-  selectNext(): void { this.list = this.list.selectNext(); logger.info('Manager', `Selected task: ${this.list.selected?.id}`); }
-  selectPrevious(): void { this.list = this.list.selectPrevious(); logger.info('Manager', `Selected task: ${this.list.selected?.id}`); }
-  goToFirst(): void { this.list = this.list.goToFirst(); logger.info('Manager', `Selected task: ${this.list.selected?.id}`); }
-  goToLast(): void { this.list = this.list.goToLast(); logger.info('Manager', `Selected task: ${this.list.selected?.id}`); }
+  selectNext(): void { this.list = this.list.selectNext(); logger.debug('Manager', `Selected task: ${this.list.selected?.id}`); }
+  selectPrevious(): void { this.list = this.list.selectPrevious(); logger.debug('Manager', `Selected task: ${this.list.selected?.id}`); }
+  goToFirst(): void { this.list = this.list.goToFirst(); logger.debug('Manager', `Selected task: ${this.list.selected?.id}`); }
+  goToLast(): void { this.list = this.list.goToLast(); logger.debug('Manager', `Selected task: ${this.list.selected?.id}`); }
 
   // ======== CRUD ========
 
@@ -92,6 +93,9 @@ export class TaskListManager {
   moveCursorToLineEnd(): void { this.list = moveCursorToLineEnd(this.list); }
   moveCursorToFirstLine(): void { this.list = moveCursorToFirstLine(this.list); }
   moveCursorToLastLine(): void { this.list = moveCursorToLastLine(this.list); }
+  moveCursorWordForward(): void { this.list = moveCursorWordForward(this.list); }
+  moveCursorWordBackward(): void { this.list = moveCursorWordBackward(this.list); }
+  moveCursorWordEnd(): void { this.list = moveCursorWordEnd(this.list); }
 
   // ======== 查询 ========
 

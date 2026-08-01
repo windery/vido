@@ -5,7 +5,7 @@
 
 import { ModeHandler } from './base-handler';
 import { Store } from '../state/store';
-import { logger } from '../../utils/logger';
+import { toggleTheme, toggleLang } from '../state/prefs';
 
 export class CommandModeHandler implements ModeHandler {
   private keySequence = '';
@@ -44,6 +44,14 @@ export class CommandModeHandler implements ModeHandler {
     }
 
     const count = this.countPrefix ? parseInt(this.countPrefix, 10) : 1;
+
+    // Ctrl+R → 重做（vido.html 承诺的撤销/重做对）
+    if (event.ctrlKey && key.toLowerCase() === 'r') {
+      event.preventDefault();
+      taskDataManager.redo();
+      this.resetAll();
+      return true;
+    }
 
     // c + s/p/t → 直接打开特定配置
     if (this.keySequence === 'c') {
@@ -150,6 +158,18 @@ export class CommandModeHandler implements ModeHandler {
         this.resetAll();
         return true;
 
+      case 'T':
+        event.preventDefault();
+        toggleTheme();
+        this.resetAll();
+        return true;
+
+      case 'L':
+        event.preventDefault();
+        toggleLang();
+        this.resetAll();
+        return true;
+
       case 'o':
         event.preventDefault();
         this.repeatAction(() => {
@@ -231,6 +251,26 @@ export class CommandModeHandler implements ModeHandler {
         this.resetAll();
         return true;
 
+      case 'u':
+        event.preventDefault();
+        this.repeatAction(() => taskDataManager.undo(), count);
+        this.resetAll();
+        return true;
+
+      case 'n':
+        event.preventDefault();
+        taskDataManager.searchNext(1);
+        this.scrollToSelectedTask();
+        this.resetAll();
+        return true;
+
+      case 'N':
+        event.preventDefault();
+        taskDataManager.searchNext(-1);
+        this.scrollToSelectedTask();
+        this.resetAll();
+        return true;
+
       default:
         if (this.keySequence.length > 0) {
           this.resetSequenceState();
@@ -238,8 +278,6 @@ export class CommandModeHandler implements ModeHandler {
         }
         return false;
     }
-
-    return false;
   }
 
   private repeatAction(action: () => unknown, count: number): void {
@@ -305,7 +343,7 @@ export class CommandModeHandler implements ModeHandler {
 
   private focusSearchInput(): void {
     setTimeout(() => {
-      const el = document.querySelector('.lastline-input');
+      const el = document.querySelector('.command-input');
       if (el instanceof HTMLInputElement) el.focus();
     }, 50);
   }

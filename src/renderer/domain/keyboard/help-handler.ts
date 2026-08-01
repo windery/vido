@@ -47,17 +47,10 @@ export class HelpModeHandler {
         this.keySequence = '';
         return true;
     }
-
-    // 如果序列长度超过2，重置
-    if (this.keySequence.length > 2) {
-      this.keySequence = '';
-    }
-
-    return true;
   }
 
   private scrollHelpPanel(direction: 'up' | 'down'): void {
-    const helpContent = document.querySelector('.help-content');
+    const helpContent = document.querySelector('.help-body');
     if (helpContent) {
       const scrollAmount = direction === 'down' ? 50 : -50;
       helpContent.scrollTop += scrollAmount;
@@ -65,14 +58,14 @@ export class HelpModeHandler {
   }
 
   private scrollHelpPanelToBottom(): void {
-    const helpContent = document.querySelector('.help-content');
+    const helpContent = document.querySelector('.help-body');
     if (helpContent) {
       helpContent.scrollTop = helpContent.scrollHeight;
     }
   }
 
   private scrollHelpPanelToTop(): void {
-    const helpContent = document.querySelector('.help-content');
+    const helpContent = document.querySelector('.help-body');
     if (helpContent) {
       helpContent.scrollTop = 0;
     }

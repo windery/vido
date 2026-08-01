@@ -39,7 +39,7 @@ function buildState(): any {
 
 // Store 每次修改后调用此函数
 store.afterChange(() => {
-    logger.info('TaskStateManager', 'Ref synced, tasks: ' + store.manager.list.items.length);
+    logger.debug('TaskStateManager', 'Ref synced', { tasks: store.manager.list.items.length });
   globalStateRef.value = buildState();
 });
 

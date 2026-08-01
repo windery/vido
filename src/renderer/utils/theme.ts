@@ -1,26 +1,16 @@
+import type { ThemeMode } from '../domain/state/prefs';
 import { logger } from './logger';
 
-// 处理用户系统主题的变化
-export function initializeTheme() {
-  // 判断用户系统是否处于深色模式
-  const isSystemDark = window.matchMedia(
-    '(prefers-color-scheme: dark)'
-  ).matches;
-
-  if (isSystemDark) {
-    logger.info('Theme', 'vido theme is set to dark');
-    document.documentElement.classList.add('dark');
+// 把主题应用到 DOM：html.dark 驱动 Element Plus 暗色变量，
+// data-theme 属性驱动 style.css 中的浅色设计令牌覆盖。
+export function applyTheme(theme: ThemeMode): void {
+  const root = document.documentElement;
+  if (theme === 'dark') {
+    root.classList.add('dark');
+    root.setAttribute('data-theme', 'dark');
+  } else {
+    root.classList.remove('dark');
+    root.setAttribute('data-theme', 'light');
   }
-  // 添加一个监听器，实时监听用户系统主题的变化
-  window
-    .matchMedia('(prefers-color-scheme: dark)')
-    .addEventListener('change', (event) => {
-      if (event.matches) {
-        logger.info('Theme', 'vido theme is set to dark');
-        document.documentElement.classList.add('dark');
-      } else {
-        logger.info('Theme', 'vido theme is set to light');
-        document.documentElement.classList.remove('dark');
-      }
-    });
+  logger.info('Theme', `Applied ${theme} theme`);
 }

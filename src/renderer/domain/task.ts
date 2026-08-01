@@ -13,6 +13,8 @@ export class Task {
   schedule?: Schedule;
   configState?: string;
   isNewlyCreated?: boolean;
+  /** 剪贴板任务保留原始任务 id，供 paste 日志记录来源 */
+  sourceId?: number;
   cursorLine: number;
   cursorColumn: number;
 

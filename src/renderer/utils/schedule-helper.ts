@@ -1,5 +1,7 @@
 import { Schedule, ScheduleType, Weekday } from '../domain/schedule';
 import { logger } from './logger';
+import { weekdayName } from '../i18n';
+import { prefs } from '../domain/state/prefs';
 import {
   getCurrentDate,
   getTomorrowDate,
@@ -9,6 +11,14 @@ import {
 } from './date-formatter';
 
 export function getScheduleDisplayText(schedule: Schedule): string {
+  // 周循环类型按当前语言输出（Schedule 实体内部固定中文）
+  if (schedule.type === ScheduleType.WEEKLY) {
+    const wt = schedule.weeklyTime;
+    if (!wt?.days?.length) return '';
+    const names = wt.days.map((d) => weekdayName(d)).join(', ');
+    const prefix = prefs.lang === 'zh' ? '每' : 'every ';
+    return wt.recurring ? `${prefix}${names}` : names;
+  }
   return schedule.getDisplayText();
 }
 

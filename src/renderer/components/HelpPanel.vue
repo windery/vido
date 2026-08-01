@@ -1,244 +1,226 @@
 <template>
   <div v-if="visible" class="help-overlay" @click="$emit('close')">
     <div class="help-panel" @click.stop>
-      <div class="help-header">
-        <h2>Vido - Vim-style Todo Manager</h2>
+      <div class="help-head">
+        <h2>{{ t('help.title') }}</h2>
+        <button type="button" class="close" :aria-label="t('help.close')" @click="$emit('close')">{{ t('help.close') }}</button>
       </div>
-      <div class="help-content">
-        <div class="help-section">
-          <h3>NORMAL MODE</h3>
-          <div class="help-commands">
-            <div class="help-command"><span class="key">j/k</span> Navigate up/down</div>
-            <div class="help-command"><span class="key">Enter</span> Edit task title</div>
-            <div class="help-command"><span class="key">i</span> Content navigation mode</div>
-            <div class="help-command"><span class="key">Space</span> Toggle completion</div>
-            <div class="help-command"><span class="key">o</span> New task below</div>
-            <div class="help-command"><span class="key">O</span> New task above</div>
-            <div class="help-command"><span class="key">dd</span> Delete task</div>
-            <div class="help-command"><span class="key">yy</span> Copy task</div>
-            <div class="help-command"><span class="key">p</span> Paste task</div>
-            <div class="help-command"><span class="key">gg</span> Go to first task</div>
-            <div class="help-command"><span class="key">G</span> Go to last task</div>
-            <div class="help-command"><span class="key">/</span> Search tasks</div>
-            <div class="help-command"><span class="key">:</span> Enter command mode</div>
-            <div class="help-command"><span class="key">cc</span> Expand task config inline (schedule/priority/tags)</div>
-            <div class="help-command"><span class="key">?</span> Show/hide this help</div>
+      <div class="help-body">
+        <div v-for="section in sections" :key="section.title" class="help-section">
+          <h3>{{ section.title }}</h3>
+          <div class="help-grid">
+            <div v-for="cmd in section.commands" :key="cmd.key" class="help-row">
+              <kbd>{{ cmd.key }}</kbd><span class="desc">{{ cmd.desc }}</span>
+            </div>
           </div>
-        </div>
-
-        <div class="help-section">
-          <h3>COMMANDS</h3>
-          <div class="help-commands">
-            <div class="help-command"><span class="key">:help</span> Show help</div>
-            <div class="help-command"><span class="key">:sort [type]</span> Sort tasks
-              (title|priority|dueDate|created)</div>
-            <div class="help-command"><span class="key">:new [title]</span> Create new task</div>
-            <div class="help-command"><span class="key">:delete</span> Delete current task</div>
-            <div class="help-command"><span class="key">:w</span> Save tasks</div>
-            <div class="help-command"><span class="key">:q</span> Quit application</div>
-          </div>
-        </div>
-
-        <div class="help-section">
-          <h3>SCHEDULE COMMANDS</h3>
-          <div class="help-commands">
-            <div class="help-command"><span class="key">:time</span> Show current task schedule</div>
-            <div class="help-command"><span class="key">:schedule</span> Set to today (no args)</div>
-            <div class="help-command"><span class="key">:sched 今天</span> Set to today (short form)</div>
-            <div class="help-command"><span class="key">:sched 明天</span> Set to tomorrow</div>
-            <div class="help-command"><span class="key">:sched 周一</span> Set to this Monday</div>
-            <div class="help-command"><span class="key">:sched 每周一</span> Set to every Monday (recurring)</div>
-            <div class="help-command"><span class="key">:sched 2025-08-01</span> Set specific date</div>
-            <div class="help-command"><span class="key">:sched 2025-08-01 14:30:00</span> Set date & time</div>
-            <div class="help-command"><span class="key">:sched clear</span> Clear schedule</div>
-            <div class="help-note">Time format: YYYY-MM-DD HH:MM:SS</div>
-            <div class="help-note">Supports: 周一~周日, 星期一~星期日, Monday~Sunday</div>
-            <div class="help-note">:sched is short for :schedule</div>
-          </div>
-        </div>
-
-        <div class="help-section">
-          <h3>CONTENT NAVIGATION MODE</h3>
-          <div class="help-commands">
-            <div class="help-command"><span class="key">h/j/k/l</span> Move cursor in content</div>
-            <div class="help-command"><span class="key">i</span> Insert at cursor position</div>
-            <div class="help-command"><span class="key">ESC</span> Return to normal mode</div>
-          </div>
-        </div>
-
-        <div class="help-section">
-          <h3>INSERT MODE</h3>
-          <div class="help-commands">
-            <div class="help-command"><span class="key">ESC</span> Return to normal mode</div>
-            <div class="help-command"><span class="key">Enter</span> Save and exit (title editing)</div>
-          </div>
-        </div>
-
-        <div class="help-section">
-          <h3>CONFIG MODE</h3>
-          <div class="help-commands">
-            <div class="help-command"><span class="key">j/k</span> Navigate between sections</div>
-            <div class="help-command"><span class="key">Enter</span> Edit selected section</div>
-            <div class="help-command"><span class="key">ESC</span> Exit editing or close config</div>
-          </div>
+          <div v-for="note in section.notes" :key="note" class="help-note">{{ note }}</div>
         </div>
       </div>
-      <div class="help-footer">
-        <span class="key-hint">j/k</span> scroll • <span class="key-hint">gg/G</span> top/bottom
+      <div class="help-foot">
+        <kbd>j</kbd><kbd>k</kbd> {{ t('help.footScroll') }} · <kbd>gg</kbd>/<kbd>G</kbd> {{ t('help.footNav') }}
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+import { t, helpSections } from '../i18n';
+
 interface Props {
   visible: boolean;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 defineEmits<{
   'close': [];
 }>();
+
+const sections = computed(() => props.visible ? helpSections() : []);
 </script>
 
 <style scoped>
 .help-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  inset: 0;
+  background: var(--overlay);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 100;
   display: flex;
-  align-items: flex-start;
   justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(2px);
-  padding-top: 20px;
+  padding: 6vh 16px 0;
 }
 
 .help-panel {
-  background: #1e1e20;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  max-width: 800px;
-  max-height: 85vh;
-  width: 90%;
+  width: min(760px, 94vw);
+  height: 86vh;
   display: flex;
   flex-direction: column;
-  border: 1px solid #3e3e42;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 24px 60px var(--glass-shadow);
+  overflow: hidden;
+  animation: helpIn 0.2s var(--ease);
 }
 
-.help-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #3e3e42;
-  background: #2e2e32;
-  border-radius: 8px 8px 0 0;
+@keyframes helpIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  to { opacity: 1; transform: none; }
 }
 
-.help-header h2 {
+.help-head {
+  padding: 14px 22px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.help-head h2 {
   margin: 0;
-  color: #e6e6e6;
-  font-size: 18px;
+  font-size: 16px;
+  color: var(--md-heading);
+  font-family: var(--ui);
   font-weight: 600;
 }
 
-.help-content {
+.help-head .close {
+  color: var(--text-3);
+  font-size: 12px;
+  font-family: var(--ui);
+  line-height: 1;
+  border: none;
+  background: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.help-head .close:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.help-head .close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.help-body {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 20px;
-  min-height: 0;
+  padding: 14px 22px 22px;
 }
 
 .help-section {
-  margin-bottom: 16px;
-}
-
-.help-section:last-child {
-  margin-bottom: 0;
+  margin-bottom: 18px;
 }
 
 .help-section h3 {
-  color: #0969da;
-  font-size: 12px;
-  font-weight: 600;
-  margin-bottom: 6px;
+  margin: 0 0 7px;
+  font-family: var(--ui);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: var(--accent-bright);
 }
 
-.help-commands {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1px 14px;
 }
 
-.help-command {
+.help-row {
   display: flex;
   align-items: center;
-  font-size: 11px;
-  color: #d4d4d4;
-  padding: 2px 0;
+  gap: 9px;
+  padding: 2.5px 0;
+  font-size: 12px;
+  color: var(--text-2);
+  font-family: var(--ui);
+}
+
+.help-row kbd {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.help-row .desc {
+  flex: 1;
 }
 
 .help-note {
-  font-size: 10px;
-  color: #6e7681;
+  font-size: 11px;
+  color: var(--text-3);
   font-style: italic;
-  margin-top: 4px;
-  padding-left: 8px;
+  margin: 3px 0 0 26px;
+  font-family: var(--ui);
 }
 
-.key {
-  background: #3e3e42;
-  color: #e6e6e6;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-  font-size: 10px;
-  font-weight: 500;
-  margin-right: 8px;
-  min-width: fit-content;
-  text-align: center;
-}
-
-.help-footer {
-  padding: 8px 20px;
-  border-top: 1px solid #3e3e42;
-  background: #2a2a2e;
-  color: #6e7681;
-  font-size: 10px;
-  border-radius: 0 0 8px 8px;
+.help-foot {
+  padding: 8px 22px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border);
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-3);
+  font-family: var(--ui);
 }
 
-.key-hint {
-  background: #3e3e42;
-  color: #e6e6e6;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+.help-foot kbd {
+  font-family: var(--mono);
   font-size: 9px;
-  font-weight: 500;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
 }
 
-/* 滚动条样式 */
-.help-content::-webkit-scrollbar {
+.help-body::-webkit-scrollbar {
   width: 6px;
 }
 
-.help-content::-webkit-scrollbar-track {
-  background: #2e2e32;
+.help-body::-webkit-scrollbar-track {
+  background: var(--scroll-track);
 }
 
-.help-content::-webkit-scrollbar-thumb {
-  background: #4e4e52;
+.help-body::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
   border-radius: 3px;
 }
 
-.help-content::-webkit-scrollbar-thumb:hover {
-  background: #5e5e62;
+.help-body::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+}
+
+@media (max-width: 820px) {
+  .help-panel {
+    width: 96vw;
+    height: 92vh;
+  }
+  .help-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 400px) {
+  .help-head { padding: 12px 14px; }
+  .help-body { padding: 12px 14px 18px; }
+  .help-foot { padding: 8px 14px; }
 }
 </style>

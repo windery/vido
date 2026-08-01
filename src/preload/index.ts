@@ -27,7 +27,7 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
 
 // --------- Vido Logger API ---------
 contextBridge.exposeInMainWorld('vidoLogger', {
-  writeLog: (logEntry: string) => {
+  writeLog: (logEntry: { level: string; module: string; message: string; data?: any }) => {
     return ipcRenderer.invoke('write-log', logEntry);
   },
 });

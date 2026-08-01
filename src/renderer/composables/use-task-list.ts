@@ -1,5 +1,6 @@
 import { computed } from 'vue';
 import { Task } from '../domain/task';
+import { taskMatchesSearch } from '../domain/entities/task-list';
 import { getGlobalStateRef } from './task-state-manager';
 
 export function useTaskList() {
@@ -14,7 +15,7 @@ export function useTaskList() {
       const filter = stateRef.value.lastlineContent;
       if (!filter || !filter.startsWith('/')) return stateRef.value.tasks;
       const term = filter.slice(1);
-      return term ? stateRef.value.tasks.filter((t: Task) => t.title.includes(term) || t.content.includes(term)) : stateRef.value.tasks;
+      return term ? stateRef.value.tasks.filter((t: Task) => taskMatchesSearch(t, term)) : stateRef.value.tasks;
     }),
     isSearching: computed(() => {
       const f = stateRef.value.lastlineContent;

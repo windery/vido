@@ -39,9 +39,10 @@ export function useCursor() {
     const task = tasks.value.find((t: Task) => t.id === taskId);
     if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return;
 
-    logger.info(
+    logger.debug(
       'useCursor',
-      `updateContentWithCursor called for task ${taskId}`
+      'updateContentWithCursor',
+      { taskId }
     );
 
     // 触发事件通知UI层更新光标显示

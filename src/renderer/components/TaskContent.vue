@@ -7,7 +7,7 @@
                 @keydown="handleContentKeydown"
                 :class="['content-editor', { 'content-nav': task.status === TaskState.CONTENT_NAVIGATION }]"
                 :readonly="task.status === TaskState.CONTENT_NAVIGATION"
-                placeholder="# Task content (markdown supported)">
+                :placeholder="t('content.placeholder')">
       </textarea>
         </div>
 
@@ -17,7 +17,7 @@
                 <div v-html="renderMarkdown(task.content)"></div>
             </div>
             <div v-else class="empty-content-hint">
-                <span class="hint-text">Press 'i' to add content</span>
+                <span class="hint-text">{{ t('content.pressI') }}</span>
             </div>
         </div>
     </div>
@@ -27,6 +27,7 @@
 import { ref, nextTick, onMounted } from 'vue';
 import { Task, TaskState } from '../domain/task';
 import { marked } from 'marked';
+import { t } from '../i18n';
 
 interface Props {
     task: Task;
@@ -98,16 +99,16 @@ onMounted(() => {
 
 <style scoped>
 .task-content-area {
-    margin-left: 52px;
-    margin-top: 4px;
-    padding: 8px 12px;
-    background: #1a1a1a;
-    border-radius: 4px;
-    border-left: 3px solid #4fc1ff;
+    margin: 2px 8px 4px 70px;
+    padding: 9px 12px;
+    background: var(--bg-content);
+    border: 1px solid var(--border-soft);
+    border-left: 3px solid var(--check);
+    border-radius: 0 5px 5px 0;
     opacity: 0;
     max-height: 0;
     overflow: hidden;
-    transition: opacity 0.1s ease, max-height 0.15s ease, padding 0.1s ease;
+    transition: opacity 0.15s ease, max-height 0.15s ease, padding 0.1s ease;
 }
 
 .task-content-area.show {
@@ -116,47 +117,50 @@ onMounted(() => {
 }
 
 .content-editor {
-    background: #1a1a1a;
+    background: transparent;
     border: none;
-    color: #d4d4d4;
-    padding: 8px 12px;
+    color: var(--text);
+    padding: 0;
     font-family: inherit;
-    font-size: inherit;
+    font-size: 13px;
+    line-height: 1.65;
     resize: none;
     width: 100%;
-    line-height: 1.6;
+    min-height: 24px;
     box-sizing: border-box;
     overflow: hidden;
     height: auto;
+    display: block;
+    caret-color: var(--accent-bright);
 }
 
 .content-editor:focus {
     outline: none;
-    background: #1a1a1a;
+    background: transparent;
 }
 
 .content-editor::placeholder {
-    color: #6e7681;
+    color: var(--text-3);
     font-style: italic;
 }
 
 .content-editor.content-nav {
-    background: #1a1a1a;
     cursor: text;
-    caret-color: transparent;
-    /* 隐藏真实光标 */
+    caret-color: var(--accent);
+    caret-shape: block;
+    /* vim 风格块光标：可见、闪烁 */
 }
 
 .content-editor.content-nav::selection {
-    background-color: #264f78;
-    color: #ffffff;
+    background: var(--accent);
+    color: var(--nav-sel-fg);
 }
 
 .markdown-display {
-    padding: 8px 12px;
+    padding: 0;
     width: 100%;
-    color: #d4d4d4;
-    line-height: 1.6;
+    color: var(--text);
+    line-height: 1.65;
     word-wrap: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
@@ -165,26 +169,26 @@ onMounted(() => {
 .markdown-display h1,
 .markdown-display h2,
 .markdown-display h3 {
-    color: #ffffff;
+    color: var(--markdown-heading);
     margin: 8px 0;
     font-weight: bold;
 }
 
 .markdown-display code {
-    background: #3c3c3c;
-    color: #f9e79f;
+    background: var(--bg-markdown-code);
+    color: var(--code-color);
     padding: 2px 4px;
     border-radius: 2px;
     font-family: inherit;
 }
 
 .markdown-display strong {
-    color: #ffffff;
+    color: var(--markdown-strong);
     font-weight: bold;
 }
 
 .markdown-display em {
-    color: #79c0ff;
+    color: var(--markdown-em);
     font-style: italic;
 }
 
@@ -194,7 +198,7 @@ onMounted(() => {
 
 .empty-content-hint {
     padding: 8px 12px;
-    color: #6e7681;
+    color: var(--text-dim);
     font-style: italic;
 }
 </style>
