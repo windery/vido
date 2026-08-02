@@ -5,7 +5,7 @@
             'selected': task.selected,
             'completed': task.completed,
             'editing': task.status === TaskState.CONTENT_EDITING || task.status === TaskState.TITLE_EDITING
-        }]" @click="handleRowClick">
+        }]">
             <span class="line-number">{{ index + 1 }}</span>
 
             <!-- Task content in vim style -->
@@ -19,7 +19,7 @@
                         @keydown.esc="stopTitleEditing" @compositionstart="handleCompositionStart"
                         @compositionend="handleCompositionEnd" />
                 </span>
-                <span v-else class="task-title" v-html="highlightTitle(task.title)" @dblclick="startTaskTitleEditing"></span>
+                <span v-else class="task-title" v-html="highlightTitle(task.title)"></span>
 
                 <span v-if="task.tags && task.tags.length > 0" class="inline-tags">
                     <span v-for="tag in task.tags" :key="tag" class="inline-tag">#{{ tag }}</span>
@@ -44,12 +44,12 @@
         <!-- Config panel -->
         <div v-if="task.configState" class="config-panel">
           <!-- Schedule -->
-          <template v-if="task.configState === 'schedule' || task.configState === 'scheduleInput'">
-            <div v-if="task.configState === 'scheduleInput'" class="config-input-row">
+          <template v-if="task.configState === 'schedule-select' || task.configState === 'schedule-edit'">
+            <div v-if="task.configState === 'schedule-edit'" class="config-input-row">
               <span class="config-input-icon">📅</span>
               <input ref="scheduleInputRef" v-model="scheduleInputValue" class="config-input"
                 :placeholder="t('config.schedulePlaceholder')"
-                @keydown.enter="saveScheduleInput" @keydown.escape="cancelScheduleInput" />
+                @keydown.enter.stop="saveScheduleInput" @keydown.escape.stop="cancelScheduleInput" />
             </div>
             <div v-else class="config-pills">
               <span class="config-pill"><kbd>1</kbd> {{ t('config.today') }}</span>
@@ -60,7 +60,7 @@
             </div>
           </template>
           <!-- Priority -->
-          <template v-else-if="task.configState === 'priority'">
+          <template v-else-if="task.configState === 'priority-select'">
             <div class="config-pills">
               <span class="config-pill priority-p1"><kbd>1</kbd> P1 {{ t('config.high') }}</span>
               <span class="config-pill priority-p2"><kbd>2</kbd> P2 {{ t('config.medium') }}</span>
@@ -68,16 +68,16 @@
             </div>
           </template>
           <!-- Tags -->
-          <template v-else-if="task.configState === 'tags' || task.configState === 'tagsInput'">
+          <template v-else-if="task.configState === 'tags-select' || task.configState === 'tags-edit'">
             <div v-if="task.tags?.length" class="config-tags-display">
               <span v-for="tag in task.tags" :key="tag" class="config-tag">#{{ tag }}</span>
             </div>
             <span v-else class="config-empty-hint">{{ t('config.noTags') }}</span>
-            <div v-if="task.configState === 'tagsInput'" class="config-input-row">
+            <div v-if="task.configState === 'tags-edit'" class="config-input-row">
               <span class="config-input-icon">🏷</span>
               <input ref="tagInputRef" v-model="tagInputValue" class="config-input"
                 :placeholder="t('config.tagPlaceholder')"
-                @keydown.enter="saveTagInput" @keydown.escape="cancelTagInput" />
+                @keydown.enter.stop="saveTagInput" @keydown.escape.stop="cancelTagInput" />
             </div>
             <div v-else class="config-pills" style="margin-top:6px">
               <span class="config-pill config-pill-enter"><kbd>⏎</kbd> {{ t('config.add') }}</span>
@@ -104,8 +104,6 @@ interface Props {
 }
 
 interface Emits {
-    (e: 'row-click', task: Task): void;
-    (e: 'start-title-editing', task: Task): void;
     (e: 'title-input', value: string, task: Task): void;
     (e: 'cursor-update', event: Event, task: Task): void;
     (e: 'content-keydown', event: KeyboardEvent, task: Task): void;
@@ -120,17 +118,6 @@ const titleEditRef = ref<HTMLInputElement | null>(null);
 
 // 输入法组合状态追踪
 const isComposing = ref(false);
-
-const handleRowClick = () => {
-    emit('row-click', props.task);
-};
-
-const startTaskTitleEditing = () => {
-    emit('start-title-editing', props.task);
-    nextTick(() => {
-        titleEditRef.value?.focus();
-    });
-};
 
 const handleTitleInput = (event: Event) => {
     const target = event.target as HTMLInputElement;
@@ -196,7 +183,7 @@ const scheduleInputRef = ref<HTMLInputElement>();
 const scheduleInputValue = ref('');
 
 watchEffect(() => {
-  if (props.task.configState === 'scheduleInput') {
+  if (props.task.configState === 'schedule-edit') {
     scheduleInputValue.value = '';
     nextTick(() => scheduleInputRef.value?.focus());
   }
@@ -211,11 +198,11 @@ const saveScheduleInput = () => {
       tdm.updateTaskProperty(props.task.id, 'schedule', s);
     }
   }
-  useTaskState().taskDataManager.setConfigState(props.task.id, 'schedule');
+  useTaskState().taskDataManager.setConfigState(props.task.id, 'schedule-select');
 };
 
 const cancelScheduleInput = () => {
-  useTaskState().taskDataManager.setConfigState(props.task.id, 'schedule');
+  useTaskState().taskDataManager.setConfigState(props.task.id, 'schedule-select');
 };
 
 // tag 输入
@@ -223,7 +210,7 @@ const tagInputRef = ref<HTMLInputElement>();
 const tagInputValue = ref('');
 
 watchEffect(() => {
-  if (props.task.configState === 'tagsInput') {
+  if (props.task.configState === 'tags-edit') {
     tagInputValue.value = '';
     nextTick(() => tagInputRef.value?.focus());
   }
@@ -238,11 +225,11 @@ const saveTagInput = () => {
       tdm.updateTaskProperty(props.task.id, 'tags', [...currentTags, val]);
     }
   }
-  useTaskState().taskDataManager.setConfigState(props.task.id, 'tags');
+  useTaskState().taskDataManager.setConfigState(props.task.id, 'tags-select');
 };
 
 const cancelTagInput = () => {
-  useTaskState().taskDataManager.setConfigState(props.task.id, 'tags');
+  useTaskState().taskDataManager.setConfigState(props.task.id, 'tags-select');
 };
 
 // 标题搜索高亮：安全转义后包裹 <mark>，避免 XSS
@@ -311,7 +298,6 @@ watchEffect(() => {
     align-items: center;
     min-height: 28px;
     padding: 4px 10px 4px 6px;
-    cursor: pointer;
     box-sizing: border-box;
     border-radius: 3px;
     margin-bottom: 2px;
@@ -324,8 +310,6 @@ watchEffect(() => {
 .task-line.selected {
     background: var(--bg-selected);
     color: var(--text-bright);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
-        0 0 14px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .task-line.selected::before {
@@ -375,10 +359,14 @@ watchEffect(() => {
 }
 
 .task-status {
-    color: var(--status);
+    color: var(--text-dim);
     font-weight: bold;
     width: 16px;
     flex-shrink: 0;
+}
+
+.task-line.completed .task-status {
+    color: var(--check);
 }
 
 .priority-indicator {
@@ -432,10 +420,6 @@ watchEffect(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.task-title:hover {
-    color: var(--text-bright);
 }
 
 .task-title :deep(mark) {
@@ -492,12 +476,12 @@ watchEffect(() => {
 
 /* Config panel */
 .config-panel {
-  margin: 2px 8px 6px 70px;
+  margin: 2px 8px 6px 58px;
   padding: 8px 12px;
   background: var(--config-bg);
   border: 1px solid var(--config-border);
   border-radius: 6px;
-  animation: cfgIn 0.16s var(--ease);
+  animation: cfgIn 0.15s var(--ease);
 }
 
 @keyframes cfgIn {

@@ -7,14 +7,17 @@ export const en: typeof import('./zh').zh = {
     title: 'Vido - Vim Todo Manager',
     tasks: '{n} tasks',
     done: '{done}/{total} done',
-    themeBtn: 'Toggle theme (T)',
-    langBtn: 'Toggle language (L)',
   },
   mode: {
     titleEdit: '-- TITLE EDIT -- (editing task title)',
     contentEdit: '-- INSERT -- (editing task content)',
     contentNav: '-- CONTENT-NAV -- (hjkl to move, i to insert)',
     config: '-- CONFIG -- (cs schedule  cp priority  ct tags  Esc close)',
+    configSchedule: '-- SCHEDULE -- (1 today 2 tomorrow 3 next week c clear ⏎ custom)',
+    configScheduleEdit: '-- SCHEDULE-EDIT -- (type date, Enter save, Esc cancel)',
+    configPriority: '-- PRIORITY -- (1 P1 high 2 P2 medium 3 P3 low)',
+    configTags: '-- TAGS -- (⏎ add c clear)',
+    configTagsEdit: '-- TAGS-EDIT -- (type tag, Enter save, Esc cancel)',
     help: 'Press ? for help',
     search: '-- SEARCH -- (type your search query)',
     command: '-- COMMAND -- (type vim command)',
@@ -57,7 +60,6 @@ export const en: typeof import('./zh').zh = {
   },
   help: {
     title: 'Vido - Vim-style Todo Manager',
-    close: 'Press ? or Esc to close',
     footScroll: 'scroll',
     footNav: 'top/bottom',
     sections: [

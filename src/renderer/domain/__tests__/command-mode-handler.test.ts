@@ -101,6 +101,6 @@ describe('CommandModeHandler integration with TaskList', () => {
     handler = new CommandModeHandler();
     handler.handleKey(makeEvent('c'), 'c', tdm, false);
     handler.handleKey(makeEvent('c'), 'c', tdm, false);
-    expect(tdm.setConfigState).toHaveBeenCalledWith(1, 'schedule');
+    expect(tdm.setConfigState).toHaveBeenCalledWith(1, 'schedule-select');
   });
 });

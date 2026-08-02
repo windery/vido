@@ -16,14 +16,17 @@ export const zh = {
     title: 'Vido - Vim 任务管理器',
     tasks: '{n} 个任务',
     done: '已完成 {done}/{total}',
-    themeBtn: '切换主题 (T)',
-    langBtn: '切换语言 (L)',
   },
   mode: {
     titleEdit: '-- TITLE EDIT --（编辑任务标题）',
     contentEdit: '-- INSERT --（编辑任务内容）',
     contentNav: '-- CONTENT-NAV --（hjkl 移动，i 插入）',
     config: '-- CONFIG --（cs 日程  cp 优先级  ct 标签  Esc 关闭）',
+    configSchedule: '-- SCHEDULE --（1 今天 2 明天 3 下周 c 清除 ⏎ 自定义）',
+    configScheduleEdit: '-- SCHEDULE-EDIT --（输入日期，Enter 保存，Esc 取消）',
+    configPriority: '-- PRIORITY --（1 P1 高 2 P2 中 3 P3 低）',
+    configTags: '-- TAGS --（⏎ 添加 c 清除）',
+    configTagsEdit: '-- TAGS-EDIT --（输入标签，Enter 保存，Esc 取消）',
     help: '按 ? 查看帮助',
     search: '-- SEARCH --（输入搜索关键词）',
     command: '-- COMMAND --（输入 vim 命令）',
@@ -66,7 +69,6 @@ export const zh = {
   },
   help: {
     title: 'Vido - Vim 任务管理器',
-    close: '按 ? 或 Esc 关闭',
     footScroll: '滚动',
     footNav: '顶部/底部',
     sections: [

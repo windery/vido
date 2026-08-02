@@ -23,7 +23,7 @@
         {{ t('mode.contentNav') }}
       </span>
       <span v-else-if="selectedTask?.configState" class="help-text">
-        {{ t('mode.config') }}
+        {{ configModeText }}
       </span>
       <span v-else class="help-text">
         {{ t('mode.help') }}
@@ -50,6 +50,19 @@ const taskCounter = computed(() => {
   return `${filteredTasks.value.length}/${tasks.value.length} ${t('status.tasks')}`;
 });
 
+// 配置面板展开时显示当前 config 子状态（select / edit 区分类型与阶段）
+const configModeText = computed(() => {
+  const cs = selectedTask.value?.configState;
+  switch (cs) {
+    case 'schedule-select': return t('mode.configSchedule');
+    case 'schedule-edit': return t('mode.configScheduleEdit');
+    case 'priority-select': return t('mode.configPriority');
+    case 'tags-select': return t('mode.configTags');
+    case 'tags-edit': return t('mode.configTagsEdit');
+    default: return t('mode.config');
+  }
+});
+
 // 光标位置：内容导航 / 编辑时显示「行 · 列」
 const posInfo = computed(() => {
   if (editorMode.value === EditorMode.CONTENT_NAVIGATION || editorMode.value === EditorMode.CONTENT_EDIT) {
@@ -60,6 +73,15 @@ const posInfo = computed(() => {
 });
 
 const getModeText = (mode: EditorMode) => {
+  // 配置展开时徽标显示当前 config 子状态（select/edit 区分类型与阶段）
+  const cs = selectedTask.value?.configState;
+  switch (cs) {
+    case 'schedule-select': return 'SCHEDULE';
+    case 'schedule-edit': return 'SCHEDULE-EDIT';
+    case 'priority-select': return 'PRIORITY';
+    case 'tags-select': return 'TAGS';
+    case 'tags-edit': return 'TAGS-EDIT';
+  }
   switch (mode) {
     case EditorMode.COMMAND:
       return 'NORMAL';
@@ -94,6 +116,7 @@ const getLastLineModeText = () => {
 };
 
 const getModeClass = (mode: EditorMode) => {
+  if (selectedTask.value?.configState) return 'mode-config';
   switch (mode) {
     case EditorMode.COMMAND:
       return 'mode-normal';

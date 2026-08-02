@@ -18,21 +18,21 @@ This file provides guidance to Claude Code when working with this repository.
 
 **Example — config panel state machine:**
 ```
-每个 config type 有两个子状态：quick（快捷选择）和 editing（输入编辑）
+每个 config type 有两个子状态：select（快捷选择）和 edit（输入编辑）。**单一拥有者**：select 态由 ConfigKeyHandler 独占；edit 态由配置输入框独占（其 keydown 用 `.stop` 拦截 Enter/Escape 并转回同类型 select 态，命令层不介入）。
 
-schedule:    schedule ──Enter──→ scheduleInput ──Enter/Esc──→ schedule
-priority:    priority  (只有 quick，1/2/3 直接选，选后留在 priority)
-tags:        tags ──Enter──→ tagsInput ──Enter/Esc──→ tags
+schedule:    schedule-select ──Enter──→ schedule-edit ──Enter/Esc──→ schedule-select
+priority:    priority-select  (只有 select，1/2/3 直接选，选后留在 priority-select)
+tags:        tags-select ──Enter──→ tags-edit ──Enter/Esc──→ tags-select
 
-j/k 在 quick 状态间切换:  schedule ←→ priority ←→ tags
-Esc 在任何状态关闭配置
+j/k 在 select 状态间切换:  schedule-select ←→ priority-select ←→ tags-select
+Esc 关闭配置（edit 态先取消回 select，再 Esc 关闭）
 ```
 **Rules:**
-1. quick → Enter → editing（打开输入框）
-2. editing → Enter → quick（保存，回到同类型的 quick）
-3. editing → Esc → quick（取消，回到同类型的 quick，内容不保存）
-4. quick → j/k → 切换到另一个类型的 quick
-5. 操作完成后不改配置类型——加完标签留在 tags，选完优先级留在 priority
+1. select → Enter → edit（打开输入框）
+2. edit → Enter → select（保存，回到同类型的 select）
+3. edit → Esc → select（取消，回到同类型的 select，内容不保存）
+4. select → j/k → 切换到另一个类型的 select
+5. 操作完成后不改配置类型——加完标签留在 tags-select，选完优先级留在 priority-select
 
 ### Operation Philosophy
 
@@ -418,3 +418,13 @@ grep -E "(KeyboardManager|State transition)" ~/.vido/log/vido-$(date +%Y-%m-%d).
 - **Automated testing** - Use `curl` to port 3002 for key simulation, then verify logs
 - **Keyboard-first** - All interactions keyboard accessible, no mouse
 - **Immutable data** - Domain operations return new objects, never mutate in place
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs live as GitHub issues; use the `gh` CLI for all operations. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context — one `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.

@@ -55,7 +55,7 @@ export class CommandModeHandler implements ModeHandler {
 
     // c + s/p/t → 直接打开特定配置
     if (this.keySequence === 'c') {
-      const stateMap: Record<string, string> = { s: 'schedule', p: 'priority', t: 'tags' };
+      const stateMap: Record<string, string> = { s: 'schedule-select', p: 'priority-select', t: 'tags-select' };
       const configState = stateMap[key];
       if (configState !== undefined) {
         event.preventDefault();
@@ -237,7 +237,7 @@ export class CommandModeHandler implements ModeHandler {
           if (selectedTaskId) {
             const task = (currentState as any).tasks?.find((t: any) => t.id === selectedTaskId);
             const isOpen = !!task?.configState;
-            taskDataManager.setConfigState(selectedTaskId, isOpen ? undefined : 'schedule');
+            taskDataManager.setConfigState(selectedTaskId, isOpen ? undefined : 'schedule-select');
           }
           return true;
         }
@@ -287,13 +287,13 @@ export class CommandModeHandler implements ModeHandler {
   }
 
   private navigateConfig(tdm: Store, taskId: number, current: string, dir: 'next' | 'prev'): void {
-    const cycle = ['schedule', 'priority', 'tags'];
-    // scheduleInput/tags 输入状态不参与 j/k 切换，先回到 browse
+    const cycle = ['schedule-select', 'priority-select', 'tags-select'];
+    // edit 态由输入框独占，不参与 j/k 切换
     const idx = cycle.indexOf(current);
-    const baseIdx = idx >= 0 ? idx : 0;
+    if (idx < 0) return;
     const nextIdx = dir === 'next'
-      ? (baseIdx + 1) % cycle.length
-      : (baseIdx - 1 + cycle.length) % cycle.length;
+      ? (idx + 1) % cycle.length
+      : (idx - 1 + cycle.length) % cycle.length;
     tdm.setConfigState(taskId, cycle[nextIdx]);
   }
 

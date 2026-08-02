@@ -15,7 +15,7 @@ import {
   LastLineModeHandler,
   HelpModeHandler,
 } from './index';
-import { ConfigKeyHandler } from './config-key-handler';
+import { ConfigKeyHandler, isConfigEditState } from './config-key-handler';
 
 
 export class KeyboardManager {
@@ -69,11 +69,12 @@ export class KeyboardManager {
     const key = event.key;
     const { editorMode } = currentState;
 
-    // 配置展开时：路由到 ConfigKeyHandler
+    // 配置展开时：select 态由 ConfigKeyHandler 独占；edit 态由配置输入框独占（其 keydown 已 .stop 拦截），命令层均不介入
     if (editorMode === EditorMode.COMMAND) {
       const tasks = (currentState as any).tasks;
       const configured = tasks?.find((t: any) => t.configState);
       if (configured) {
+        if (isConfigEditState(configured.configState)) return;
         if (this.configKeyHandler.handleKey(event, key, this.store)) {
           return;
         }
