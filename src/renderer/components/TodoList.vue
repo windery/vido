@@ -13,7 +13,6 @@
                 <div v-else class="buffer-content">
                     <TaskItem v-for="(task, index) in filteredTasks" :key="task.id" :task="task" :index="index"
                         :search-term="searchTerm"
-                        @row-click="handleRowClick" @start-title-editing="startTaskTitleEditing"
                         @title-input="handleTitleInput" @cursor-update="handleCursorUpdate"
                         @content-keydown="handleContentKeydown" @content-input="handleContentInput"
                         @textarea-ref="registerTextareaRef" />
@@ -29,7 +28,6 @@ import { Task, TaskState } from '../domain/task';
 import { useTaskState } from '../composables/use-task-state';
 import { getKeyboardManager } from '../domain/keyboard/keyboard-manager';
 import { logger } from '../utils/logger';
-import { computeNavSelection } from '../utils/cursor';
 
 // Components
 import VimHeader from './VimHeader.vue';
@@ -42,8 +40,6 @@ const {
     filteredTasks,
     isSearching,
     lastlineContent,
-    selectTask,
-    startTitleEditing,
     updateCursorPosition,
     updateContentWithCursor
 } = useTaskState();
@@ -95,16 +91,6 @@ watchEffect(() => {
         }
     }
 });
-
-const handleRowClick = (task: Task) => {
-    selectTask(task.id);
-    scrollToTask(task.id);
-};
-
-const startTaskTitleEditing = (task: Task) => {
-    selectTask(task.id);
-    startTitleEditing();
-};
 
 const handleTitleInput = (value: string, task: Task) => {
     // 通过状态管理器正确更新任务标题
@@ -177,14 +163,7 @@ const updateContentWithCursorLocal = (textarea: HTMLTextAreaElement, task: Task)
     const lineText = lines[task.cursorLine] || '';
     const col = Math.min(task.cursorColumn, lineText.length);
 
-    // 内容导航模式：选中当前字符显示 vim 块光标（::selection 反白），对齐设计源
-    if (task.status === TaskState.CONTENT_NAVIGATION) {
-        const [start, end] = computeNavSelection(offset, col, lineText);
-        textarea.setSelectionRange(start, end);
-        return;
-    }
-
-    // 编辑模式：折叠光标（原生闪烁 caret）
+    // 导航/编辑统一用折叠光标：导航模式下 caret-shape: block 显示原生闪烁块光标
     textarea.setSelectionRange(offset + col, offset + col);
 };
 

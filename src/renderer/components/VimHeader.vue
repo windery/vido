@@ -22,17 +22,13 @@
                 </span>
                 <span class="progress-count">{{ completedTasksCount }}/{{ filteredTasksCount }}</span>
             </div>
-            <div class="header-actions">
-                <button type="button" class="hdr-btn" :title="t('header.themeBtn')" @click="toggleTheme">{{ themeIcon }}</button>
-                <button type="button" class="hdr-btn" :title="t('header.langBtn')" @click="toggleLang">{{ langIcon }}</button>
-            </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { prefs, toggleTheme, toggleLang } from '../domain/state/prefs';
+import { prefs } from '../domain/state/prefs';
 import { t } from '../i18n';
 
 const PROGRESS_BLOCKS = 10;
@@ -56,9 +52,6 @@ const currentTime = computed(() => {
         hour12: false
     });
 });
-
-const themeIcon = computed(() => (prefs.theme === 'dark' ? '☾' : '☀'));
-const langIcon = computed(() => (prefs.lang === 'zh' ? '中' : 'EN'));
 
 const blockStates = computed(() => {
     const total = props.filteredTasksCount;
@@ -213,41 +206,4 @@ onUnmounted(() => {
     font-variant-numeric: tabular-nums;
 }
 
-.header-actions {
-    display: flex;
-    gap: 6px;
-}
-
-.hdr-btn {
-    pointer-events: auto;
-    cursor: pointer;
-    min-width: 28px;
-    height: 26px;
-    padding: 0 6px;
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    background: transparent;
-    color: var(--text-header);
-    font-size: 13px;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
-}
-
-.hdr-btn:hover {
-    background: var(--surface-active);
-    border-color: var(--accent);
-    color: var(--text-bright);
-}
-
-.hdr-btn:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-}
-
-.hdr-btn:active {
-    transform: translateY(1px);
-}
 </style>

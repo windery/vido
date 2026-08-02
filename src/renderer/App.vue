@@ -14,11 +14,6 @@ const showHelp = computed(() => {
   return isHelpVisible.value;
 });
 
-const hideHelp = () => {
-  const { taskDataManager } = useTaskState();
-  taskDataManager.toggleHelp();
-};
-
 onMounted(() => {
   // 设置body可以接收焦点，用于键盘事件处理
   document.body.tabIndex = -1;
@@ -33,7 +28,7 @@ onMounted(() => {
     <LastLine />
 
     <!-- Help Panel -->
-    <HelpPanel :visible="showHelp" @close="hideHelp" />
+    <HelpPanel :visible="showHelp" />
   </div>
 </template>
 
@@ -76,15 +71,10 @@ body {
   pointer-events: none !important;
 }
 
-/* Re-enable pointer events only for input elements and header action buttons */
+/* Re-enable pointer events only for input elements */
 input,
 textarea {
   pointer-events: auto !important;
-}
-
-.hdr-btn {
-  pointer-events: auto !important;
-  cursor: pointer !important;
 }
 
 /* NOTE: Removed hover style overrides to prevent white background issues */

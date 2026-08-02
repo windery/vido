@@ -1,9 +1,8 @@
 <template>
-  <div v-if="visible" class="help-overlay" @click="$emit('close')">
-    <div class="help-panel" @click.stop>
+  <div v-if="visible" class="help-overlay">
+    <div class="help-panel">
       <div class="help-head">
         <h2>{{ t('help.title') }}</h2>
-        <button type="button" class="close" :aria-label="t('help.close')" @click="$emit('close')">{{ t('help.close') }}</button>
       </div>
       <div class="help-body">
         <div v-for="section in sections" :key="section.title" class="help-section">
@@ -32,9 +31,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-defineEmits<{
-  'close': [];
-}>();
 
 const sections = computed(() => props.visible ? helpSections() : []);
 </script>
@@ -62,7 +58,7 @@ const sections = computed(() => props.visible ? helpSections() : []);
   border-radius: 10px;
   box-shadow: 0 24px 60px var(--glass-shadow);
   overflow: hidden;
-  animation: helpIn 0.2s var(--ease);
+  animation: helpIn 0.15s var(--ease);
 }
 
 @keyframes helpIn {
@@ -85,30 +81,6 @@ const sections = computed(() => props.visible ? helpSections() : []);
   color: var(--md-heading);
   font-family: var(--ui);
   font-weight: 600;
-}
-
-.help-head .close {
-  color: var(--text-3);
-  font-size: 12px;
-  font-family: var(--ui);
-  line-height: 1;
-  border: none;
-  background: none;
-  padding: 2px 6px;
-  border-radius: 4px;
-  cursor: pointer;
-  user-select: none;
-  transition: color 0.12s ease, background 0.12s ease;
-}
-
-.help-head .close:hover {
-  color: var(--text);
-  background: var(--surface-2);
-}
-
-.help-head .close:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 .help-body {

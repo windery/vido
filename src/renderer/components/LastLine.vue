@@ -207,7 +207,7 @@ onMounted(() => {
 
 /* 添加一些动画效果 */
 .vim-command-line {
-  animation: slideUp 0.2s ease-out;
+  animation: slideUp 0.15s ease-out;
 }
 
 @keyframes slideUp {

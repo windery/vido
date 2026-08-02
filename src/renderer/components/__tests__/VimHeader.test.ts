@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import VimHeader from '../VimHeader.vue';
-import { setTheme, setLang, prefs } from '../../domain/state/prefs';
+import { setTheme, setLang } from '../../domain/state/prefs';
 
 describe('VimHeader', () => {
   beforeEach(() => {
@@ -31,22 +31,13 @@ describe('VimHeader', () => {
     expect(wrapper.text()).toContain('1/3 done');
   });
 
-  it('theme button toggles theme', async () => {
+  it('renders no mouse controls (keyboard-only)', () => {
     const wrapper = mount(VimHeader, {
       props: { filteredTasksCount: 0, completedTasksCount: 0 },
     });
-    const btns = wrapper.findAll('button.hdr-btn');
-    expect(btns.length).toBe(2);
-    await btns[0].trigger('click');
-    expect(prefs.theme).toBe('light');
-  });
-
-  it('lang button toggles lang', async () => {
-    const wrapper = mount(VimHeader, {
-      props: { filteredTasksCount: 0, completedTasksCount: 0 },
-    });
-    const btns = wrapper.findAll('button.hdr-btn');
-    await btns[1].trigger('click');
-    expect(prefs.lang).toBe('en');
+    // 纯键盘：header 不含任何按钮，主题/语言切换走 T/L 键或 :theme/:lang 命令
+    expect(wrapper.findAll('button').length).toBe(0);
+    expect(wrapper.text()).not.toContain('切换主题');
+    expect(wrapper.text()).not.toContain('切换语言');
   });
 });

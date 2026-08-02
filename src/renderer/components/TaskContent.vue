@@ -3,7 +3,7 @@
         <div v-if="task.status === TaskState.CONTENT_EDITING || task.status === TaskState.CONTENT_NAVIGATION"
             class="content-editing">
             <textarea :ref="(el) => setContentEditRef(el as HTMLTextAreaElement, task.id)" :value="task.content"
-                @input="handleInput" @keyup="handleCursorUpdate" @click="handleCursorUpdate"
+                @input="handleInput" @keyup="handleCursorUpdate"
                 @keydown="handleContentKeydown"
                 :class="['content-editor', { 'content-nav': task.status === TaskState.CONTENT_NAVIGATION }]"
                 :readonly="task.status === TaskState.CONTENT_NAVIGATION"
@@ -99,12 +99,14 @@ onMounted(() => {
 
 <style scoped>
 .task-content-area {
-    margin: 2px 8px 4px 70px;
-    padding: 9px 12px;
+    margin: 2px 8px 4px 58px;
+    padding: 12px 14px;
     background: var(--bg-content);
-    border: 1px solid var(--border-soft);
-    border-left: 3px solid var(--check);
-    border-radius: 0 5px 5px 0;
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    border-radius: 6px;
+    box-sizing: border-box;
+    box-shadow: inset 0 1px 0 var(--border-soft);
     opacity: 0;
     max-height: 0;
     overflow: hidden;
@@ -114,10 +116,6 @@ onMounted(() => {
 .task-content-area.show {
     opacity: 1;
     max-height: 60vh;
-    border-left-width: 4px;
-    border-left-color: var(--accent-bright);
-    background: color-mix(in srgb, var(--bg-content) 92%, var(--accent) 8%);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .content-editor {
@@ -152,13 +150,9 @@ onMounted(() => {
 
 .content-editor.content-nav {
     cursor: text;
-    /* vim 风格块光标：由 ::selection 反白当前字符模拟，隐藏原生竖线 caret */
-    caret-color: transparent;
-}
-
-.content-editor.content-nav::selection {
-    background: var(--accent);
-    color: var(--nav-sel-fg);
+    /* vim 风格块光标：原生闪烁块光标（caret-shape: block，Chromium 121+） */
+    caret-color: var(--accent);
+    caret-shape: block;
 }
 
 .markdown-display {
@@ -171,38 +165,99 @@ onMounted(() => {
     white-space: pre-wrap;
 }
 
-.markdown-display h1,
-.markdown-display h2,
-.markdown-display h3 {
+.markdown-display :deep(h1),
+.markdown-display :deep(h2),
+.markdown-display :deep(h3) {
     color: var(--markdown-heading);
-    margin: 8px 0;
-    font-weight: bold;
+    margin: 10px 0 6px;
+    font-weight: 600;
+    line-height: 1.3;
 }
 
-.markdown-display code {
+.markdown-display :deep(h1) {
+    font-size: 1.3em;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.markdown-display :deep(h2) {
+    font-size: 1.15em;
+}
+
+.markdown-display :deep(h3) {
+    font-size: 1.05em;
+}
+
+.markdown-display :deep(code) {
     background: var(--bg-markdown-code);
     color: var(--code-color);
-    padding: 2px 4px;
-    border-radius: 2px;
-    font-family: inherit;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.92em;
 }
 
-.markdown-display strong {
+.markdown-display :deep(pre) {
+    background: var(--code-bg);
+    border: 1px solid var(--border-soft);
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin: 8px 0;
+    overflow-x: auto;
+    white-space: pre;
+}
+
+.markdown-display :deep(pre code) {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    font-size: 1em;
+    color: var(--text);
+}
+
+.markdown-display :deep(strong) {
     color: var(--markdown-strong);
     font-weight: bold;
 }
 
-.markdown-display em {
+.markdown-display :deep(em) {
     color: var(--markdown-em);
     font-style: italic;
 }
 
-.markdown-display p {
+.markdown-display :deep(p) {
+    margin: 6px 0;
+}
+
+.markdown-display :deep(blockquote) {
+    border-left: 2px solid var(--border-strong);
     margin: 8px 0;
+    padding: 2px 0 2px 12px;
+    color: var(--text-muted);
+}
+
+.markdown-display :deep(ul),
+.markdown-display :deep(ol) {
+    margin: 6px 0;
+    padding-left: 24px;
+}
+
+.markdown-display :deep(li) {
+    margin: 3px 0;
+}
+
+.markdown-display :deep(hr) {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 14px 0;
+}
+
+.markdown-display :deep(a) {
+    color: var(--link);
 }
 
 .empty-content-hint {
-    padding: 8px 12px;
+    padding: 0;
     color: var(--text-dim);
     font-style: italic;
 }
