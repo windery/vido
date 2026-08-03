@@ -375,6 +375,7 @@ watchEffect(() => {
 
 .flag-indicator {
     color: var(--flag);
+    margin-left: auto;
     width: 14px;
     flex-shrink: 0;
     font-size: 12px;

@@ -40,8 +40,6 @@ const sections = computed(() => props.visible ? helpSections() : []);
   position: fixed;
   inset: 0;
   background: var(--overlay);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
   z-index: 100;
   display: flex;
   justify-content: center;
@@ -53,10 +51,10 @@ const sections = computed(() => props.visible ? helpSections() : []);
   height: 86vh;
   display: flex;
   flex-direction: column;
-  background: var(--glass);
+  background: var(--bg-panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 24px 60px var(--glass-shadow);
+  border-radius: 4px;
+  box-shadow: 0 8px 32px var(--shadow);
   overflow: hidden;
   animation: helpIn 0.15s var(--ease);
 }
@@ -161,23 +159,6 @@ const sections = computed(() => props.visible ? helpSections() : []);
   border-radius: 3px;
   background: var(--surface-3);
   border: 1px solid var(--border);
-}
-
-.help-body::-webkit-scrollbar {
-  width: 6px;
-}
-
-.help-body::-webkit-scrollbar-track {
-  background: var(--scroll-track);
-}
-
-.help-body::-webkit-scrollbar-thumb {
-  background: var(--scroll-thumb);
-  border-radius: 3px;
-}
-
-.help-body::-webkit-scrollbar-thumb:hover {
-  background: var(--scroll-thumb-hover);
 }
 
 @media (max-width: 820px) {

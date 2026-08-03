@@ -112,8 +112,6 @@
   --text-2: #a0a0a0;
   --text-3: #888888;
   --md-heading: #ffffff;
-  --glass: rgba(30, 30, 32, 0.85);
-  --glass-shadow: rgba(0, 0, 0, 0.6);
   --mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Monaco', 'Roboto Mono', 'Source Code Pro', monospace;
   --ui: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -223,8 +221,6 @@
   --text-2: #565660;
   --text-3: #6f6f7a;
   --md-heading: #1b1b20;
-  --glass: rgba(255, 255, 255, 0.94);
-  --glass-shadow: rgba(0, 0, 0, 0.22);
 }
 
 a {
@@ -245,6 +241,25 @@ body {
   box-sizing: border-box;
   background-color: var(--bg);
   color: var(--text);
+}
+
+/* 终端风格窄滚动条：覆盖主内容区与面板，避免浏览器默认宽滚动条破坏等宽对齐 */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--scroll-track);
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 3px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+}
+*::-webkit-scrollbar-corner {
+  background: var(--scroll-track);
 }
 
 h1 {

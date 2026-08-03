@@ -5,7 +5,8 @@
 
 import { ModeHandler } from './base-handler';
 import { Store } from '../state/store';
-import { toggleTheme, toggleLang } from '../state/prefs';
+import { toggleTheme, toggleLang, prefs } from '../state/prefs';
+import { t } from '../../i18n';
 
 export class CommandModeHandler implements ModeHandler {
   private keySequence = '';
@@ -169,12 +170,14 @@ export class CommandModeHandler implements ModeHandler {
       case 'T':
         event.preventDefault();
         toggleTheme();
+        taskDataManager.setFlashMessage(t('flash.themeSet', { theme: prefs.theme }));
         this.resetAll();
         return true;
 
       case 'L':
         event.preventDefault();
         toggleLang();
+        taskDataManager.setFlashMessage(t('flash.langSet', { lang: prefs.lang === 'zh' ? '中文' : 'English' }));
         this.resetAll();
         return true;
 
