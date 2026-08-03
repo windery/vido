@@ -1,8 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { nextTick } from 'vue';
 import TaskItem from '../TaskItem.vue';
 import { Task, TaskPriority } from '../../domain/task';
 import { createSpecificDateSchedule } from '../../utils/schedule-helper';
+import { store } from '../../domain/state/store';
 
 function makeTask(overrides: Partial<Task> = {}): Task {
   const t = new Task(1);
@@ -109,5 +111,44 @@ describe('TaskItem 配置面板标题条', () => {
     const wrapper = mountItem(makeTask({ configState: undefined }));
     expect(wrapper.find('.config-header').exists()).toBe(false);
     expect(wrapper.find('.config-panel').exists()).toBe(false);
+  });
+});
+
+describe('TaskItem 标签配置：编号与删除高亮', () => {
+  beforeEach(() => {
+    store.setTagDeleteIndex(0);
+  });
+
+  it('标签 chip 前缀编号（d+序号 的删除目标）', () => {
+    const wrapper = mountItem(makeTask({ configState: 'tags-select', tags: ['work', 'urgent'] }));
+    const chips = wrapper.findAll('.config-tag');
+    expect(chips.length).toBe(2);
+    expect(chips[0].find('.config-tag-idx').text()).toBe('1');
+    expect(chips[1].find('.config-tag-idx').text()).toBe('2');
+  });
+
+  it('tagDeleteIndex 匹配的标签高亮（config-tag-del + ✕ 标记）', async () => {
+    const wrapper = mountItem(makeTask({ configState: 'tags-select', tags: ['a', 'b', 'c'] }));
+    store.setTagDeleteIndex(2);
+    await nextTick();
+
+    const chips = wrapper.findAll('.config-tag');
+    expect(chips[1].classes()).toContain('config-tag-del');
+    expect(chips[1].find('.config-tag-x').exists()).toBe(true);
+    expect(chips[0].find('.config-tag-x').exists()).toBe(false);
+  });
+
+  it('无删除目标时不带高亮样式', async () => {
+    const wrapper = mountItem(makeTask({ configState: 'tags-select', tags: ['a', 'b'] }));
+    store.setTagDeleteIndex(0);
+    await nextTick();
+
+    const chips = wrapper.findAll('.config-tag');
+    expect(chips.every((c) => !c.classes().includes('config-tag-del'))).toBe(true);
+  });
+
+  it('删除提示行显示', () => {
+    const wrapper = mountItem(makeTask({ configState: 'tags-select', tags: ['a'] }));
+    expect(wrapper.find('.config-tags-hint').text()).toContain('删除');
   });
 });

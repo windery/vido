@@ -17,5 +17,6 @@ export function useTaskStateGetters() {
     lastlineVisible: computed(() => stateRef.value.lastlineVisible || false),
     isHelpVisible: computed(() => stateRef.value.isHelpVisible || false),
     flashMessage: computed(() => stateRef.value.flashMessage || null),
+    tagDeleteIndex: computed(() => stateRef.value.tagDeleteIndex || 0),
   };
 }

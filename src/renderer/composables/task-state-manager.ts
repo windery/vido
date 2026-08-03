@@ -32,6 +32,7 @@ function buildState(): any {
     lastlineContent: store.state.lastlineContent,
     lastlineVisible: store.state.lastlineVisible,
     flashMessage: store.state.flashMessage,
+    tagDeleteIndex: store.state.tagDeleteIndex,
     tasks: store.manager.list.items,
     maxId: store.manager.maxId,
     clipboard: store.manager.clipboard,

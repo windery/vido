@@ -22,6 +22,8 @@ export interface AppState {
   lastlineVisible: boolean;
   isHelpVisible: boolean;
   flashMessage: string | null;
+  /** 标签删除待确认序号（1 基；0 = 未处于删除态），驱动 tags-select 面板高亮目标标签 */
+  tagDeleteIndex: number;
 }
 
 export class Store {
@@ -144,6 +146,7 @@ export class Store {
       lastlineVisible: false,
       isHelpVisible: false,
       flashMessage: null,
+      tagDeleteIndex: 0,
     });
   }
 
@@ -313,6 +316,8 @@ export class Store {
   startTitleEditing(): void { this.manager.startTitleEditing(); this.changed(); }
   startContentNavigation(): void { this.setTaskStatus(TaskState.CONTENT_NAVIGATION); this.changed(); }
   setConfigState(id: number, s: string | undefined): void { this.manager.setConfigState(id, s); this.changed(); }
+  /** 标签删除待确认序号：0 表示无目标；由 ConfigKeyHandler 写入，驱动面板高亮 */
+  setTagDeleteIndex(n: number): void { this.state.tagDeleteIndex = n; this.changed(); }
   updateTaskCursorPosition(id: number, l: number, c: number): void { this.manager.updateTaskCursor(id, l, c); this.changed(); }
   insertNewLineBelow(): void {
     const taskId = this.manager.list.selected?.id;

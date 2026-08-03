@@ -80,9 +80,15 @@
           <!-- Tags -->
           <template v-else-if="task.configState === 'tags-select' || task.configState === 'tags-edit'">
             <div v-if="task.tags?.length" class="config-tags-display">
-              <span v-for="tag in task.tags" :key="tag" class="config-tag">#{{ tag }}</span>
+              <span v-for="(tag, i) in task.tags" :key="tag" class="config-tag"
+                  :class="{ 'config-tag-del': tagDeleteIndex === i + 1 }">
+                <span class="config-tag-idx">{{ i + 1 }}</span>
+                <span v-if="tagDeleteIndex === i + 1" class="config-tag-x">✕</span>
+                <span class="config-tag-name">#{{ tag }}</span>
+              </span>
             </div>
             <span v-else class="config-empty-hint">{{ t('config.noTags') }}</span>
+            <div v-if="task.tags?.length" class="config-tags-hint">{{ t('config.tagDeleteHint') }}</div>
             <div v-if="task.configState === 'tags-edit'" class="config-input-row">
               <span class="config-input-icon">#</span>
               <input ref="tagInputRef" v-model="tagInputValue" class="config-input"
@@ -123,6 +129,9 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+// 标签删除待确认序号（0 = 无目标），驱动 tags-select 面板高亮
+const { tagDeleteIndex } = useTaskState();
 
 const titleEditRef = ref<HTMLInputElement | null>(null);
 
@@ -682,6 +691,38 @@ watchEffect(() => {
   color: var(--accent-bright);
   font-size: 12px;
   font-family: var(--ui);
+  border: 1px solid transparent;
+}
+
+/* 序号前缀：提示 d+序号 的删除目标编号 */
+.config-tag-idx {
+  color: var(--text-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  margin-right: 5px;
+}
+
+.config-tag-name {
+  color: var(--accent-bright);
+}
+
+.config-tag-x {
+  color: var(--p2);
+  font-weight: 700;
+  margin-right: 3px;
+}
+
+/* 删除待确认高亮：琥珀虚线框 + 底色，让用户清楚即将删除哪一个 */
+.config-tag-del {
+  border: 1px dashed var(--p2);
+  background: rgba(210, 153, 34, 0.16);
+}
+
+.config-tags-hint {
+  margin-top: 6px;
+  color: var(--text-3);
+  font-size: 10px;
+  font-family: var(--mono);
 }
 
 .config-empty-hint {

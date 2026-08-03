@@ -27,6 +27,9 @@ tags:        tags-select ──Enter──→ tags-edit ──Enter/Esc──→
 j/k 在 select 状态间切换:  schedule-select ←→ priority-select ←→ tags-select
 Esc 关闭配置（edit 态先取消回 select，再 Esc 关闭）
 ```
+
+**tags-select 标签删除**（`d` 前缀操作符，仅 tags-select）：`d` 开启删除待确认 → 数字累加为 1 基序号（标签前显示编号，越界/空则不高亮）→ 目标标签高亮（琥珀虚线框 + `✕` 标记）→ `Enter` 确认删除该标签、`Esc`/非数字键取消（取消后按正常流程继续，如 `j/k` 切 section 放行命令层）。删除态离开 tags-select 或切换任务时自动清理。其余 section 的 `d` 一律消费，不落到命令层触发全局删除。
+
 **Rules:**
 1. select → Enter → edit（打开输入框）
 2. edit → Enter → select（保存，回到同类型的 select）

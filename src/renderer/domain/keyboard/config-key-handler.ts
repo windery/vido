@@ -8,6 +8,7 @@
  *
  * 面板内键位（vim operator 前缀模型）：
  *   c 是前缀操作符 —— cc 清除当前项，cs/cp/ct 直达 日程/优先级/标签，600ms 超时或无匹配则取消
+ *   d 是删除前缀（仅 tags-select）—— d + 序号 + Enter 删除对应编号标签，输入时高亮目标，Esc/非数字键取消
  *   j/k 放行命令层切换 section；其余未知键一律消费，防止落到命令层触发 paste/delete/undo 等全局副作用
  */
 
@@ -25,6 +26,10 @@ const JUMP_MAP: Record<string, string> = { s: 'schedule-select', p: 'priority-se
 export class ConfigKeyHandler {
   private cPending = false;
   private cTimeout: ReturnType<typeof setTimeout> | null = null;
+  /** 标签删除待确认态：d 开启 → 数字累加 1 基序号 → Enter 删除 / Esc 取消 */
+  private dPending = false;
+  private dBuffer = '';
+  private dTaskId = 0;
 
   handleKey(
     event: KeyboardEvent,
@@ -39,6 +44,33 @@ export class ConfigKeyHandler {
 
     // edit 态由输入框独占，此处不拦截
     if (isConfigEditState(cs)) return false;
+
+    // 残留的删除待确认态（离开 tags-select 或切换任务）清理，避免序号误累加
+    if (this.dPending && (cs !== 'tags-select' || this.dTaskId !== task.id)) {
+      this.cancelTagDelete(taskDataManager);
+    }
+
+    // d 待确认态（仅 tags-select 同一任务生效）：
+    // 数字继续累加序号，Enter 确认删除，Esc 取消，其他键取消后按正常流程继续
+    if (this.dPending && this.dTaskId === task.id) {
+      if (key >= '0' && key <= '9') {
+        event.preventDefault();
+        this.dBuffer += key;
+        this.syncTagDeleteIndex(taskDataManager, task);
+        return true;
+      }
+      if (key === 'Enter') {
+        event.preventDefault();
+        this.confirmTagDelete(taskDataManager, task);
+        return true;
+      }
+      if (key === 'Escape') {
+        event.preventDefault();
+        this.cancelTagDelete(taskDataManager);
+        return true;
+      }
+      this.cancelTagDelete(taskDataManager);
+    }
 
     // c 前缀序列：cs/cp/ct 跳转、cc 清除；非目标键则取消前缀后按正常流程处理
     if (this.cPending) {
@@ -56,6 +88,17 @@ export class ConfigKeyHandler {
     }
 
     switch (key) {
+      case 'd':
+        // 仅 tags-select 开启删除待确认；其余 section 的 d 一律消费（不落到命令层触发全局删除）
+        if (cs === 'tags-select') {
+          event.preventDefault();
+          this.dPending = true;
+          this.dTaskId = task.id;
+          this.dBuffer = '';
+          this.syncTagDeleteIndex(taskDataManager, task);
+        }
+        return true;
+
       case 'c':
         event.preventDefault();
         this.cPending = true;
@@ -67,6 +110,7 @@ export class ConfigKeyHandler {
 
       case 'Escape':
         event.preventDefault();
+        this.cancelTagDelete(taskDataManager);
         taskDataManager.setConfigState(task.id, undefined);
         return true;
 
@@ -124,5 +168,28 @@ export class ConfigKeyHandler {
       tdm.updateTaskProperty(taskId, 'priority', map[key]);
       tdm.setConfigState(taskId, 'priority-select'); // 选后留在 priority-select（CLAUDE.md 状态机：不改配置类型）
     }
+  }
+
+  /** 根据已输数字串计算 1 基序号，写入响应式状态驱动面板高亮；越界/空则不亮 */
+  private syncTagDeleteIndex(tdm: Store, task: any): void {
+    const idx = parseInt(this.dBuffer, 10);
+    const tags = task.tags || [];
+    tdm.setTagDeleteIndex(idx >= 1 && idx <= tags.length ? idx : 0);
+  }
+
+  private confirmTagDelete(tdm: Store, task: any): void {
+    const idx = parseInt(this.dBuffer, 10);
+    this.cancelTagDelete(tdm);
+    const tags = task.tags || [];
+    if (!(idx >= 1 && idx <= tags.length)) return; // 无效序号：仅取消
+    const newTags = tags.filter((_: string, i: number) => i !== idx - 1);
+    tdm.updateTaskProperty(task.id, 'tags', newTags);
+  }
+
+  private cancelTagDelete(tdm: Store): void {
+    this.dPending = false;
+    this.dBuffer = '';
+    this.dTaskId = 0;
+    tdm.setTagDeleteIndex(0);
   }
 }

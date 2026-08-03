@@ -16,11 +16,21 @@ function createTDM(task: Task): any {
   let current = task;
   return {
     getTaskDataState: () => ({ tasks: [current] }),
-    updateTaskProperty: vi.fn(),
+    updateTaskProperty: vi.fn((_id: number, key: string, val: any) => {
+      current = { ...current, [key]: val };
+    }),
     setConfigState: vi.fn((_id: number, s: string | undefined) => {
       current = makeTask(s);
     }),
+    setTagDeleteIndex: vi.fn(),
   };
+}
+
+function makeTagTask(tags: string[]): Task {
+  const t = new Task(1);
+  t.configState = 'tags-select';
+  t.tags = tags;
+  return t;
 }
 
 describe('isConfigEditState', () => {
@@ -159,5 +169,97 @@ describe('ConfigKeyHandler state machine', () => {
       expect(handler.handleKey(makeEvent(k), k, tdm)).toBe(true);
     }
     expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
+  });
+});
+
+describe('ConfigKeyHandler 标签删除（d + 序号 + Enter）', () => {
+  let handler: ConfigKeyHandler;
+
+  beforeEach(() => {
+    handler = new ConfigKeyHandler();
+  });
+
+  it('d 开启删除待确认，数字累加并高亮目标序号', () => {
+    const tdm = createTDM(makeTagTask(['work', 'urgent', 'home']));
+
+    handler.handleKey(makeEvent('d'), 'd', tdm);
+    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(0); // 空 buffer 不亮
+
+    handler.handleKey(makeEvent('2'), '2', tdm);
+    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(2); // 高亮第 2 个标签
+  });
+
+  it('两位序号累加（d11 → 高亮第 11 个）', () => {
+    const tags = Array.from({ length: 11 }, (_, i) => `t${i + 1}`);
+    const tdm = createTDM(makeTagTask(tags));
+
+    handler.handleKey(makeEvent('d'), 'd', tdm);
+    handler.handleKey(makeEvent('1'), '1', tdm);
+    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(1);
+    handler.handleKey(makeEvent('1'), '1', tdm);
+    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(11);
+  });
+
+  it('越界序号不高亮', () => {
+    const tdm = createTDM(makeTagTask(['a', 'b']));
+
+    handler.handleKey(makeEvent('d'), 'd', tdm);
+    handler.handleKey(makeEvent('9'), '9', tdm);
+    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(0);
+  });
+
+  it('Enter 确认删除目标标签并清除高亮', () => {
+    const tdm = createTDM(makeTagTask(['work', 'urgent', 'home']));
+
+    handler.handleKey(makeEvent('d'), 'd', tdm);
+    handler.handleKey(makeEvent('2'), '2', tdm);
+    handler.handleKey(makeEvent('Enter'), 'Enter', tdm);
+
+    expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'tags', ['work', 'home']);
+    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(0);
+  });
+
+  it('Esc 取消删除，不修改标签', () => {
+    const tdm = createTDM(makeTagTask(['a', 'b']));
+
+    handler.handleKey(makeEvent('d'), 'd', tdm);
+    handler.handleKey(makeEvent('1'), '1', tdm);
+    handler.handleKey(makeEvent('Escape'), 'Escape', tdm);
+
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
+    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(0);
+  });
+
+  it('无效序号 Enter 取消而不删除', () => {
+    const tdm = createTDM(makeTagTask(['a', 'b']));
+
+    handler.handleKey(makeEvent('d'), 'd', tdm);
+    handler.handleKey(makeEvent('5'), '5', tdm);
+    handler.handleKey(makeEvent('Enter'), 'Enter', tdm);
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
+  });
+
+  it('非数字键取消待确认，j 放行命令层切换 section', () => {
+    const tdm = createTDM(makeTagTask(['a', 'b']));
+
+    handler.handleKey(makeEvent('d'), 'd', tdm);
+    const ok = handler.handleKey(makeEvent('j'), 'j', tdm);
+    expect(ok).toBe(false); // 放行命令层
+    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(0);
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
+  });
+
+  it('离开 tags-select 后残留删除态被清理（不再误累加）', () => {
+    const tdm = createTDM(makeTagTask(['a', 'b']));
+    handler.handleKey(makeEvent('d'), 'd', tdm);
+
+    // 模拟切到 priority-select（新任务实例，不再持有 tags）
+    const t2 = new Task(1);
+    t2.configState = 'priority-select';
+    tdm.getTaskDataState = () => ({ tasks: [t2] });
+
+    handler.handleKey(makeEvent('1'), '1', tdm);
+    // 残留删除态已取消，数字按 priority 快捷选择处理
+    expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'priority', TaskPriority.HIGH);
   });
 });
