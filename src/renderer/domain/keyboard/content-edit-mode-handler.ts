@@ -20,8 +20,7 @@ export class ContentEditModeHandler implements ModeHandler {
       // 获取当前活动的textarea
       const activeElement = document.activeElement;
       if (activeElement instanceof HTMLTextAreaElement) {
-        // 立即设置为readonly状态，但保持焦点，避免光标闪烁
-        activeElement.readOnly = true;
+        // 保持可编辑使 caret 可见（readonly 元素不渲染光标）；块光标样式由 .content-nav 类提供
         activeElement.classList.add('content-nav');
       }
 

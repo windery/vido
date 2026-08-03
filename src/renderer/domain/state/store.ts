@@ -209,6 +209,11 @@ export class Store {
     const task = this.manager.list.selected;
     logger.info('Store', 'toggle complete', { id: task?.id, completed: task?.completed });
   }
+  toggleFlag(): void {
+    this.mutate(() => this.manager.toggleFlag());
+    const task = this.manager.list.selected;
+    logger.info('Store', 'toggle flag', { id: task?.id, flagged: task?.flagged });
+  }
   updateTaskProperty(id: number, key: string, val: any): void {
     this.manager.updateTaskProperty(id, key, val);
     this.changed();

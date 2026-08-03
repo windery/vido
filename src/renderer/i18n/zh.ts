@@ -24,7 +24,7 @@ export const zh = {
     config: '-- CONFIG --（cs 日程  cp 优先级  ct 标签  Esc 关闭）',
     configSchedule: '-- SCHEDULE --（1 今天 2 明天 3 下周 c 清除 ⏎ 自定义）',
     configScheduleEdit: '-- SCHEDULE-EDIT --（输入日期，Enter 保存，Esc 取消）',
-    configPriority: '-- PRIORITY --（1 P1 高 2 P2 中 3 P3 低）',
+    configPriority: '-- PRIORITY --（1 !!! 高 2 !! 中 3 ! 低）',
     configTags: '-- TAGS --（⏎ 添加 c 清除）',
     configTagsEdit: '-- TAGS-EDIT --（输入标签，Enter 保存，Esc 取消）',
     help: '按 ? 查看帮助',
@@ -53,7 +53,6 @@ export const zh = {
   },
   content: {
     placeholder: '# 任务内容（支持 Markdown）',
-    pressI: "按 'i' 添加内容",
   },
   msg: {
     quitFallback: '退出功能仅在 Electron 环境中可用',
@@ -79,6 +78,7 @@ export const zh = {
           { key: 'Enter', desc: '编辑任务标题' },
           { key: 'i', desc: '进入内容导航模式' },
           { key: 'Space', desc: '切换完成状态' },
+          { key: 'f', desc: '切换旗标' },
           { key: 'o', desc: '在下方新建任务' },
           { key: 'O', desc: '在上方新建任务' },
           { key: 'dd', desc: '删除任务' },

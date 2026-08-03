@@ -5,6 +5,7 @@ export class Task {
   title: string;
   content: string;
   completed: boolean;
+  flagged: boolean;
   selected: boolean;
   status: TaskState;
   remind?: TaskRemind;
@@ -25,8 +26,9 @@ export class Task {
     this.selected = false;
     this.status = TaskState.VIEWING;
     this.tags = [];
-    this.priority = TaskPriority.MEDIUM;
+    this.priority = undefined;
     this.completed = false;
+    this.flagged = false;
     this.isNewlyCreated = false;
     this.cursorLine = 0;
     this.cursorColumn = 0;

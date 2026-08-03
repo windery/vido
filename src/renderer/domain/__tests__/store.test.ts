@@ -51,6 +51,15 @@ describe('Store — 撤销 / 重做', () => {
     expect(store.manager.list.selected?.completed).toBe(before);
   });
 
+  it('toggleFlag 后 undo 还原旗标状态', () => {
+    const task = store.manager.list.selected!;
+    const before = task.flagged;
+    store.toggleFlag();
+    expect(store.manager.list.selected?.flagged).toBe(!before);
+    store.undo();
+    expect(store.manager.list.selected?.flagged).toBe(before);
+  });
+
   it('undo 后再 redo 重新应用操作', () => {
     const count = store.manager.list.items.length;
     store.createNewTask('Redo me');
@@ -223,6 +232,18 @@ describe('Store — 数据变更日志', () => {
     expect(calls[0][1]).toBe('toggle complete');
     expect(calls[0][2]).toEqual(
       expect.objectContaining({ id: task.id, completed: !task.completed })
+    );
+  });
+
+  it('toggleFlag 记录 [Store] toggle flag，含变更后 flagged', () => {
+    const spy = vi.spyOn(logger, 'info');
+    const task = store.manager.list.selected!;
+    store.toggleFlag();
+    const calls = storeInfoCalls(spy);
+    expect(calls).toHaveLength(1);
+    expect(calls[0][1]).toBe('toggle flag');
+    expect(calls[0][2]).toEqual(
+      expect.objectContaining({ id: task.id, flagged: !task.flagged })
     );
   });
 

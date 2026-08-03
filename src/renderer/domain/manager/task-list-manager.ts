@@ -5,7 +5,7 @@
 import { Task, TaskState } from '../task';
 import { TaskList } from '../entities/task-list';
 import {
-  createTask, deleteSelected, toggleComplete, updateProperty, updateCursor,
+  createTask, deleteSelected, toggleComplete, toggleFlag, updateProperty, updateCursor,
   startTitleEditing, sortTasks, copySelected, pasteTask,
   insertNewLineBelow, moveCursorUp, moveCursorDown, moveCursorLeft, moveCursorRight,
   moveCursorToLineStart, moveCursorToLineEnd, moveCursorToFirstLine, moveCursorToLastLine,
@@ -51,6 +51,10 @@ export class TaskListManager {
 
   toggleTaskCompletion(): void {
     this.list = toggleComplete(this.list);
+  }
+
+  toggleFlag(): void {
+    this.list = toggleFlag(this.list);
   }
 
   updateTaskProperty(taskId: number, key: string, value: any): void {

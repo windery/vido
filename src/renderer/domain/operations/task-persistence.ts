@@ -9,7 +9,7 @@ export async function saveTasks(list: TaskList, maxId: number): Promise<void> {
   const data = {
     tasks: list.items.map((t) => ({
       id: t.id, title: t.title, content: t.content,
-      completed: t.completed, priority: t.priority, tags: t.tags,
+      completed: t.completed, flagged: t.flagged, priority: t.priority, tags: t.tags,
       schedule: t.schedule,
     })),
     maxId,
@@ -29,6 +29,7 @@ export async function loadTasks(): Promise<{ list: TaskList; maxId: number } | n
     t.title = td.title || '';
     t.content = td.content || '';
     t.completed = td.completed || false;
+    t.flagged = td.flagged || false;
     t.priority = td.priority;
     t.tags = td.tags || [];
     t.schedule = migrateSchedule(td.schedule) || undefined;

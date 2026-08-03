@@ -15,7 +15,7 @@ export const en: typeof import('./zh').zh = {
     config: '-- CONFIG -- (cs schedule  cp priority  ct tags  Esc close)',
     configSchedule: '-- SCHEDULE -- (1 today 2 tomorrow 3 next week c clear ⏎ custom)',
     configScheduleEdit: '-- SCHEDULE-EDIT -- (type date, Enter save, Esc cancel)',
-    configPriority: '-- PRIORITY -- (1 P1 high 2 P2 medium 3 P3 low)',
+    configPriority: '-- PRIORITY -- (1 !!! high 2 !! medium 3 ! low)',
     configTags: '-- TAGS -- (⏎ add c clear)',
     configTagsEdit: '-- TAGS-EDIT -- (type tag, Enter save, Esc cancel)',
     help: 'Press ? for help',
@@ -44,7 +44,6 @@ export const en: typeof import('./zh').zh = {
   },
   content: {
     placeholder: '# Task content (markdown supported)',
-    pressI: "Press 'i' to add content",
   },
   msg: {
     quitFallback: 'Quit function available in Electron environment',
@@ -70,6 +69,7 @@ export const en: typeof import('./zh').zh = {
           { key: 'Enter', desc: 'Edit task title' },
           { key: 'i', desc: 'Content navigation mode' },
           { key: 'Space', desc: 'Toggle completion' },
+          { key: 'f', desc: 'Toggle flag' },
           { key: 'o', desc: 'New task below' },
           { key: 'O', desc: 'New task above' },
           { key: 'dd', desc: 'Delete task' },

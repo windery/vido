@@ -52,6 +52,7 @@
   --p2: #d29922;
   --p3: #3fb950;
   --tag: #3fb950;
+  --flag: #ffa657;
   --schedule: var(--text-muted);
   --active-grad: linear-gradient(90deg, #143623, #1c4a2e);
   --row-hover: rgba(255, 255, 255, 0.025);
@@ -162,6 +163,7 @@
   --p2: #a0700c;
   --p3: #1e8a3a;
   --tag: #1e8a3a;
+  --flag: #c2571e;
   --schedule: var(--text-muted);
   --active-grad: linear-gradient(90deg, #d9efdf, #e9f6ec);
   --row-hover: rgba(0, 0, 0, 0.04);

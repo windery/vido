@@ -99,6 +99,14 @@ const handleTitleInput = (value: string, task: Task) => {
 };
 
 const handleContentInput = (value: string, task: Task) => {
+    // 导航态禁止内容修改：若 DOM 被意外改动（IME/粘贴等绕过 keydown 的路径），回滚为原始内容
+    if (task.status === TaskState.CONTENT_NAVIGATION) {
+        const ta = contentEditRefs.value.get(task.id);
+        if (ta && ta.value !== task.content) {
+            ta.value = task.content;
+        }
+        return;
+    }
     const taskState = useTaskState();
     taskState.taskDataManager.updateTaskProperty(task.id, 'content', value);
 };
@@ -136,8 +144,8 @@ const handleContentKeydown = (event: KeyboardEvent, task: Task) => {
         // 允许的导航键
         const allowedKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'];
 
-        // 如果不是允许的键，阻止默认行为
-        if (!allowedKeys.includes(event.key) && !event.metaKey && !event.ctrlKey) {
+        // 非导航键一律阻止默认行为（含 meta/ctrl 组合，堵住 Cmd+V 粘贴、Cmd+A 全选等绕过输入的路径）
+        if (!allowedKeys.includes(event.key)) {
             event.preventDefault();
         }
     }
@@ -169,46 +177,13 @@ const updateContentWithCursorLocal = (textarea: HTMLTextAreaElement, task: Task)
 
 const scrollToTask = (taskId: number) => {
     nextTick(() => {
-        setTimeout(() => {
-            const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
-            if (taskElement) {
-                // 检查任务是否有内容区域
-                const contentArea = taskElement.querySelector('.task-content-area');
-                if (contentArea) {
-                    // 如果有内容区域，确保整个容器（包括内容）都可见
-                    const container = taskElement.closest('.vim-content') as HTMLElement;
-                    if (container) {
-                        const containerRect = container.getBoundingClientRect();
-                        const taskRect = taskElement.getBoundingClientRect();
-                        const contentRect = contentArea.getBoundingClientRect();
-
-                        // 计算任务和内容的总高度
-                        const totalHeight = contentRect.bottom - taskRect.top;
-                        const containerHeight = containerRect.height;
-
-                        // 如果总高度超过容器高度，滚动到任务顶部
-                        if (totalHeight > containerHeight * 0.8) {
-                            taskElement.scrollIntoView({
-                                behavior: 'auto',
-                                block: 'start'
-                            });
-                        } else {
-                            // 否则居中显示
-                            taskElement.scrollIntoView({
-                                behavior: 'auto',
-                                block: 'center'
-                            });
-                        }
-                    }
-                } else {
-                    // 没有内容区域，正常居中显示
-                    taskElement.scrollIntoView({
-                        behavior: 'auto',
-                        block: 'center'
-                    });
-                }
-            }
-        }, 50); // 给DOM一点时间更新
+        const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+        if (taskElement) {
+            // 选中任务行常驻挂载、内容区以 120ms 过渡展开/收起。
+            // 用 block:'nearest' 只做最小滚动（行不可见时才滚），
+            // 且在同一帧完成，避免此前 setTimeout + block:'center' 造成的二次滚动闪跳。
+            taskElement.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+        }
     });
 };
 

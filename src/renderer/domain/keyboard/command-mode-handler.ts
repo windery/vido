@@ -151,6 +151,14 @@ export class CommandModeHandler implements ModeHandler {
         this.resetAll();
         return true;
 
+      case 'f':
+        if (selectedTaskId) {
+          event.preventDefault();
+          taskDataManager.toggleFlag();
+        }
+        this.resetAll();
+        return true;
+
       case 'G':
         event.preventDefault();
         taskDataManager.goToLast();

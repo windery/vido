@@ -163,10 +163,8 @@ export class ContentNavigationModeHandler implements ModeHandler {
           return;
         }
 
-        // 恢复原始内容——CONTENT_NAVIGATION 模式下 textarea 有光标占位符
+        // 恢复原始内容
         el.value = rawContent;
-        el.removeAttribute('readonly');
-        el.readOnly = false;
         el.style.display = 'block';
         el.tabIndex = 0;
         el.focus();

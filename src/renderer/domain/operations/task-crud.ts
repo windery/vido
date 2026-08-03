@@ -45,6 +45,14 @@ export function toggleComplete(list: TaskList): TaskList {
   return new TaskList(items as Task[], list.searchFilter);
 }
 
+export function toggleFlag(list: TaskList): TaskList {
+  const items = [...list.items] as Task[];
+  const idx = items.findIndex((t) => t.selected);
+  if (idx < 0) return list;
+  items[idx] = { ...items[idx], flagged: !items[idx].flagged } as Task;
+  return new TaskList(items as Task[], list.searchFilter);
+}
+
 export function updateProperty(list: TaskList, taskId: number, key: string, value: any): TaskList {
   const items = list.items.map((t) =>
     t.id === taskId ? ({ ...t, [key]: value } as Task) : t
@@ -97,6 +105,7 @@ export function pasteTask(list: TaskList, clipboard: Task | null): { list: TaskL
   task.priority = clipboard.priority;
   task.tags = [...(clipboard.tags || [])];
   task.schedule = clipboard.schedule;
+  task.flagged = !!clipboard.flagged;
   task.selected = true;
   task.status = TaskState.VIEWING;
 

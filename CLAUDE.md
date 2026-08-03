@@ -41,6 +41,21 @@ Esc 关闭配置（edit 态先取消回 select，再 Esc 关闭）
 - **Interaction layer**: vim paradigm — modal editing (COMMAND / INSERT / VISUAL), keyboard-first, key sequences (`dd`, `yy`, `gg`, `G`), count prefixes (`3j`, `2dd`), zero mouse dependency
 - **Visual layer**: Terminal Purist — phosphor-green accent (`#59d98a` dark / `#1a7f3e` light), mono display type, blinking block caret, uppercase mode badges with letter-spacing, inverted-block selection, ASCII `▰▱` progress bar. Terminal-informed but crisp and modern — never a fake-emulator skin.
 
+### 设计铁律（Design Iron Law）— 古早命令行
+
+**所有视觉决策遵循「程序员极客 / 古早命令行」：单色 CRT 磷光绿 + ANSI 色标、等宽字体、块状光标、ASCII/Unicode 方块符号、对齐的信息列。** 禁止圆润渐变、玻璃拟态、大面积圆角卡片等模板化现代风。符号即语义——能用一个 ASCII/Unicode 符号表达，就绝不用文字。
+
+**信息符号约定（固化，新增符号需先更新此表）**：
+
+| 语义 | 符号 | 颜色 / 令牌 |
+|---|---|---|
+| 优先级 高/中/低 | `!!!` / `!!` / `!` | ANSI 红 `--p1` / 黄 `--p2` / 绿 `--p3`（**固定前置列，默认空占位保持标题对齐；手动设置后才显示符号**；不用 `P1/P2/P3` 文字） |
+| 旗标（`f` 切换） | `⚑` | 琥珀 `--flag`，**置于行尾**（优先级 → 标题 → 标签 → 日程 → ⚑） |
+| 标签 | `#tag` 内联 chip | 绿 `--tag`，常驻显示 |
+| 已完成 | 无符号，**样式区分**：标题删除线 + 行变暗 | 灰 `--text-dim` / 透明度 |
+| 进度条 | `▰▱` ASCII 块 | 磷光绿 |
+| 选中行 | `›` 标记 + 行号高亮 | `--accent` |
+
 ### UX Principles
 
 - **Inline over overlay**: avoid modal dialogs; expand and collapse content in place to preserve user's spatial context
@@ -121,7 +136,7 @@ This application embodies **programmer values**: rigorous, concise, efficient. T
 - **Surface (dark)**: `#121212` base, `#1e1e20` panels, `#2a2a2e` inputs
 - **Text (dark)**: `#E1E1E1` primary, `#A0A0A0` secondary, `#888` hints
 - **Selected row**: green `--active-grad` (`#143623 → #1c4a2e` dark), `›` marker, line number `--ln-selected`
-- **Priority colors**: P1 `#f85149`, P2 `#d29922`, P3 `#58a6ff`
+- **Priority marks**: `!!!` `#f85149`（高）、`!!` `#d29922`（中）、`!` `#3fb950`（低）— ANSI 红/黄/绿，不用 `P1/P2/P3` 文字；**默认空，手动设置后才显示**；旗标 `⚑` `--flag` 琥珀色，置于行尾
 - **Mode badges**: uppercase labels + `letter-spacing:.06em`, colored text via `--mode-*` tokens (normal blue, insert green, lastline orange)
 
 **Spacing & Layout**:
@@ -130,8 +145,8 @@ This application embodies **programmer values**: rigorous, concise, efficient. T
 - **Minimum Touch**: 44dp for interactive elements
 
 **Animation & Motion**:
-- **Expand/collapse**: 200ms cubic-bezier(0.16, 1, 0.3, 1), max-height + opacity
-- **Logo caret**: `▮` blinking `1.06s step-end`, disabled under `prefers-reduced-motion`
+- **Content area**: 零动画 —— 仅当选中的任务有内容时才展示，瞬时出现/消失（无 transition）
+- **Expand/collapse (其他面板)**: 200ms cubic-bezier(0.16, 1, 0.3, 1), max-height + opacity
 - **Hover/active**: background/border transition, `:active` 1px translateY press-down
 - **Focus ring**: green outline `2px var(--accent)` via `:focus-visible`
 - **Progress**: ASCII `▰▱` block bar + `done/total` count in header
@@ -169,7 +184,7 @@ This application embodies **programmer values**: rigorous, concise, efficient. T
 **Visual Design (CRITICAL)**:
 - **Premium, minimal, unified** — every element must feel like part of one cohesive design system. No "stuck on" looking panels.
 - **Pill buttons** for option groups — rounded, subtle background, keyboard shortcut badge inside `<kbd>`
-- **Color coding** only where semantic (priority red/yellow/blue, schedule blue accent)
+- **Color coding** only where semantic (priority red/yellow/green ANSI, flag amber, schedule blue accent)
 - **Panel background**: `rgba(255,255,255,0.02)` with `rgba(255,255,255,0.05)` border — barely visible, lets content breathe
 - **Typography**: UI labels in system font (SF Pro), content in monospace. Never mix within the same element.
 - **Spacing**: 8px grid, generous padding. No cramped layouts.
@@ -307,6 +322,7 @@ logger.error('ComponentName', 'error message', { error: errorObject });
 | createNewTask | `create task` | `id, title` |
 | deleteSelectedTask | `delete task` | `id, title` |
 | toggleTaskCompletion | `toggle complete` | `id, completed` |
+| toggleFlag | `toggle flag` | `id, flagged` |
 | updateTaskProperty | `update task` | `id, field, value` |
 | pasteTask | `paste task` | `newId, fromId` |
 | sortTasks | `sort tasks` | `type, count` |

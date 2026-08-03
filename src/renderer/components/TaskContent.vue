@@ -1,23 +1,19 @@
 <template>
-    <div class="task-content-area" :class="{ 'show': task.selected }">
-        <div v-if="task.status === TaskState.CONTENT_EDITING || task.status === TaskState.CONTENT_NAVIGATION"
-            class="content-editing">
+    <!-- 仅当选中的任务有内容（或正在编辑内容）时才渲染；vim-instant，无动画 -->
+    <div v-if="task.selected && (task.content || isEditing())" class="task-content-area">
+        <div v-if="isEditing()" class="content-editing">
+            <!-- 不用 readonly：readonly 元素不渲染 caret，导致导航态块光标不显示。导航态禁止输入靠 keydown 拦截 + input 回滚 -->
             <textarea :ref="(el) => setContentEditRef(el as HTMLTextAreaElement, task.id)" :value="task.content"
                 @input="handleInput" @keyup="handleCursorUpdate"
                 @keydown="handleContentKeydown"
                 :class="['content-editor', { 'content-nav': task.status === TaskState.CONTENT_NAVIGATION }]"
-                :readonly="task.status === TaskState.CONTENT_NAVIGATION"
                 :placeholder="t('content.placeholder')">
       </textarea>
         </div>
 
-        <div v-else-if="task.status === TaskState.SELECTED || task.status === TaskState.VIEWING || task.status === TaskState.TITLE_EDITING"
-            class="content-display">
-            <div v-if="task.content" class="markdown-display">
+        <div v-else class="content-display">
+            <div class="markdown-display">
                 <div v-html="renderMarkdown(task.content)"></div>
-            </div>
-            <div v-else class="empty-content-hint">
-                <span class="hint-text">{{ t('content.pressI') }}</span>
             </div>
         </div>
     </div>
@@ -42,6 +38,10 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+// 内容编辑/导航态：选中任务处于编辑中时必须显示 textarea（即便内容为空）
+const isEditing = () =>
+    props.task.status === TaskState.CONTENT_EDITING || props.task.status === TaskState.CONTENT_NAVIGATION;
 
 // 用于存储内容编辑textarea的ref
 const contentEditRefs = ref<Map<number, HTMLTextAreaElement>>(new Map());
@@ -107,15 +107,8 @@ onMounted(() => {
     border-radius: 6px;
     box-sizing: border-box;
     box-shadow: inset 0 1px 0 var(--border-soft);
-    opacity: 0;
-    max-height: 0;
-    overflow: hidden;
-    transition: opacity 0.12s ease, max-height 0.12s ease, padding 0.08s ease;
-}
-
-.task-content-area.show {
-    opacity: 1;
     max-height: 60vh;
+    overflow: hidden;
 }
 
 .content-editor {
@@ -163,6 +156,8 @@ onMounted(() => {
     word-wrap: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
+    max-height: calc(60vh - 24px);
+    overflow-y: auto;
 }
 
 .markdown-display :deep(h1),
@@ -254,11 +249,5 @@ onMounted(() => {
 
 .markdown-display :deep(a) {
     color: var(--link);
-}
-
-.empty-content-hint {
-    padding: 0;
-    color: var(--text-dim);
-    font-style: italic;
 }
 </style>

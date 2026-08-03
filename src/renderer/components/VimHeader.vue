@@ -1,7 +1,7 @@
 <template>
     <div class="vim-header">
         <div class="file-info">
-            <span class="logo">vido<span class="logo-caret">▮</span></span>
+            <span class="logo">vido</span>
             <span class="file-name">{{ t('header.title') }}</span>
             <span class="file-status">{{ currentTime }}</span>
         </div>
@@ -115,17 +115,6 @@ onUnmounted(() => {
     display: inline-flex;
     align-items: center;
     flex-shrink: 0;
-}
-
-.logo-caret {
-    color: var(--accent-bright);
-    line-height: 1;
-    margin-left: 2px;
-    animation: logoBlink 1.06s step-end infinite;
-}
-
-@keyframes logoBlink {
-    50% { opacity: 0; }
 }
 
 .file-name {

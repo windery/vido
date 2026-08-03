@@ -29,6 +29,7 @@ function createMockTDM(taskList: Task[]): any {
     startContentNavigation: vi.fn(),
     startTitleEditing: vi.fn(),
     toggleTaskCompletion: vi.fn(),
+    toggleFlag: vi.fn(),
     toggleHelp: vi.fn(),
     createNewTask: vi.fn(() => { const t = new Task(99); t.title = ''; return t; }),
     deleteSelectedTask: vi.fn(),
@@ -51,7 +52,7 @@ describe('CommandModeHandler', () => {
       goToFirst: vi.fn(), goToLast: vi.fn(),
       transition: vi.fn(() => ({ success: true })),
       startContentNavigation: vi.fn(), startTitleEditing: vi.fn(),
-      toggleTaskCompletion: vi.fn(), toggleHelp: vi.fn(),
+      toggleTaskCompletion: vi.fn(), toggleFlag: vi.fn(), toggleHelp: vi.fn(),
       createNewTask: vi.fn(() => ({ id: 99, title: '' })),
       deleteSelectedTask: vi.fn(), copySelectedTask: vi.fn(), pasteTask: vi.fn(),
       setConfigState: vi.fn(), undo: vi.fn(), redo: vi.fn(),
@@ -71,6 +72,7 @@ describe('CommandModeHandler', () => {
   });
 
   it('u calls undo', () => { handler.handleKey(makeEvent('u'), 'u', mockTDM, false); expect(mockTDM.undo).toHaveBeenCalled(); });
+  it('f calls toggleFlag', () => { handler.handleKey(makeEvent('f'), 'f', mockTDM, false); expect(mockTDM.toggleFlag).toHaveBeenCalled(); });
   it('Ctrl+R calls redo', () => { handler.handleKey(new KeyboardEvent('keydown', { key: 'r', ctrlKey: true, bubbles: true }), 'r', mockTDM, false); expect(mockTDM.redo).toHaveBeenCalled(); });
   it('n calls searchNext(1)', () => { handler.handleKey(makeEvent('n'), 'n', mockTDM, false); expect(mockTDM.searchNext).toHaveBeenCalledWith(1); });
   it('N calls searchNext(-1)', () => { handler.handleKey(makeEvent('N'), 'N', mockTDM, false); expect(mockTDM.searchNext).toHaveBeenCalledWith(-1); });

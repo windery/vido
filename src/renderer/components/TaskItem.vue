@@ -10,8 +10,8 @@
 
             <!-- Task content in vim style -->
             <div class="line-content">
-                <span class="task-status">{{ task.completed ? '✓' : '○' }}</span>
-                <span :class="['priority-indicator', getPriorityClass(task.priority)]">{{ task.priority }}</span>
+                <!-- 优先级固定前置列：默认空占位保持标题对齐，设置后显示 !!!/!!/! -->
+                <span :class="['priority-indicator', getPriorityClass(task.priority)]">{{ getPriorityMark(task.priority) }}</span>
 
                 <span v-if="task.status === TaskState.TITLE_EDITING && task.selected" class="editing-inline">
                     <input ref="titleEditRef" :value="task.title" class="title-editor" @input="handleTitleInput"
@@ -33,11 +33,13 @@
                         {{ t('task.expired') }}
                     </span>
                 </span>
+
+                <span v-if="task.flagged" class="flag-indicator">⚑</span>
             </div>
         </div>
 
-        <!-- Task Content Component -->
-        <TaskContent v-if="task.selected && task.id" :task="task" @cursor-update="handleCursorUpdate"
+        <!-- Task Content Component：常驻挂载，展开/收起由 .show（task.selected）驱动过渡动画 -->
+        <TaskContent :task="task" @cursor-update="handleCursorUpdate"
             @content-keydown="handleContentKeydown" @content-input="handleContentInput"
             @textarea-ref="handleTextareaRef" />
 
@@ -62,9 +64,9 @@
           <!-- Priority -->
           <template v-else-if="task.configState === 'priority-select'">
             <div class="config-pills">
-              <span class="config-pill priority-p1"><kbd>1</kbd> P1 {{ t('config.high') }}</span>
-              <span class="config-pill priority-p2"><kbd>2</kbd> P2 {{ t('config.medium') }}</span>
-              <span class="config-pill priority-p3"><kbd>3</kbd> P3 {{ t('config.low') }}</span>
+              <span class="config-pill priority-p1"><kbd>1</kbd> !!! {{ t('config.high') }}</span>
+              <span class="config-pill priority-p2"><kbd>2</kbd> !! {{ t('config.medium') }}</span>
+              <span class="config-pill priority-p3"><kbd>3</kbd> ! {{ t('config.low') }}</span>
             </div>
           </template>
           <!-- Tags -->
@@ -260,7 +262,21 @@ const getPriorityClass = (priority?: TaskPriority) => {
         case TaskPriority.LOW:
             return 'priority-low';
         default:
-            return 'priority-medium';
+            return '';
+    }
+};
+
+// 古早命令行符号约定：优先级默认空，仅手动设置后显示（!!! 高 / !! 中 / ! 低）
+const getPriorityMark = (priority?: TaskPriority): string => {
+    switch (priority) {
+        case TaskPriority.HIGH:
+            return '!!!';
+        case TaskPriority.MEDIUM:
+            return '!!';
+        case TaskPriority.LOW:
+            return '!';
+        default:
+            return '';
     }
 };
 
@@ -358,22 +374,20 @@ watchEffect(() => {
     overflow: hidden;
 }
 
-.task-status {
-    color: var(--text-dim);
-    font-weight: bold;
-    width: 16px;
+.flag-indicator {
+    color: var(--flag);
+    width: 14px;
     flex-shrink: 0;
-}
-
-.task-line.completed .task-status {
-    color: var(--check);
+    font-size: 12px;
+    line-height: 1;
 }
 
 .priority-indicator {
     font-size: 10px;
     font-weight: bold;
-    width: 24px;
+    width: 32px;
     text-align: center;
+    white-space: nowrap;
     flex-shrink: 0;
 }
 
