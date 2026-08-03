@@ -82,6 +82,8 @@ export const zh = {
     searchCleared: '已清除搜索',
     unknownCommand: '未知命令：{cmd}',
     saveFailed: '保存失败！数据未写入磁盘',
+    copied: '已复制：{title}',
+    pasted: '已粘贴：{title}',
   },
   help: {
     title: 'Vido - Vim 任务管理器',

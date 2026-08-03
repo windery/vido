@@ -233,6 +233,7 @@ export class CommandModeHandler implements ModeHandler {
         if (this.keySequence === 'yy') {
           event.preventDefault();
           taskDataManager.copySelectedTask();
+          taskDataManager.setFlashMessage(t('flash.copied', { title: taskDataManager.selectedTask?.title || '' }));
           this.resetAll();
           return true;
         }
@@ -259,6 +260,7 @@ export class CommandModeHandler implements ModeHandler {
       case 'p':
         event.preventDefault();
         this.repeatAction(() => taskDataManager.pasteTask(), count);
+        taskDataManager.setFlashMessage(t('flash.pasted', { title: taskDataManager.selectedTask?.title || '' }));
         this.resetAll();
         return true;
 
