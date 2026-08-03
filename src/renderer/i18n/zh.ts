@@ -57,6 +57,10 @@ export const zh = {
   content: {
     placeholder: '# 任务内容（支持 Markdown）',
   },
+  lastline: {
+    commandPlaceholder: '输入命令，Tab 补全 · ↑/↓ 历史',
+    searchPlaceholder: '输入搜索关键词 · ↑/↓ 历史',
+  },
   msg: {
     quitFallback: '退出功能仅在 Electron 环境中可用',
   },
@@ -134,6 +138,7 @@ export const zh = {
           { key: ':theme [dark|light]', desc: '切换主题' },
           { key: ':lang [zh|en]', desc: '切换语言' },
           { key: ': 或 / 后按 ↑/↓', desc: '浏览命令/搜索历史' },
+          { key: '命令名后按 Tab', desc: '补全命令（如 :th + Tab → :theme）' },
         ],
       },
       {

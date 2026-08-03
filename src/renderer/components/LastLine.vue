@@ -1,8 +1,8 @@
 <template>
   <div v-if="isLastLineVisible" class="vim-command-line">
     <span class="prompt-symbol">{{ getPromptSymbol() }}</span>
-    <input v-model="lastlineContentWithSetter" ref="inputRef" class="command-input" @keydown="handleAnyKeydown"
-      @keydown.enter.prevent="handleEnterKey" @compositionstart="handleCompositionStart"
+    <input v-model="lastlineContentWithSetter" ref="inputRef" class="command-input" :placeholder="inputPlaceholder"
+      @keydown="handleAnyKeydown" @keydown.enter.prevent="handleEnterKey" @compositionstart="handleCompositionStart"
       @compositionend="handleCompositionEnd" spellcheck="false" autocomplete="off" type="text" />
   </div>
 
@@ -12,6 +12,7 @@
 import { onMounted, ref, watch, nextTick, computed } from 'vue';
 import { useTaskState } from '../composables/use-task-state';
 import { logger } from '../utils/logger';
+import { t } from '../i18n';
 
 const {
   taskDataManager,
@@ -76,6 +77,15 @@ const getPromptSymbol = () => {
   // 默认情况
   return '';
 };
+
+// 占位提示：区分命令（含 Tab 补全提示）与搜索
+const inputPlaceholder = computed(() => {
+  const content = lastlineContent.value;
+  if (content.startsWith('/') || content.startsWith('?')) {
+    return t('lastline.searchPlaceholder');
+  }
+  return t('lastline.commandPlaceholder');
+});
 
 // 命令历史浏览（vim 语义：↑ 上一条，↓ 下一条，边界回到草稿）
 const historyIndex = ref(-1);

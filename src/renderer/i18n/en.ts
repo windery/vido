@@ -48,6 +48,10 @@ export const en: typeof import('./zh').zh = {
   content: {
     placeholder: '# Task content (markdown supported)',
   },
+  lastline: {
+    commandPlaceholder: 'type command, Tab to complete · ↑/↓ history',
+    searchPlaceholder: 'type search query · ↑/↓ history',
+  },
   msg: {
     quitFallback: 'Quit function available in Electron environment',
   },
@@ -125,6 +129,7 @@ export const en: typeof import('./zh').zh = {
           { key: ':theme [dark|light]', desc: 'Switch theme' },
           { key: ':lang [zh|en]', desc: 'Switch language' },
           { key: '↑/↓ after : or /', desc: 'Browse command/search history' },
+          { key: 'Tab after command name', desc: 'Complete commands (e.g. :th + Tab → :theme)' },
         ],
       },
       {

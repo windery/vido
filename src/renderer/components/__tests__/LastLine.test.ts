@@ -84,3 +84,31 @@ describe('LastLine — 命令历史浏览', () => {
     expect(store.state.lastlineContent).toBe(':');
   });
 });
+
+describe('LastLine — 输入框占位提示', () => {
+  beforeEach(() => {
+    if (store.state.lastlineVisible) store.transition('Escape');
+  });
+
+  it('命令模式显示命令占位（含 Tab 补全提示）', async () => {
+    store.transition(':');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    expect(wrapper.find('input').attributes('placeholder')).toContain('Tab');
+  });
+
+  it('搜索模式显示搜索占位（无 Tab 提示）', async () => {
+    store.transition('/');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    const placeholder = wrapper.find('input').attributes('placeholder') ?? '';
+    expect(placeholder.length).toBeGreaterThan(0);
+    expect(placeholder).not.toContain('Tab');
+  });
+
+  it('编辑态 placeholder 不残留（无 lastline 时无输入框）', async () => {
+    const wrapper = mount(LastLine);
+    await nextTick();
+    expect(wrapper.find('input').exists()).toBe(false);
+  });
+});
