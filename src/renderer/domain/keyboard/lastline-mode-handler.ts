@@ -127,6 +127,7 @@ export class LastLineModeHandler implements ModeHandler {
         break;
       default:
         logger.warn('LastLineModeHandler', `Unknown vim command: ${command}`);
+        taskDataManager.setFlashMessage(t('flash.unknownCommand', { cmd: command.trim() }));
     }
   }
 

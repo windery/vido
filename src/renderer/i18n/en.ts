@@ -71,6 +71,7 @@ export const en: typeof import('./zh').zh = {
     themeSet: 'Theme: {theme}',
     langSet: 'Language: {lang}',
     searchCleared: 'Search cleared',
+    unknownCommand: 'Unknown command: {cmd}',
   },
   help: {
     title: 'Vido - Vim-style Todo Manager',

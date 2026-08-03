@@ -80,6 +80,7 @@ export const zh = {
     themeSet: '主题：{theme}',
     langSet: '语言：{lang}',
     searchCleared: '已清除搜索',
+    unknownCommand: '未知命令：{cmd}',
   },
   help: {
     title: 'Vido - Vim 任务管理器',
