@@ -104,6 +104,8 @@ export const zh = {
           { key: ':sort [type]', desc: '排序任务（title|priority|dueDate|created）' },
           { key: ':new [title]', desc: '新建任务' },
           { key: ':delete', desc: '删除当前任务' },
+          { key: ':p [1|2|3|clear]', desc: '设置优先级（1 高 2 中 3 低）' },
+          { key: ':t <tag>', desc: '添加标签' },
           { key: ':w', desc: '保存任务' },
           { key: ':q', desc: '退出应用' },
           { key: ':theme [dark|light]', desc: '切换主题' },
@@ -133,7 +135,12 @@ export const zh = {
         title: '内容导航模式',
         commands: [
           { key: 'h/j/k/l', desc: '在内容中移动光标' },
+          { key: 'w / b / e', desc: '下一个词 / 上一个词 / 词尾' },
+          { key: '0 / $', desc: '行首 / 行尾' },
+          { key: 'gg / G', desc: '首行 / 末行' },
           { key: 'i', desc: '在光标位置插入' },
+          { key: 'a', desc: '在行尾插入' },
+          { key: 'o', desc: '在下方插入新行' },
           { key: 'ESC', desc: '返回普通模式' },
         ],
       },
@@ -147,7 +154,10 @@ export const zh = {
       {
         title: '配置模式',
         commands: [
+          { key: 'cs / cp / ct', desc: '直达 日程/优先级/标签' },
           { key: 'j/k', desc: '在配置项之间切换' },
+          { key: '1 / 2 / 3', desc: '快捷选择（优先级/日程）' },
+          { key: 'c', desc: '清除（日程/优先级/标签）' },
           { key: 'Enter', desc: '编辑选中项' },
           { key: 'ESC', desc: '退出编辑或关闭配置' },
         ],

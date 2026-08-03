@@ -95,6 +95,8 @@ export const en: typeof import('./zh').zh = {
           { key: ':sort [type]', desc: 'Sort tasks (title|priority|dueDate|created)' },
           { key: ':new [title]', desc: 'Create new task' },
           { key: ':delete', desc: 'Delete current task' },
+          { key: ':p [1|2|3|clear]', desc: 'Set priority (1 high 2 medium 3 low)' },
+          { key: ':t <tag>', desc: 'Add a tag' },
           { key: ':w', desc: 'Save tasks' },
           { key: ':q', desc: 'Quit application' },
           { key: ':theme [dark|light]', desc: 'Switch theme' },
@@ -124,7 +126,12 @@ export const en: typeof import('./zh').zh = {
         title: 'CONTENT NAVIGATION MODE',
         commands: [
           { key: 'h/j/k/l', desc: 'Move cursor in content' },
+          { key: 'w / b / e', desc: 'Next word / prev word / word end' },
+          { key: '0 / $', desc: 'Line start / line end' },
+          { key: 'gg / G', desc: 'First line / last line' },
           { key: 'i', desc: 'Insert at cursor position' },
+          { key: 'a', desc: 'Insert at line end' },
+          { key: 'o', desc: 'Insert new line below' },
           { key: 'ESC', desc: 'Return to normal mode' },
         ],
       },
@@ -138,7 +145,10 @@ export const en: typeof import('./zh').zh = {
       {
         title: 'CONFIG MODE',
         commands: [
+          { key: 'cs / cp / ct', desc: 'Jump to schedule/priority/tags' },
           { key: 'j/k', desc: 'Navigate between sections' },
+          { key: '1 / 2 / 3', desc: 'Quick select (priority/schedule)' },
+          { key: 'c', desc: 'Clear (schedule/priority/tags)' },
           { key: 'Enter', desc: 'Edit selected section' },
           { key: 'ESC', desc: 'Exit editing or close config' },
         ],
