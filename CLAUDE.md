@@ -180,7 +180,7 @@ This application embodies **programmer values**: rigorous, concise, efficient. T
 - **Immediate feedback (vim-instant)**: cursor movement, navigation, and scrolling are instant with zero animation; all other feedback transitions ≤ 150ms (prefer ≤ 100ms); no decorative delays, ever — vim responds in the same frame you press a key, this app must too
 - **Progressive disclosure**: Common options visible; advanced behind input/custom
 - **4.5:1 contrast ratio** minimum for all text
-- **Clear action**: `c` key = clear/remove (schedule clear, tags clear). Never use numeric keys for destructive actions.
+- **Clear action**: `cc` (在配置面板内 `c` 是 vim 前缀操作符：`cc` 清除、`cs/cp/ct` 跳转 section). Never use numeric keys for destructive actions.
 
 **Visual Design (CRITICAL)**:
 - **Premium, minimal, unified** — every element must feel like part of one cohesive design system. No "stuck on" looking panels.
