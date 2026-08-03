@@ -411,6 +411,51 @@ describe('Store — 数据变更日志', () => {
   });
 });
 
+describe('Store — :sort updated 基于 updatedAt', () => {
+  function makeUpdatedStore(): Store {
+    const store = new Store();
+    const mk = (id: number, title: string, updatedAt?: number) => {
+      const t = new Task(id);
+      t.title = title;
+      t.updatedAt = updatedAt;
+      t.selected = false;
+      t.status = TaskState.VIEWING;
+      return t;
+    };
+    store.manager = new TaskListManager(
+      new TaskList([
+        mk(1, 'A', 1000),
+        mk(2, 'B', 3000),
+        mk(3, 'C', 2000),
+        mk(4, 'D'),
+      ]),
+      5
+    );
+    return store;
+  }
+
+  it('updated 排序把最近更新的排最前', () => {
+    const store = makeUpdatedStore();
+    store.sortTasks('updated');
+    const titles = store.manager.list.items.map((t) => t.title);
+    expect(titles[0]).toBe('B'); // updatedAt 3000 最新
+    expect(titles[1]).toBe('C'); // 2000
+    expect(titles[2]).toBe('A'); // 1000
+    expect(titles[3]).toBe('D'); // 无 updatedAt，回退 id 最小 → 最后
+  });
+
+  it('数据属性变更刷新 updatedAt，UI 状态变更不刷新', () => {
+    const store = makeUpdatedStore();
+    const t = store.manager.list.items[0]; // A
+    store.updateTaskProperty(t.id, 'title', 'A-改');
+    const t1 = store.manager.list.items.find((x) => x.id === t.id)!;
+    expect(t1.updatedAt).toBeGreaterThan(3000);
+    store.updateTaskProperty(t.id, 'status', 0);
+    const t2 = store.manager.list.items.find((x) => x.id === t.id)!;
+    expect(t2.updatedAt).toBe(t1.updatedAt); // UI 状态不改变 updatedAt
+  });
+});
+
 describe('Store — 防抖自动保存', () => {
   let store: Store;
 

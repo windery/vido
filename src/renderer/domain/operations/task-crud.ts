@@ -11,6 +11,7 @@ export function createTask(list: TaskList, title: string = '', insertAfter: bool
   task.title = title;
   task.selected = true;
   task.status = TaskState.TITLE_EDITING;
+  task.updatedAt = Date.now();
 
   const items = list.items.map((t) => ({ ...t, selected: false, status: TaskState.VIEWING })) as Task[];
   const selectedIdx = list.items.findIndex((t) => t.selected);
@@ -41,7 +42,7 @@ export function toggleComplete(list: TaskList): TaskList {
   const items = [...list.items] as Task[];
   const idx = items.findIndex((t) => t.selected);
   if (idx < 0) return list;
-  items[idx] = { ...items[idx], completed: !items[idx].completed } as Task;
+  items[idx] = { ...items[idx], completed: !items[idx].completed, updatedAt: Date.now() } as Task;
   return new TaskList(items as Task[], list.searchFilter);
 }
 
@@ -49,13 +50,18 @@ export function toggleFlag(list: TaskList): TaskList {
   const items = [...list.items] as Task[];
   const idx = items.findIndex((t) => t.selected);
   if (idx < 0) return list;
-  items[idx] = { ...items[idx], flagged: !items[idx].flagged } as Task;
+  items[idx] = { ...items[idx], flagged: !items[idx].flagged, updatedAt: Date.now() } as Task;
   return new TaskList(items as Task[], list.searchFilter);
 }
 
+/** 数据属性（更新时刷新 updatedAt）；UI/光标状态不视为数据变更 */
+const DATA_KEYS = new Set(['title', 'content', 'completed', 'flagged', 'priority', 'tags', 'schedule']);
+
 export function updateProperty(list: TaskList, taskId: number, key: string, value: any): TaskList {
   const items = list.items.map((t) =>
-    t.id === taskId ? ({ ...t, [key]: value } as Task) : t
+    t.id === taskId
+      ? ({ ...t, [key]: value, ...(DATA_KEYS.has(key) ? { updatedAt: Date.now() } : {}) } as Task)
+      : t
   );
   return new TaskList(items, list.searchFilter);
 }
@@ -84,7 +90,7 @@ export function sortTasks(list: TaskList, type: string): TaskList {
       break;
     }
     case 'created': items.sort((a, b) => a.id - b.id); break;
-    case 'updated': items.sort((a, b) => b.id - a.id); break;
+    case 'updated': items.sort((a, b) => (b.updatedAt || b.id) - (a.updatedAt || a.id)); break;
     case 'completed': items.sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1)); break;
   }
   return new TaskList(items as Task[], list.searchFilter);
@@ -106,6 +112,7 @@ export function pasteTask(list: TaskList, clipboard: Task | null): { list: TaskL
   task.tags = [...(clipboard.tags || [])];
   task.schedule = clipboard.schedule;
   task.flagged = !!clipboard.flagged;
+  task.updatedAt = Date.now();
   task.selected = true;
   task.status = TaskState.VIEWING;
 

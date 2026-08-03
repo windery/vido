@@ -14,6 +14,8 @@ export class Task {
   schedule?: Schedule;
   configState?: string;
   isNewlyCreated?: boolean;
+  /** 最近一次数据变更时间戳（ms），供 :sort updated */
+  updatedAt?: number;
   /** 剪贴板任务保留原始任务 id，供 paste 日志记录来源 */
   sourceId?: number;
   cursorLine: number;
