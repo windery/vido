@@ -112,19 +112,36 @@ const handleCompositionEnd = () => {
 };
 
 // 命令补全功能
+const AVAILABLE_COMMANDS = [
+  'clear', 'delete', 'help', 'lang', 'language', 'new', 'p',
+  'q', 'quit', 'sched', 'schedule', 'sort', 't', 'tag', 'theme', 'time',
+  'w', 'write', 'wq',
+];
+
+function commonPrefix(cmds: string[]): string {
+  if (cmds.length === 0) return '';
+  let p = cmds[0];
+  for (const c of cmds.slice(1)) {
+    while (c.slice(0, p.length) !== p) p = p.slice(0, -1);
+    if (!p) break;
+  }
+  return p;
+}
+
 const handleTabCompletion = () => {
   const content = lastlineContent.value;
-  if (content.startsWith(':')) {
-    const command = content.substring(1).toLowerCase();
-    const availableCommands = ['help', 'theme', 'lang', 'sort', 'new', 'delete', 'schedule', 'sched', 'time', 'p', 't', 'quit', 'q', 'write', 'w', 'wq'];
-    const matchingCommands = availableCommands.filter(cmd => cmd.startsWith(command));
+  if (!content.startsWith(':')) return;
+  const command = content.substring(1).toLowerCase();
+  const matchingCommands = AVAILABLE_COMMANDS.filter(cmd => cmd.startsWith(command));
 
-    if (matchingCommands.length === 1) {
-      // 只有一个匹配项，自动补全
-      taskDataManager.updateLastlineContent(':' + matchingCommands[0]);
-    } else if (matchingCommands.length > 1) {
-      // 多个匹配项，显示第一个
-      taskDataManager.updateLastlineContent(':' + matchingCommands[0]);
+  if (matchingCommands.length === 1) {
+    // 唯一匹配：补全完整命令
+    taskDataManager.updateLastlineContent(':' + matchingCommands[0]);
+  } else if (matchingCommands.length > 1) {
+    // 多个匹配：补全公共前缀（vim 惯例），无增长则不变
+    const prefix = commonPrefix(matchingCommands);
+    if (prefix.length > command.length) {
+      taskDataManager.updateLastlineContent(':' + prefix);
     }
   }
 };
