@@ -90,6 +90,60 @@ describe('Store — 撤销 / 重做', () => {
     expect(store.manager.list.selected?.flagged).toBe(before);
   });
 
+  it('updateTaskProperty 后 undo 还原字段（标题/内容/优先级等数据属性）', () => {
+    const task = store.manager.list.selected!;
+    const beforeTitle = task.title;
+    store.updateTaskProperty(task.id, 'title', '改过的标题');
+    expect(store.manager.list.selected?.title).toBe('改过的标题');
+    store.undo();
+    expect(store.manager.list.selected?.title).toBe(beforeTitle);
+  });
+
+  it('内容编辑（updateTaskProperty content）可 undo 还原', () => {
+    const task = store.manager.list.selected!;
+    store.updateTaskProperty(task.id, 'content', 'line1\nline2\nline3');
+    expect(store.manager.list.selected?.content).toBe('line1\nline2\nline3');
+    store.undo();
+    expect(store.manager.list.selected?.content).toBe('line1\nline2');
+  });
+
+  it('一次内容编辑会话内的连续输入合并为一条撤销记录（一次 u 还原整段编辑）', () => {
+    const task = store.manager.list.selected!;
+    const orig = task.content;
+    store.startEditingAtCursor();
+    store.updateTaskProperty(task.id, 'content', orig + '\n- 第一行');
+    store.updateTaskProperty(task.id, 'content', orig + '\n- 第一行\n- 第二行');
+    store.updateTaskProperty(task.id, 'content', orig + '\n- 第一行\n- 第二行\n- 第三行');
+    store.undo();
+    expect(store.manager.list.selected?.content).toBe(orig);
+  });
+
+  it('undo 内容编辑后任务 status 归一化回 SELECTED（不卡在编辑态）', () => {
+    const task = store.manager.list.selected!;
+    store.startEditingAtCursor();
+    store.updateTaskProperty(task.id, 'content', '# 新内容');
+    expect(store.manager.list.selected?.status).toBe(TaskState.CONTENT_EDITING);
+    store.undo();
+    expect(store.manager.list.selected?.content).toBe('line1\nline2');
+    expect(store.manager.list.selected?.status).toBe(TaskState.SELECTED);
+  });
+
+  it('退出再进入的不同编辑会话各自独立成一条撤销记录', () => {
+    const task = store.manager.list.selected!;
+    const orig = task.content;
+    // 会话 1
+    store.startEditingAtCursor();
+    store.updateTaskProperty(task.id, 'content', orig + '\n- A');
+    store.exitContentNavigation();
+    // 会话 2（重新进入编辑态，开新会话）
+    store.startEditingAtCursor();
+    store.updateTaskProperty(task.id, 'content', orig + '\n- B');
+    store.undo();
+    expect(store.manager.list.selected?.content).toBe(orig + '\n- A');
+    store.undo();
+    expect(store.manager.list.selected?.content).toBe(orig);
+  });
+
   it('undo 后再 redo 重新应用操作', () => {
     const count = store.manager.list.items.length;
     store.createNewTask('Redo me');

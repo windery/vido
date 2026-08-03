@@ -6,7 +6,7 @@
 import { reactive } from 'vue';
 import { TaskListManager } from '../manager/task-list-manager';
 import { TaskList, taskMatchesSearch } from '../entities/task-list';
-import { Task } from '../task';
+import { Task, TaskState } from '../task';
 import { EditorMode } from '../editor';
 import { StateMachine, deriveTaskState } from '../state-machine';
 import { logger } from '../../utils/logger';
@@ -28,8 +28,10 @@ export class Store {
   state: AppState;
   private sm = new StateMachine();
   private _onChange: (() => void) | null = null;
-  private history: { before: Task[]; after: Task[] }[] = [];
+  /** taskId/session 用于把一次文本编辑会话内的连续输入合并为一条撤销记录（vim 语义：一次插入 = 一次 u） */
+  private history: { before: Task[]; after: Task[]; taskId?: number; session: number }[] = [];
   private historyIndex = -1;
+  private editSessionId = 0;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -57,16 +59,43 @@ export class Store {
   private record(before: Task[]): void {
     const after = this.snap();
     if (JSON.stringify(before) === JSON.stringify(after)) return;
+
+    const selected = this.manager.list.selected;
+    const inTextEdit =
+      selected !== null &&
+      (selected.status === TaskState.CONTENT_EDITING || selected.status === TaskState.TITLE_EDITING);
+    const last = this.history[this.historyIndex];
+
+    // vim 语义：一次编辑会话内的连续输入合并为一条撤销记录（一次插入 = 一次 u）
+    if (inTextEdit && last && last.taskId === selected.id && last.session === this.editSessionId) {
+      last.after = after;
+      return;
+    }
+
     this.history.splice(this.historyIndex + 1);
-    this.history.push({ before, after });
+    this.history.push({ before, after, taskId: selected?.id, session: this.editSessionId });
     if (this.history.length > 100) this.history.shift();
     this.historyIndex = this.history.length - 1;
   }
 
   private restore(items: Task[]): void {
     const searchFilter = this.manager.list.searchFilter;
-    this.manager.list = new TaskList(structuredClone(items), searchFilter);
+    // 撤销/重做只还原数据；status 是瞬态编辑态，统一归位，防止 undo 后任务卡在编辑框
+    const normalized = items.map((t) => ({
+      ...t,
+      status: t.selected ? TaskState.SELECTED : TaskState.VIEWING,
+    }));
+    this.manager.list = new TaskList(normalized, searchFilter);
     this.syncSelection();
+  }
+
+  /** 更新选中任务 status；进入文本编辑态时开新撤销会话，保证各次编辑独立成历史 */
+  private setTaskStatus(status: TaskState): void {
+    const prev = this.manager.list.selected?.status;
+    this.manager.updateSelectedTaskStatus(status);
+    if (status !== prev && (status === TaskState.CONTENT_EDITING || status === TaskState.TITLE_EDITING)) {
+      this.editSessionId++;
+    }
   }
 
   /** 包装结构写操作：操作前快照，操作后入历史栈，并防抖自动保存 */
@@ -255,13 +284,11 @@ export class Store {
     logger.info('Store', 'toggle flag', { id: task?.id, flagged: task?.flagged });
   }
   updateTaskProperty(id: number, key: string, val: any): void {
-    this.manager.updateTaskProperty(id, key, val);
-    this.changed();
-    this.scheduleSave();
+    this.mutate(() => this.manager.updateTaskProperty(id, key, val));
     logger.info('Store', 'update task', { id, field: key, value: val });
   }
   startTitleEditing(): void { this.manager.startTitleEditing(); this.changed(); }
-  startContentNavigation(): void { this.manager.updateSelectedTaskStatus(2); this.changed(); }
+  startContentNavigation(): void { this.setTaskStatus(TaskState.CONTENT_NAVIGATION); this.changed(); }
   setConfigState(id: number, s: string | undefined): void { this.manager.setConfigState(id, s); this.changed(); }
   updateTaskCursorPosition(id: number, l: number, c: number): void { this.manager.updateTaskCursor(id, l, c); this.changed(); }
   insertNewLineBelow(): void {
@@ -292,7 +319,7 @@ export class Store {
     const selected = this.manager.list.selected;
     logger.info('Store', 'paste task', { newId: selected?.id, fromId });
   }
-  exitContentNavigation(): void { this.manager.updateSelectedTaskStatus(1); this.changed(); }
+  exitContentNavigation(): void { this.setTaskStatus(TaskState.SELECTED); this.changed(); }
   transition(trigger: string, ctx?: any): any { const r = this._transition(trigger, ctx); this.changed(); return r; }
   _transition(trigger: string, _ctx?: any): any {
     const result = this.sm.transition(trigger);
@@ -303,7 +330,7 @@ export class Store {
     this.state.taskState = deriveTaskState(newMode, hasSelected);
     // 让选中任务的 status 与 editorMode 同步，驱动 UI 渲染正确的编辑器形态
     if (hasSelected) {
-      this.manager.updateSelectedTaskStatus(deriveTaskState(newMode, hasSelected));
+      this.setTaskStatus(deriveTaskState(newMode, hasSelected));
     }
     if (trigger === ':' || trigger === '/') {
       this.state.lastlineVisible = true;
@@ -326,7 +353,7 @@ export class Store {
     });
   }
   stopEditing(): void {}
-  startEditingAtCursor(): void { this.manager.updateSelectedTaskStatus(4); this.changed(); }
+  startEditingAtCursor(): void { this.setTaskStatus(TaskState.CONTENT_EDITING); this.changed(); }
   getDebugInfo(): any { return {}; }
   updateLastlineContent(content: string): void { this.state.lastlineContent = content; this.changed(); }
   updateCursorPosition(line: number, col: number): void { this.state.cursorPosition = { line, column: col }; this.changed(); }
