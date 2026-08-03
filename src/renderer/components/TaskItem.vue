@@ -30,13 +30,13 @@
             @content-keydown="handleContentKeydown" @content-input="handleContentInput"
             @textarea-ref="handleTextareaRef" />
 
-        <!-- 元信息行（内容区之后常驻显示）：标签 #tag + 日程 📅，长内容/多标签也不挤标题行 -->
+        <!-- 元信息行（内容区之后常驻显示）：标签 #tag + 日程 @date，长内容/多标签也不挤标题行 -->
         <div v-if="(task.tags && task.tags.length) || task.schedule" class="task-meta">
             <span v-if="task.tags && task.tags.length" class="meta-tags">
                 <span v-for="tag in task.tags" :key="tag" class="meta-tag">#{{ tag }}</span>
             </span>
             <span v-if="task.schedule" class="meta-schedule">
-                📅{{ getScheduleDisplayText(task.schedule) }}
+                @{{ getScheduleDisplayText(task.schedule) }}
                 <span v-if="isScheduleExpired(task.schedule)" class="expired-indicator">{{ t('task.expired') }}</span>
             </span>
         </div>
@@ -46,7 +46,7 @@
           <!-- Schedule -->
           <template v-if="task.configState === 'schedule-select' || task.configState === 'schedule-edit'">
             <div v-if="task.configState === 'schedule-edit'" class="config-input-row">
-              <span class="config-input-icon">📅</span>
+              <span class="config-input-icon">@</span>
               <input ref="scheduleInputRef" v-model="scheduleInputValue" class="config-input"
                 :placeholder="t('config.schedulePlaceholder')"
                 @keydown.enter.stop="saveScheduleInput" @keydown.escape.stop="cancelScheduleInput" />
@@ -75,7 +75,7 @@
             </div>
             <span v-else class="config-empty-hint">{{ t('config.noTags') }}</span>
             <div v-if="task.configState === 'tags-edit'" class="config-input-row">
-              <span class="config-input-icon">🏷</span>
+              <span class="config-input-icon">#</span>
               <input ref="tagInputRef" v-model="tagInputValue" class="config-input"
                 :placeholder="t('config.tagPlaceholder')"
                 @keydown.enter.stop="saveTagInput" @keydown.escape.stop="cancelTagInput" />
