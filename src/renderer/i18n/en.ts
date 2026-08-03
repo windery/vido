@@ -111,6 +111,7 @@ export const en: typeof import('./zh').zh = {
         commands: [
           { key: ':help', desc: 'Show help' },
           { key: ':clear', desc: 'Clear search and filter' },
+          { key: ':undo / :redo', desc: 'Undo / Redo' },
           { key: ':sort [type]', desc: 'Sort tasks (title|priority|created|updated|completed)' },
           { key: ':new [title]', desc: 'Create new task' },
           { key: ':delete', desc: 'Delete current task' },
@@ -120,6 +121,7 @@ export const en: typeof import('./zh').zh = {
           { key: ':q', desc: 'Quit application' },
           { key: ':theme [dark|light]', desc: 'Switch theme' },
           { key: ':lang [zh|en]', desc: 'Switch language' },
+          { key: '↑/↓ after : or /', desc: 'Browse command/search history' },
         ],
       },
       {

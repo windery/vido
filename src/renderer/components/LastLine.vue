@@ -77,17 +77,50 @@ const getPromptSymbol = () => {
   return '';
 };
 
+// 命令历史浏览（vim 语义：↑ 上一条，↓ 下一条，边界回到草稿）
+const historyIndex = ref(-1);
+const draftInput = ref('');
+
 const handleAnyKeydown = (event: KeyboardEvent) => {
   // Allow normal typing, ESC and Enter are handled separately
-  if (event.key === 'Tab') {
+  if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+    event.preventDefault();
+    navigateHistory(event.key);
+  } else if (event.key === 'Tab') {
     event.preventDefault();
     handleTabCompletion();
   } else if (event.key === 'Escape') {
     event.preventDefault();
     // 取消命令输入
+    historyIndex.value = -1;
+    draftInput.value = '';
     taskDataManager.transition('Escape');
   }
   // 注意：Enter键不在这里处理，由@keydown.enter.prevent="handleEnterKey"处理
+};
+
+const navigateHistory = (key: string) => {
+  const hist = taskDataManager.getLastlineHistory();
+  if (hist.length === 0) return;
+  if (key === 'ArrowUp') {
+    // 首次按 ↑ 时保存当前输入作为草稿，↓ 到底后恢复
+    if (historyIndex.value === -1) {
+      draftInput.value = lastlineContent.value;
+    }
+    if (historyIndex.value < hist.length - 1) {
+      historyIndex.value++;
+      taskDataManager.updateLastlineContent(hist[hist.length - 1 - historyIndex.value]);
+    }
+  } else {
+    if (historyIndex.value >= 0) {
+      historyIndex.value--;
+      if (historyIndex.value === -1) {
+        taskDataManager.updateLastlineContent(draftInput.value);
+      } else {
+        taskDataManager.updateLastlineContent(hist[hist.length - 1 - historyIndex.value]);
+      }
+    }
+  }
 };
 
 const handleEnterKey = (event: KeyboardEvent) => {
@@ -114,8 +147,8 @@ const handleCompositionEnd = () => {
 // 命令补全功能
 const AVAILABLE_COMMANDS = [
   'clear', 'delete', 'help', 'lang', 'language', 'new', 'p',
-  'q', 'quit', 'sched', 'schedule', 'sort', 't', 'tag', 'theme', 'time',
-  'w', 'write', 'wq',
+  'q', 'quit', 'redo', 'sched', 'schedule', 'sort', 't', 'tag', 'theme', 'time',
+  'undo', 'w', 'write', 'wq',
 ];
 
 function commonPrefix(cmds: string[]): string {
@@ -146,8 +179,10 @@ const handleTabCompletion = () => {
   }
 };
 
-// 监听lastline可见性变化，自动聚焦输入框
+// 监听lastline可见性变化：打开时聚焦输入框并重置历史浏览，关闭时清空浏览态
 watch(isLastLineVisible, (visible) => {
+  historyIndex.value = -1;
+  draftInput.value = '';
   if (visible) {
     nextTick(() => {
       inputRef.value?.focus();

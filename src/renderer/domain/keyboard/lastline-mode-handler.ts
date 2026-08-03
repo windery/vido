@@ -56,19 +56,26 @@ export class LastLineModeHandler implements ModeHandler {
 
     logger.info('LastLineModeHandler', `Executing command: "${content}"`);
 
+    // vim 语义：只有有效命令 / 非空搜索才入历史，供 lastline ↑/↓ 复用
     if (content.startsWith(':')) {
       const command = content.substring(1);
-      this.executeVimCommand(command, taskDataManager);
+      if (this.executeVimCommand(command, taskDataManager)) {
+        taskDataManager.pushLastlineHistory(content);
+      }
     } else if (content.startsWith('/')) {
       const searchTerm = content.substring(1);
+      if (searchTerm.trim()) {
+        taskDataManager.pushLastlineHistory(content);
+      }
       this.executeSearch(searchTerm, taskDataManager);
     }
   }
 
+  /** 返回命令是否有效（未知命令不进历史，避免污染 ↑/↓ 复用） */
   private executeVimCommand(
     command: string,
     taskDataManager: Store
-  ): void {
+  ): boolean {
     const cmd = command.trim().toLowerCase();
     const [baseCmd, ...args] = cmd.split(' ');
 
@@ -76,58 +83,65 @@ export class LastLineModeHandler implements ModeHandler {
       case 'q':
       case 'quit':
         this.executeQuit();
-        break;
+        return true;
       case 'w':
       case 'write':
         taskDataManager.saveTasks();
         taskDataManager.setFlashMessage(t('flash.saved'));
-        break;
+        return true;
       case 'wq':
         taskDataManager.saveTasks();
         taskDataManager.setFlashMessage(t('flash.saved'));
         this.executeQuit();
-        break;
+        return true;
       case 'help':
         taskDataManager.toggleHelp();
-        break;
+        return true;
       case 'sort':
         taskDataManager.sortTasks(args[0] || 'title');
         taskDataManager.setFlashMessage(t('flash.sorted', { type: args[0] || 'title' }));
-        break;
+        return true;
       case 'new':
         taskDataManager.createNewTask(args.join(' ') || '', true);
-        break;
+        return true;
       case 'delete':
         taskDataManager.deleteSelectedTask();
-        break;
+        return true;
       case 'schedule':
       case 'sched':
         this.setTaskSchedule(args, taskDataManager);
-        break;
+        return true;
       case 'time':
         this.showTaskSchedule(taskDataManager);
-        break;
+        return true;
       case 'p':
         this.setTaskPriority(args, taskDataManager);
-        break;
+        return true;
       case 't':
       case 'tag':
         this.setTaskTags(args, taskDataManager);
-        break;
+        return true;
       case 'theme':
         this.setTheme(args, taskDataManager);
-        break;
+        return true;
       case 'clear':
         taskDataManager.clearSearch();
         taskDataManager.setFlashMessage(t('flash.searchCleared'));
-        break;
+        return true;
+      case 'undo':
+        taskDataManager.undo();
+        return true;
+      case 'redo':
+        taskDataManager.redo();
+        return true;
       case 'lang':
       case 'language':
         this.setLanguage(args, taskDataManager);
-        break;
+        return true;
       default:
         logger.warn('LastLineModeHandler', `Unknown vim command: ${command}`);
         taskDataManager.setFlashMessage(t('flash.unknownCommand', { cmd: command.trim() }));
+        return false;
     }
   }
 

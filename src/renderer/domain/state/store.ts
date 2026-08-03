@@ -33,6 +33,8 @@ export class Store {
   private history: { before: Task[]; after: Task[]; taskId?: number; session: number }[] = [];
   private historyIndex = -1;
   private editSessionId = 0;
+  /** 命令/搜索历史（含 : 或 / 前缀，vim 语义：成功执行的才入栈），供 lastline ↑/↓ 浏览 */
+  private lastlineHistory: string[] = [];
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -207,6 +209,22 @@ export class Store {
         this.changed();
       }, 3000);
     }
+  }
+
+  // ======== 命令历史 ========
+
+  /** 压入一条命令/搜索历史：去空、与末条相同的连续去重、上限 50 条（丢最旧） */
+  pushLastlineHistory(content: string): void {
+    const c = content.trim();
+    if (!c) return;
+    if (this.lastlineHistory[this.lastlineHistory.length - 1] === c) return;
+    this.lastlineHistory.push(c);
+    if (this.lastlineHistory.length > 50) this.lastlineHistory.shift();
+  }
+
+  /** 返回历史副本（防止外部改内部数组） */
+  getLastlineHistory(): string[] {
+    return [...this.lastlineHistory];
   }
 
   /** 清除搜索（Esc / :clear）：清空 lastlineContent 驱动 UI 过滤回退 */

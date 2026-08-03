@@ -120,6 +120,7 @@ export const zh = {
         commands: [
           { key: ':help', desc: '显示帮助' },
           { key: ':clear', desc: '清除搜索与过滤' },
+          { key: ':undo / :redo', desc: '撤销 / 重做' },
           { key: ':sort [type]', desc: '排序任务（title|priority|created|updated|completed）' },
           { key: ':new [title]', desc: '新建任务' },
           { key: ':delete', desc: '删除当前任务' },
@@ -129,6 +130,7 @@ export const zh = {
           { key: ':q', desc: '退出应用' },
           { key: ':theme [dark|light]', desc: '切换主题' },
           { key: ':lang [zh|en]', desc: '切换语言' },
+          { key: ': 或 / 后按 ↑/↓', desc: '浏览命令/搜索历史' },
         ],
       },
       {

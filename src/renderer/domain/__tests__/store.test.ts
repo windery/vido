@@ -526,6 +526,50 @@ describe('Store — :sort updated 基于 updatedAt', () => {
   });
 });
 
+describe('Store — 命令历史', () => {
+  function makeHistoryStore(): Store {
+    const store = new Store();
+    const t = new Task(1);
+    t.title = 'Test';
+    t.selected = true;
+    t.status = TaskState.SELECTED;
+    store.manager = new TaskListManager(new TaskList([t]), 2);
+    return store;
+  }
+
+  it('pushLastlineHistory 压入命令，连续相同内容去重', () => {
+    const store = makeHistoryStore();
+    store.pushLastlineHistory(':sort title');
+    store.pushLastlineHistory(':sort title');
+    store.pushLastlineHistory(':p 1');
+    expect(store.getLastlineHistory()).toEqual([':sort title', ':p 1']);
+  });
+
+  it('pushLastlineHistory 忽略空白内容', () => {
+    const store = makeHistoryStore();
+    store.pushLastlineHistory('   ');
+    store.pushLastlineHistory('');
+    expect(store.getLastlineHistory()).toEqual([]);
+  });
+
+  it('pushLastlineHistory 上限 50 条，超限丢弃最旧', () => {
+    const store = makeHistoryStore();
+    for (let i = 0; i < 60; i++) store.pushLastlineHistory(`:cmd${i}`);
+    const h = store.getLastlineHistory();
+    expect(h.length).toBe(50);
+    expect(h[0]).toBe(':cmd10');
+    expect(h[49]).toBe(':cmd59');
+  });
+
+  it('getLastlineHistory 返回副本，外部修改不影响内部历史', () => {
+    const store = makeHistoryStore();
+    store.pushLastlineHistory(':w');
+    const h = store.getLastlineHistory();
+    h.push(':恶意命令');
+    expect(store.getLastlineHistory()).toEqual([':w']);
+  });
+});
+
 describe('Store — 防抖自动保存', () => {
   let store: Store;
 
