@@ -10,8 +10,8 @@
 
             <!-- Task content in vim style -->
             <div class="line-content">
-                <!-- 优先级固定前置列：默认空占位保持标题对齐，设置后显示 !!!/!!/! -->
-                <span :class="['priority-indicator', getPriorityClass(task.priority)]">{{ getPriorityMark(task.priority) }}</span>
+                <!-- 优先级紧凑前置标识：未设置时不占位（标题紧跟编号），设置后显示 !!!/!!/! -->
+                <span v-if="task.priority" :class="['priority-indicator', getPriorityClass(task.priority)]">{{ getPriorityMark(task.priority) }}</span>
 
                 <span v-if="task.status === TaskState.TITLE_EDITING && task.selected" class="editing-inline">
                     <input ref="titleEditRef" :value="task.title" class="title-editor" @input="handleTitleInput"
@@ -21,27 +21,25 @@
                 </span>
                 <span v-else class="task-title" v-html="highlightTitle(task.title)"></span>
 
-                <span v-if="task.tags && task.tags.length > 0" class="inline-tags">
-                    <span v-for="tag in task.tags" :key="tag" class="inline-tag">#{{ tag }}</span>
-                </span>
-
-                <span v-if="task.schedule" class="schedule-indicator">
-                    <span class="schedule-text">
-                        📅{{ getScheduleDisplayText(task.schedule) }}
-                    </span>
-                    <span v-if="isScheduleExpired(task.schedule)" class="expired-indicator">
-                        {{ t('task.expired') }}
-                    </span>
-                </span>
-
                 <span v-if="task.flagged" class="flag-indicator">⚑</span>
             </div>
         </div>
 
-        <!-- Task Content Component：常驻挂载，展开/收起由 .show（task.selected）驱动过渡动画 -->
+        <!-- Task Content Component：常驻挂载，仅当选中有内容时才展示（vim-instant，无动画） -->
         <TaskContent :task="task" @cursor-update="handleCursorUpdate"
             @content-keydown="handleContentKeydown" @content-input="handleContentInput"
             @textarea-ref="handleTextareaRef" />
+
+        <!-- 元信息行（内容区之后常驻显示）：标签 #tag + 日程 📅，长内容/多标签也不挤标题行 -->
+        <div v-if="(task.tags && task.tags.length) || task.schedule" class="task-meta">
+            <span v-if="task.tags && task.tags.length" class="meta-tags">
+                <span v-for="tag in task.tags" :key="tag" class="meta-tag">#{{ tag }}</span>
+            </span>
+            <span v-if="task.schedule" class="meta-schedule">
+                📅{{ getScheduleDisplayText(task.schedule) }}
+                <span v-if="isScheduleExpired(task.schedule)" class="expired-indicator">{{ t('task.expired') }}</span>
+            </span>
+        </div>
 
         <!-- Config panel -->
         <div v-if="task.configState" class="config-panel">
@@ -356,7 +354,7 @@ watchEffect(() => {
     text-align: right;
     color: var(--ln);
     font-size: 12px;
-    margin-right: 12px;
+    margin-right: 8px;
     user-select: none;
     flex-shrink: 0;
 }
@@ -385,7 +383,7 @@ watchEffect(() => {
 .priority-indicator {
     font-size: 10px;
     font-weight: bold;
-    width: 32px;
+    width: 3ch;
     text-align: center;
     white-space: nowrap;
     flex-shrink: 0;
@@ -443,15 +441,36 @@ watchEffect(() => {
     padding: 0 1px;
 }
 
-.inline-tags {
+/* 元信息行：内容区之后常驻显示，与内容区同左缩进 */
+.task-meta {
     display: flex;
-    gap: 4px;
-    margin-left: 8px;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 0 8px 4px 58px;
+    padding: 0 14px;
+    font-size: 11px;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+    color: var(--text-3);
 }
 
-.inline-tag {
+.meta-tags {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.meta-tag {
     color: var(--tag);
-    font-size: 12px;
+    font-size: 11px;
+}
+
+.meta-schedule {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--schedule);
 }
 
 .config-input-row {
@@ -597,18 +616,6 @@ watchEffect(() => {
   background: var(--config-kbd-bg);
   color: var(--config-kbd-fg);
   margin: 0 1px;
-}
-
-.schedule-indicator {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    margin-left: 8px;
-}
-
-.schedule-text {
-    color: var(--schedule);
-    font-size: 12px;
 }
 
 .expired-indicator {
