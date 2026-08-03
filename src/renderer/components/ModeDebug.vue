@@ -10,7 +10,8 @@
       </span>
     </div>
     <div class="status-center">
-      <span v-if="editorMode === EditorMode.TITLE_EDIT" class="help-text">
+      <span v-if="flashMessage" class="flash-message">{{ flashMessage }}</span>
+      <span v-else-if="editorMode === EditorMode.TITLE_EDIT" class="help-text">
         {{ t('mode.titleEdit') }}
       </span>
       <span v-else-if="editorMode === EditorMode.CONTENT_EDIT" class="help-text">
@@ -43,7 +44,7 @@ import { useTaskState } from '../composables/use-task-state';
 import { t } from '../i18n';
 
 // 使用新的统一状态管理架构
-const { editorMode, lastlineContent, selectedTask, tasks, filteredTasks, cursorPosition } = useTaskState();
+const { editorMode, lastlineContent, selectedTask, tasks, filteredTasks, cursorPosition, flashMessage } = useTaskState();
 
 // 右下角统计：可见/全部任务数
 const taskCounter = computed(() => {
@@ -238,5 +239,11 @@ const getModeClass = (mode: EditorMode) => {
 .help-text {
   font-style: italic;
   color: var(--text-muted);
+}
+
+.flash-message {
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 </style>

@@ -6,6 +6,36 @@ import { TaskListManager } from '../manager/task-list-manager';
 import { EditorMode } from '../editor';
 import { logger } from '../../utils/logger';
 
+describe('Store — 加载后默认选中', () => {
+  it('init 加载后无选中任务时自动选中第一个', async () => {
+    const mk = (id: number, title: string) => {
+      const t = new Task(id);
+      t.title = title;
+      t.selected = false;
+      t.status = TaskState.VIEWING;
+      return t;
+    };
+    const loadSpy = vi.spyOn(TaskListManager, 'load').mockResolvedValue(
+      new TaskListManager(new TaskList([mk(1, 'A'), mk(2, 'B')]), 3)
+    );
+    const store = new Store();
+    await store.init();
+    expect(store.manager.list.selected?.id).toBe(1);
+    expect(store.state.selectedTaskId).toBe(1);
+    loadSpy.mockRestore();
+  });
+
+  it('init 加载空列表时无选中但不出错', async () => {
+    const loadSpy = vi.spyOn(TaskListManager, 'load').mockResolvedValue(
+      new TaskListManager(new TaskList([]), 1)
+    );
+    const store = new Store();
+    await store.init();
+    expect(store.manager.list.selected).toBeNull();
+    loadSpy.mockRestore();
+  });
+});
+
 function makeStore(): Store {
   const store = new Store();
   const t = new Task(1);

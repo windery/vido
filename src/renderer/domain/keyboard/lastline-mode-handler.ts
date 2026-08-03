@@ -8,6 +8,13 @@ import { TaskPriority } from '../task';
 import { logger } from '../../utils/logger';
 import { setTheme, setLang, prefs } from '../state/prefs';
 import { t } from '../../i18n';
+
+/** 优先级符号：与 CLAUDE.md 符号约定一致（!!!高 !!中 !低） */
+const PRIORITY_MARKS: Record<string, string> = {
+  [TaskPriority.HIGH]: '!!!',
+  [TaskPriority.MEDIUM]: '!!',
+  [TaskPriority.LOW]: '!',
+};
 import {
   createTodaySchedule,
   parseScheduleFromString,
@@ -73,9 +80,11 @@ export class LastLineModeHandler implements ModeHandler {
       case 'w':
       case 'write':
         taskDataManager.saveTasks();
+        taskDataManager.setFlashMessage(t('flash.saved'));
         break;
       case 'wq':
         taskDataManager.saveTasks();
+        taskDataManager.setFlashMessage(t('flash.saved'));
         this.executeQuit();
         break;
       case 'help':
@@ -83,6 +92,7 @@ export class LastLineModeHandler implements ModeHandler {
         break;
       case 'sort':
         taskDataManager.sortTasks(args[0] || 'title');
+        taskDataManager.setFlashMessage(t('flash.sorted', { type: args[0] || 'title' }));
         break;
       case 'new':
         taskDataManager.createNewTask(args.join(' ') || '', true);
@@ -105,14 +115,15 @@ export class LastLineModeHandler implements ModeHandler {
         this.setTaskTags(args, taskDataManager);
         break;
       case 'theme':
-        this.setTheme(args);
+        this.setTheme(args, taskDataManager);
         break;
       case 'clear':
         taskDataManager.clearSearch();
+        taskDataManager.setFlashMessage(t('flash.searchCleared'));
         break;
       case 'lang':
       case 'language':
-        this.setLanguage(args);
+        this.setLanguage(args, taskDataManager);
         break;
       default:
         logger.warn('LastLineModeHandler', `Unknown vim command: ${command}`);
@@ -157,10 +168,12 @@ export class LastLineModeHandler implements ModeHandler {
       // 没有参数，设置为今天
       const schedule = createTodaySchedule();
       taskDataManager.updateTaskProperty(selectedTaskId, 'schedule', schedule);
+      taskDataManager.setFlashMessage(t('flash.scheduleSet', { text: getScheduleDisplayText(schedule) }));
       logger.info('LastLineModeHandler', 'Set schedule to today');
     } else if (args[0] === 'clear') {
       // 清除时间安排
       taskDataManager.updateTaskProperty(selectedTaskId, 'schedule', undefined);
+      taskDataManager.setFlashMessage(t('flash.scheduleCleared'));
       logger.info('LastLineModeHandler', 'Cleared schedule');
     } else {
       // 解析时间参数
@@ -173,8 +186,10 @@ export class LastLineModeHandler implements ModeHandler {
           'schedule',
           schedule
         );
+        taskDataManager.setFlashMessage(t('flash.scheduleSet', { text: getScheduleDisplayText(schedule) }));
         logger.info('LastLineModeHandler', `Set schedule to: ${timeStr}`);
       } else {
+        taskDataManager.setFlashMessage(`${timeStr} ✗`);
         logger.warn(
           'LastLineModeHandler',
           `Invalid schedule format: ${timeStr}`
@@ -206,6 +221,8 @@ export class LastLineModeHandler implements ModeHandler {
     if (task.schedule) {
       const displayText = getScheduleDisplayText(task.schedule);
       const isExpired = isScheduleExpired(task.schedule);
+      const expiredSuffix = isExpired ? ` ${t('flash.scheduleExpired')}` : '';
+      taskDataManager.setFlashMessage(t('flash.scheduleSet', { text: displayText }) + expiredSuffix);
 
       logger.info('LastLineModeHandler', `任务 "${task.title}" 时间安排:`);
       logger.info('LastLineModeHandler', `时间: ${displayText}`);
@@ -213,6 +230,7 @@ export class LastLineModeHandler implements ModeHandler {
         logger.info('LastLineModeHandler', '状态: 已过期');
       }
     } else {
+      taskDataManager.setFlashMessage(t('flash.noSchedule'));
       logger.info(
         'LastLineModeHandler',
         `任务 "${task.title}" 没有设置时间安排`
@@ -240,10 +258,12 @@ export class LastLineModeHandler implements ModeHandler {
       const idx = cycle.indexOf(current);
       const next = cycle[(idx + 1) % cycle.length];
       taskDataManager.updateTaskProperty(taskId, 'priority', next);
+      taskDataManager.setFlashMessage(t('flash.prioritySet', { mark: PRIORITY_MARKS[next] }));
       logger.info('LastLineModeHandler', `Cycled priority to: ${next}`);
     } else if (['clear', 'none', '0'].includes(args[0].toLowerCase())) {
       // 清除优先级（回到默认空状态）
       taskDataManager.updateTaskProperty(taskId, 'priority', undefined);
+      taskDataManager.setFlashMessage(t('flash.priorityCleared'));
       logger.info('LastLineModeHandler', 'Cleared priority');
     } else {
       const map: Record<string, TaskPriority> = {
@@ -258,8 +278,10 @@ export class LastLineModeHandler implements ModeHandler {
         map[args[0].toLowerCase()] || (args[0].toUpperCase() as TaskPriority);
       if (Object.values(TaskPriority).includes(p)) {
         taskDataManager.updateTaskProperty(taskId, 'priority', p);
+        taskDataManager.setFlashMessage(t('flash.prioritySet', { mark: PRIORITY_MARKS[p] }));
         logger.info('LastLineModeHandler', `Set priority to: ${p}`);
       } else {
+        taskDataManager.setFlashMessage(`${args[0]} ✗`);
         logger.warn('LastLineModeHandler', `Invalid priority: ${args[0]}`);
       }
     }
@@ -281,7 +303,8 @@ export class LastLineModeHandler implements ModeHandler {
     if (!task) return;
 
     if (args.length === 0) {
-      const tags = task.tags?.join(', ') || '(none)';
+      const tags = task.tags?.join(', ') || '-';
+      taskDataManager.setFlashMessage(t('flash.tagsShown', { tags }));
       logger.info('LastLineModeHandler', `Tags: ${tags}`);
     } else {
       const newTag = args.join(' ');
@@ -291,6 +314,7 @@ export class LastLineModeHandler implements ModeHandler {
           ...currentTags,
           newTag,
         ]);
+        taskDataManager.setFlashMessage(t('flash.tagAdded', { tag: newTag }));
         logger.info('LastLineModeHandler', `Added tag: ${newTag}`);
       }
     }
@@ -299,21 +323,27 @@ export class LastLineModeHandler implements ModeHandler {
   /**
    * 切换主题：:theme dark | :theme light | :theme（无参数切换）
    */
-  private setTheme(args: string[]): void {
+  private setTheme(args: string[], taskDataManager: Store): void {
     const arg = args[0]?.toLowerCase();
-    if (arg === 'dark') setTheme('dark');
-    else if (arg === 'light') setTheme('light');
-    else setTheme(prefs.theme === 'dark' ? 'light' : 'dark');
+    let theme: 'dark' | 'light';
+    if (arg === 'dark') theme = 'dark';
+    else if (arg === 'light') theme = 'light';
+    else theme = prefs.theme === 'dark' ? 'light' : 'dark';
+    setTheme(theme);
+    taskDataManager.setFlashMessage(t('flash.themeSet', { theme }));
   }
 
   /**
    * 切换语言：:lang zh | :lang en | :lang（无参数切换）
    */
-  private setLanguage(args: string[]): void {
+  private setLanguage(args: string[], taskDataManager: Store): void {
     const arg = args[0]?.toLowerCase();
-    if (arg === 'zh' || arg === 'cn' || arg === '中文') setLang('zh');
-    else if (arg === 'en' || arg === 'english') setLang('en');
-    else setLang(prefs.lang === 'zh' ? 'en' : 'zh');
+    let lang: 'zh' | 'en';
+    if (arg === 'zh' || arg === 'cn' || arg === '中文') lang = 'zh';
+    else if (arg === 'en' || arg === 'english') lang = 'en';
+    else lang = prefs.lang === 'zh' ? 'en' : 'zh';
+    setLang(lang);
+    taskDataManager.setFlashMessage(t('flash.langSet', { lang: lang === 'zh' ? '中文' : 'English' }));
   }
 
   /**

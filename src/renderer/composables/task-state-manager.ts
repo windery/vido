@@ -31,6 +31,7 @@ function buildState(): any {
     isHelpVisible: store.state.isHelpVisible,
     lastlineContent: store.state.lastlineContent,
     lastlineVisible: store.state.lastlineVisible,
+    flashMessage: store.state.flashMessage,
     tasks: store.manager.list.items,
     maxId: store.manager.maxId,
     clipboard: store.manager.clipboard,

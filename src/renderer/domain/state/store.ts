@@ -19,6 +19,7 @@ export interface AppState {
   lastlineContent: string;
   lastlineVisible: boolean;
   isHelpVisible: boolean;
+  flashMessage: string | null;
 }
 
 export class Store {
@@ -29,6 +30,7 @@ export class Store {
   private history: { before: Task[]; after: Task[] }[] = [];
   private historyIndex = -1;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private flashTimer: ReturnType<typeof setTimeout> | null = null;
 
   afterChange(cb: () => void): void { this._onChange = cb; }
   private changed(): void { this._onChange?.(); }
@@ -101,6 +103,7 @@ export class Store {
       lastlineContent: '',
       lastlineVisible: false,
       isHelpVisible: false,
+      flashMessage: null,
     });
   }
 
@@ -110,6 +113,11 @@ export class Store {
     const saved = await TaskListManager.load();
     if (saved) {
       this.manager = saved;
+      // selected 不持久化：加载后若无选中任务，默认选中第一个（vim 打开文件光标在顶部）
+      if (this.manager.list.items.length > 0 && !this.manager.list.selected) {
+        this.manager.goToFirst();
+      }
+      this.syncSelection();
       logger.info('Store', `Loaded ${this.manager.list.items.length} tasks`);
     }
     this.changed();
@@ -149,6 +157,20 @@ export class Store {
     logger.info('Store', 'search', { term, matches: visible.length, selectedId: this.manager.list.selected?.id });
   }
 
+  /** 设置状态栏瞬时反馈消息，3 秒后自动清除 */
+  setFlashMessage(msg: string | null): void {
+    this.state.flashMessage = msg;
+    this.changed();
+    if (this.flashTimer) clearTimeout(this.flashTimer);
+    if (msg) {
+      this.flashTimer = setTimeout(() => {
+        this.flashTimer = null;
+        this.state.flashMessage = null;
+        this.changed();
+      }, 3000);
+    }
+  }
+
   /** 清除搜索（Esc / :clear）：清空 lastlineContent 驱动 UI 过滤回退 */
   clearSearch(): void {
     if (this.state.lastlineContent.startsWith('/')) {
@@ -181,6 +203,7 @@ export class Store {
       isHelpVisible: this.state.isHelpVisible,
       lastlineContent: this.state.lastlineContent,
       lastlineVisible: this.state.lastlineVisible,
+      flashMessage: this.state.flashMessage,
       tasks: this.manager.list.items,
     };
   }
