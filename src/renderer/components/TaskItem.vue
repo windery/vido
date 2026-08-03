@@ -10,6 +10,9 @@
 
             <!-- Task content in vim style -->
             <div class="line-content">
+                <!-- 完成状态圈：✓ 绿（已完成）/ ○ 灰（未完成），固定列对齐 -->
+                <span class="status-indicator" :class="{ 'done': task.completed }">{{ task.completed ? '✓' : '○' }}</span>
+
                 <!-- 优先级紧凑前置标识：未设置时不占位（标题紧跟编号），设置后显示 !!!/!!/! -->
                 <span v-if="task.priority" :class="['priority-indicator', getPriorityClass(task.priority)]">{{ getPriorityMark(task.priority) }}</span>
 
@@ -371,6 +374,20 @@ watchEffect(() => {
     flex: 1;
     min-width: 0;
     overflow: hidden;
+}
+
+.status-indicator {
+    width: 2ch;
+    flex-shrink: 0;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1;
+    color: var(--text-dim);
+}
+
+.status-indicator.done {
+    color: var(--check);
+    font-weight: 700;
 }
 
 .flag-indicator {
