@@ -183,6 +183,28 @@ describe('Store — task.status 与 editorMode 保持同步', () => {
     expect(store.state.editorMode).toBe(EditorMode.CONTENT_NAVIGATION);
     expect(store.manager.list.selected?.status).toBe(TaskState.CONTENT_NAVIGATION);
   });
+
+  it('transition(/) 进入 LAST_LINE 并把触发符写入 lastlineContent', () => {
+    store.transition('/');
+    expect(store.state.editorMode).toBe(EditorMode.LAST_LINE);
+    expect(store.state.lastlineContent).toBe('/');
+    expect(store.state.lastlineVisible).toBe(true);
+  });
+
+  it('transition(:) 进入 LAST_LINE 并把触发符写入 lastlineContent', () => {
+    store.transition(':');
+    expect(store.state.editorMode).toBe(EditorMode.LAST_LINE);
+    expect(store.state.lastlineContent).toBe(':');
+    expect(store.state.lastlineVisible).toBe(true);
+  });
+
+  it('LAST_LINE 中 transition(Enter) 关闭 lastline 但保留搜索过滤', () => {
+    store.transition('/');
+    store.updateLastlineContent('/term');
+    store.transition('Enter');
+    expect(store.state.lastlineVisible).toBe(false);
+    expect(store.state.lastlineContent).toBe('/term');
+  });
 });
 
 describe('Store — 数据变更日志', () => {

@@ -264,7 +264,12 @@ export class Store {
     if (hasSelected) {
       this.manager.updateSelectedTaskStatus(deriveTaskState(newMode, hasSelected));
     }
-    if (trigger === ':' || trigger === '/') this.state.lastlineVisible = true;
+    if (trigger === ':' || trigger === '/') {
+      this.state.lastlineVisible = true;
+      // 触发符写入 lastlineContent：LastLine 输入框据此剥离前缀显示、
+      // 并在执行时还原成 :cmd / /term，否则搜索与命令都会因缺前缀而失效
+      this.state.lastlineContent = trigger;
+    }
     if (trigger === 'Enter' && this.state.lastlineVisible) this.state.lastlineVisible = false;
     if (trigger === 'Escape') {
       if (this.state.lastlineVisible) this.state.lastlineVisible = false;
