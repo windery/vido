@@ -2,11 +2,12 @@
     <!-- 仅当选中的任务有内容（或正在编辑内容）时才渲染；vim-instant，无动画 -->
     <div v-if="task.selected && (task.content || isEditing())" class="task-content-area">
         <div v-if="isEditing()" class="content-editing">
-            <!-- 不用 readonly：readonly 元素不渲染 caret。导航态禁止输入靠 keydown 拦截 + input 回滚。
-                 导航态隐藏原生竖线光标，用镜像层 + 块 span 渲染 vim 块光标（Electron 29 的 caret-shape: block 在 textarea 上不可靠） -->
+            <!-- 导航态 readonly：阻止中文输入法激活（可编辑 textarea 聚焦按字母会弹拼音候选框）。
+                 块光标已改自定义镜像层、原生 caret 本就隐藏，readonly 不影响显示；
+                 导航移动靠 setSelectionRange（readonly 下仍有效），禁止输入靠 readonly + keydown 拦截 + input 回滚 -->
             <div class="editor-shell">
                 <textarea :ref="(el) => setContentEditRef(el as HTMLTextAreaElement, task.id)" :value="task.content"
-                    @input="handleInput" @keyup="handleCursorUpdate"
+                    :readonly="isNav()" @input="handleInput" @keyup="handleCursorUpdate"
                     @keydown="handleContentKeydown" @scroll="syncScroll"
                     :class="['content-editor', { 'content-nav': isNav() }]"
                     :placeholder="t('content.placeholder')">

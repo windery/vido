@@ -26,6 +26,17 @@ describe('TaskContent — vim 块光标镜像层', () => {
     expect(wrapper.find('.block-caret').exists()).toBe(true);
   });
 
+  it('导航态 textarea readonly（阻止中文输入法激活）', () => {
+    const wrapper = mountContent(makeTask());
+    expect((wrapper.find('.content-editor').element as HTMLTextAreaElement).readOnly).toBe(true);
+  });
+
+  it('编辑态 textarea 可编辑（IME 可输入）', () => {
+    const t = makeTask({ status: TaskState.CONTENT_EDITING });
+    const wrapper = mountContent(t);
+    expect((wrapper.find('.content-editor').element as HTMLTextAreaElement).readOnly).toBe(false);
+  });
+
   it('镜像前缀 = 光标前的完整文本（跨行含换行）', () => {
     const wrapper = mountContent(makeTask({ cursorLine: 1, cursorColumn: 3 }));
     expect(wrapper.find('.mirror-text').text()).toBe('line1\nlin');
