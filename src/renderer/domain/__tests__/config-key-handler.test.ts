@@ -90,6 +90,14 @@ describe('ConfigKeyHandler state machine', () => {
     expect(tdm.setConfigState).toHaveBeenCalledWith(1, 'priority-select');
   });
 
+  it('c in priority-select clears priority and stays', () => {
+    const tdm = createTDM(makeTask('priority-select'));
+    const ok = handler.handleKey(makeEvent('c'), 'c', tdm);
+    expect(ok).toBe(true);
+    expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'priority', undefined);
+    expect(tdm.setConfigState).not.toHaveBeenCalled();
+  });
+
   it('c in tags-select clears and stays', () => {
     const tdm = createTDM(makeTask('tags-select'));
     handler.handleKey(makeEvent('c'), 'c', tdm);

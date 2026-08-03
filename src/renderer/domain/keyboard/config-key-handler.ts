@@ -84,6 +84,12 @@ export class ConfigKeyHandler {
       tdm.setConfigState(taskId, 'priority-select'); // 选后留在 priority-select（CLAUDE.md 状态机：不改配置类型）
       return true;
     }
+    if (key === 'c') {
+      // c = 清除（与日程/标签一致）：清除优先级，回到默认空状态
+      e.preventDefault();
+      tdm.updateTaskProperty(taskId, 'priority', undefined);
+      return true; // 留在 priority-select
+    }
     return false;
   }
 

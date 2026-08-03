@@ -65,6 +65,7 @@
               <span class="config-pill priority-p1"><kbd>1</kbd> !!! {{ t('config.high') }}</span>
               <span class="config-pill priority-p2"><kbd>2</kbd> !! {{ t('config.medium') }}</span>
               <span class="config-pill priority-p3"><kbd>3</kbd> ! {{ t('config.low') }}</span>
+              <span class="config-pill"><kbd>c</kbd> {{ t('config.clear') }}</span>
             </div>
           </template>
           <!-- Tags -->

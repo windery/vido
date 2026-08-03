@@ -241,6 +241,10 @@ export class LastLineModeHandler implements ModeHandler {
       const next = cycle[(idx + 1) % cycle.length];
       taskDataManager.updateTaskProperty(taskId, 'priority', next);
       logger.info('LastLineModeHandler', `Cycled priority to: ${next}`);
+    } else if (['clear', 'none', '0'].includes(args[0].toLowerCase())) {
+      // 清除优先级（回到默认空状态）
+      taskDataManager.updateTaskProperty(taskId, 'priority', undefined);
+      logger.info('LastLineModeHandler', 'Cleared priority');
     } else {
       const map: Record<string, TaskPriority> = {
         '1': TaskPriority.HIGH,
