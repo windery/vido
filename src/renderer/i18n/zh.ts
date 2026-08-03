@@ -37,6 +37,9 @@ export const zh = {
     expired: '(已过期)',
   },
   config: {
+    schedule: '日程',
+    priority: '优先级',
+    tags: '标签',
     schedulePlaceholder: '20260306  或  15:33  或  202603061533',
     today: '今天',
     tomorrow: '明天',

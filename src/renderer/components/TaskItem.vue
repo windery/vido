@@ -46,6 +46,12 @@
 
         <!-- Config panel -->
         <div v-if="task.configState" class="config-panel">
+          <!-- 面板标题：明确当前正在配置什么（@ 日程 / ! 优先级 / # 标签） -->
+          <div class="config-header">
+            <span class="config-header-icon" :class="configHeaderInfo.cls">{{ configHeaderInfo.icon }}</span>
+            <span class="config-header-title">{{ configHeaderInfo.title }}</span>
+            <span class="config-header-phase">{{ configHeaderInfo.phase }}</span>
+          </div>
           <!-- Schedule -->
           <template v-if="task.configState === 'schedule-select' || task.configState === 'schedule-edit'">
             <div v-if="task.configState === 'schedule-edit'" class="config-input-row">
@@ -94,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watchEffect } from 'vue';
+import { ref, nextTick, watchEffect, computed } from 'vue';
 import { Task, TaskState, TaskPriority } from '../domain/task';
 import { getScheduleDisplayText, isScheduleExpired, parseScheduleFromString } from '../utils/schedule-helper';
 import TaskContent from './TaskContent.vue';
@@ -281,6 +287,25 @@ const getPriorityMark = (priority?: TaskPriority): string => {
             return '';
     }
 };
+
+// 配置面板标题：符号即语义，明确当前配置项；phase 区分 select / edit 阶段
+const configHeaderInfo = computed(() => {
+    const cs = props.task.configState;
+    switch (cs) {
+        case 'schedule-select':
+            return { icon: '@', cls: 'cfg-schedule', title: t('config.schedule'), phase: '' };
+        case 'schedule-edit':
+            return { icon: '@', cls: 'cfg-schedule', title: t('config.schedule'), phase: 'EDIT' };
+        case 'priority-select':
+            return { icon: '!', cls: 'cfg-priority', title: t('config.priority'), phase: '' };
+        case 'tags-select':
+            return { icon: '#', cls: 'cfg-tags', title: t('config.tags'), phase: '' };
+        case 'tags-edit':
+            return { icon: '#', cls: 'cfg-tags', title: t('config.tags'), phase: 'EDIT' };
+        default:
+            return { icon: '', cls: '', title: '', phase: '' };
+    }
+});
 
 // 使用 watchEffect 来监听任务状态，确保在组件挂载时也能正确设置焦点
 watchEffect(() => {
@@ -534,6 +559,45 @@ watchEffect(() => {
   border: 1px solid var(--config-border);
   border-radius: 6px;
   animation: cfgIn 0.15s var(--ease);
+}
+
+/* 面板标题条：等宽加粗、底部细分隔线，图标用对应符号色 */
+.config-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--config-border);
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.config-header-icon {
+  width: 18px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.config-header-icon.cfg-schedule { color: var(--schedule); }
+.config-header-icon.cfg-priority { color: var(--p2); }
+.config-header-icon.cfg-tags { color: var(--tag); }
+
+.config-header-title {
+  color: var(--text);
+}
+
+.config-header-phase {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--mode-lastline);
+  letter-spacing: 0.08em;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
 }
 
 @keyframes cfgIn {

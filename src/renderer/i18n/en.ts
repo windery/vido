@@ -28,6 +28,9 @@ export const en: typeof import('./zh').zh = {
     expired: '(expired)',
   },
   config: {
+    schedule: 'Schedule',
+    priority: 'Priority',
+    tags: 'Tags',
     schedulePlaceholder: '20260306  or  15:33  or  202603061533',
     today: 'Today',
     tomorrow: 'Tomorrow',

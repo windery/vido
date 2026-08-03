@@ -72,3 +72,42 @@ describe('TaskItem 信息符号渲染', () => {
     expect(wrapper.find('.task-meta').text()).toContain('2026-08-04');
   });
 });
+
+describe('TaskItem 配置面板标题条', () => {
+  it('schedule-select：图标 @ + 标题「日程」', () => {
+    const wrapper = mountItem(makeTask({ configState: 'schedule-select' }));
+    const header = wrapper.find('.config-header');
+    expect(header.exists()).toBe(true);
+    expect(header.find('.config-header-icon').text()).toBe('@');
+    expect(header.find('.config-header-icon').classes()).toContain('cfg-schedule');
+    expect(header.text()).toContain('日程');
+    expect(header.find('.config-header-phase').text()).toBe('');
+  });
+
+  it('priority-select：图标 ! + 标题「优先级」', () => {
+    const wrapper = mountItem(makeTask({ configState: 'priority-select' }));
+    const header = wrapper.find('.config-header');
+    expect(header.find('.config-header-icon').text()).toBe('!');
+    expect(header.find('.config-header-icon').classes()).toContain('cfg-priority');
+    expect(header.text()).toContain('优先级');
+  });
+
+  it('tags-select：图标 # + 标题「标签」', () => {
+    const wrapper = mountItem(makeTask({ configState: 'tags-select' }));
+    const header = wrapper.find('.config-header');
+    expect(header.find('.config-header-icon').text()).toBe('#');
+    expect(header.find('.config-header-icon').classes()).toContain('cfg-tags');
+    expect(header.text()).toContain('标签');
+  });
+
+  it('edit 态显示 EDIT 相位角标', () => {
+    const wrapper = mountItem(makeTask({ configState: 'schedule-edit' }));
+    expect(wrapper.find('.config-header-phase').text()).toBe('EDIT');
+  });
+
+  it('无 configState 时不渲染面板标题条', () => {
+    const wrapper = mountItem(makeTask({ configState: undefined }));
+    expect(wrapper.find('.config-header').exists()).toBe(false);
+    expect(wrapper.find('.config-panel').exists()).toBe(false);
+  });
+});
