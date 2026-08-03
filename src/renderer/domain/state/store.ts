@@ -10,6 +10,7 @@ import { Task, TaskState } from '../task';
 import { EditorMode } from '../editor';
 import { StateMachine, deriveTaskState } from '../state-machine';
 import { logger } from '../../utils/logger';
+import { migrateSchedule } from '../../utils/schedule-helper';
 import { t } from '../../i18n';
 
 export interface AppState {
@@ -81,10 +82,14 @@ export class Store {
   private restore(items: Task[]): void {
     const searchFilter = this.manager.list.searchFilter;
     // 撤销/重做只还原数据；status 是瞬态编辑态，统一归位，防止 undo 后任务卡在编辑框
-    const normalized = items.map((t) => ({
-      ...t,
-      status: t.selected ? TaskState.SELECTED : TaskState.VIEWING,
-    }));
+    const normalized = items.map((t) => {
+      const task = { ...t, status: t.selected ? TaskState.SELECTED : TaskState.VIEWING } as Task;
+      // structuredClone 丢失 Schedule 原型，须重建，否则渲染时 getDisplayText 崩溃
+      if (task.schedule && typeof (task.schedule as any).getDisplayText !== 'function') {
+        task.schedule = migrateSchedule(task.schedule as any) || undefined;
+      }
+      return task;
+    });
     this.manager.list = new TaskList(normalized, searchFilter);
     this.syncSelection();
   }

@@ -5,6 +5,7 @@ import { TaskList } from '../entities/task-list';
 import { TaskListManager } from '../manager/task-list-manager';
 import { EditorMode } from '../editor';
 import { logger } from '../../utils/logger';
+import { createTodaySchedule } from '../../utils/schedule-helper';
 
 describe('Store — 加载后默认选中', () => {
   it('init 加载后无选中任务时自动选中第一个', async () => {
@@ -142,6 +143,21 @@ describe('Store — 撤销 / 重做', () => {
     expect(store.manager.list.selected?.content).toBe(orig + '\n- A');
     store.undo();
     expect(store.manager.list.selected?.content).toBe(orig);
+  });
+
+  it('undo/redo 后保留 Schedule 类原型（getDisplayText 可调用）', () => {
+    const task = store.manager.list.selected!;
+    task.schedule = createTodaySchedule();
+    expect(typeof task.schedule!.getDisplayText).toBe('function');
+    store.toggleTaskCompletion();
+    store.undo();
+    const afterUndo = store.manager.list.selected!;
+    expect(afterUndo.schedule).toBeDefined();
+    expect(typeof afterUndo.schedule!.getDisplayText).toBe('function');
+    expect(typeof afterUndo.schedule!.getDisplayText()).toBe('string');
+    store.redo();
+    const afterRedo = store.manager.list.selected!;
+    expect(typeof afterRedo.schedule!.getDisplayText).toBe('function');
   });
 
   it('undo 后再 redo 重新应用操作', () => {
