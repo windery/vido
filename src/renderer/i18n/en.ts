@@ -72,6 +72,7 @@ export const en: typeof import('./zh').zh = {
     langSet: 'Language: {lang}',
     searchCleared: 'Search cleared',
     unknownCommand: 'Unknown command: {cmd}',
+    saveFailed: 'Save failed! Data not written to disk',
   },
   help: {
     title: 'Vido - Vim-style Todo Manager',

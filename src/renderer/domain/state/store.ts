@@ -10,6 +10,7 @@ import { Task } from '../task';
 import { EditorMode } from '../editor';
 import { StateMachine, deriveTaskState } from '../state-machine';
 import { logger } from '../../utils/logger';
+import { t } from '../../i18n';
 
 export interface AppState {
   editorMode: EditorMode;
@@ -40,7 +41,10 @@ export class Store {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(() => {
       this.saveTimer = null;
-      this.manager.save().catch((e) => logger.error('Store', 'auto save failed', { error: e }));
+      this.manager.save().catch((e) => {
+        logger.error('Store', 'auto save failed', { error: e });
+        this.setFlashMessage(t('flash.saveFailed'));
+      });
     }, 800);
   }
 
@@ -315,7 +319,12 @@ export class Store {
     return { success: true };
   }
   toggleHelp(): void { this.state.isHelpVisible = !this.state.isHelpVisible; this.changed(); }
-  saveTasks(): void { this.manager.save(); }
+  saveTasks(): void {
+    this.manager.save().catch((e) => {
+      logger.error('Store', 'save failed', { error: e });
+      this.setFlashMessage(t('flash.saveFailed'));
+    });
+  }
   stopEditing(): void {}
   startEditingAtCursor(): void { this.manager.updateSelectedTaskStatus(4); this.changed(); }
   getDebugInfo(): any { return {}; }

@@ -81,6 +81,7 @@ export const zh = {
     langSet: '语言：{lang}',
     searchCleared: '已清除搜索',
     unknownCommand: '未知命令：{cmd}',
+    saveFailed: '保存失败！数据未写入磁盘',
   },
   help: {
     title: 'Vido - Vim 任务管理器',
