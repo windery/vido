@@ -101,7 +101,7 @@ export const zh = {
         commands: [
           { key: ':help', desc: '显示帮助' },
           { key: ':clear', desc: '清除搜索与过滤' },
-          { key: ':sort [type]', desc: '排序任务（title|priority|dueDate|created）' },
+          { key: ':sort [type]', desc: '排序任务（title|priority|created|updated|completed）' },
           { key: ':new [title]', desc: '新建任务' },
           { key: ':delete', desc: '删除当前任务' },
           { key: ':p [1|2|3|clear]', desc: '设置优先级（1 高 2 中 3 低）' },

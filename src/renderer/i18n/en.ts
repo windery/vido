@@ -92,7 +92,7 @@ export const en: typeof import('./zh').zh = {
         commands: [
           { key: ':help', desc: 'Show help' },
           { key: ':clear', desc: 'Clear search and filter' },
-          { key: ':sort [type]', desc: 'Sort tasks (title|priority|dueDate|created)' },
+          { key: ':sort [type]', desc: 'Sort tasks (title|priority|created|updated|completed)' },
           { key: ':new [title]', desc: 'Create new task' },
           { key: ':delete', desc: 'Delete current task' },
           { key: ':p [1|2|3|clear]', desc: 'Set priority (1 high 2 medium 3 low)' },
