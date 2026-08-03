@@ -179,8 +179,7 @@ const scrollToTask = (taskId: number) => {
     nextTick(() => {
         const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
         if (taskElement) {
-            // 选中任务行常驻挂载、内容区以 120ms 过渡展开/收起。
-            // 用 block:'nearest' 只做最小滚动（行不可见时才滚），
+            // 内容区零动画瞬时展开/收起；用 block:'nearest' 只做最小滚动（行不可见时才滚），
             // 且在同一帧完成，避免此前 setTimeout + block:'center' 造成的二次滚动闪跳。
             taskElement.scrollIntoView({ behavior: 'auto', block: 'nearest' });
         }
