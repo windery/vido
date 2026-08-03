@@ -332,6 +332,8 @@ logger.error('ComponentName', 'error message', { error: errorObject });
 | clearSearch | `clear search` | — |
 | save | `save` | `tasks, file` |
 
+**自动保存（防抖 800ms）**: 数据变更（create/delete/toggle/flag/update/paste/sort/undo/redo/insert line）后经 `Store.scheduleSave()` 防抖 800ms 自动保存到 `tasks.json`，连续操作合并为一次写盘；手动 `:w` 立即保存仍保留。高频导航/光标移动不触发保存。**规则：任何数据变更路径都必须调用 `scheduleSave()`，否则刷新/重启会丢失。**
+
 **去冗余规则**: 高频导航（`selectTask`/`selectNext`/光标更新/DOM 聚焦/按键细节/IME 起止/ref sync）一律降为 DEBUG 或删除，不占用 INFO 噪音。导航选择在 `TaskListManager` 层记录（DEBUG），不重复打。
 
 ### Critical Rule: Log-First + Automated Debugging

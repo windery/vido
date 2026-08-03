@@ -28,9 +28,19 @@ export class Store {
   private _onChange: (() => void) | null = null;
   private history: { before: Task[]; after: Task[] }[] = [];
   private historyIndex = -1;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
 
   afterChange(cb: () => void): void { this._onChange = cb; }
   private changed(): void { this._onChange?.(); }
+
+  /** 防抖自动保存：数据变更后 800ms 写盘，连续操作合并为一次保存 */
+  private scheduleSave(): void {
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = null;
+      this.manager.save().catch((e) => logger.error('Store', 'auto save failed', { error: e }));
+    }, 800);
+  }
 
   // ======== 撤销 / 重做 ========
 
@@ -53,12 +63,13 @@ export class Store {
     this.syncSelection();
   }
 
-  /** 包装结构写操作：操作前快照，操作后入历史栈 */
+  /** 包装结构写操作：操作前快照，操作后入历史栈，并防抖自动保存 */
   private mutate(fn: () => void): void {
     const before = this.snap();
     fn();
     this.record(before);
     this.changed();
+    this.scheduleSave();
   }
 
   undo(): void {
@@ -67,6 +78,7 @@ export class Store {
     this.historyIndex--;
     this.restore(entry.before);
     this.changed();
+    this.scheduleSave();
     logger.info('Store', 'undo', { step: this.historyIndex, total: this.history.length, tasks: this.manager.list.items });
   }
 
@@ -76,6 +88,7 @@ export class Store {
     this.historyIndex++;
     this.restore(entry.after);
     this.changed();
+    this.scheduleSave();
     logger.info('Store', 'redo', { step: this.historyIndex, total: this.history.length, tasks: this.manager.list.items });
   }
 
@@ -217,6 +230,7 @@ export class Store {
   updateTaskProperty(id: number, key: string, val: any): void {
     this.manager.updateTaskProperty(id, key, val);
     this.changed();
+    this.scheduleSave();
     logger.info('Store', 'update task', { id, field: key, value: val });
   }
   startTitleEditing(): void { this.manager.startTitleEditing(); this.changed(); }

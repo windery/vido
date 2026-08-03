@@ -380,3 +380,54 @@ describe('Store — 数据变更日志', () => {
     expect(storeInfoCalls(spy)).toHaveLength(0);
   });
 });
+
+describe('Store — 防抖自动保存', () => {
+  let store: Store;
+
+  beforeEach(() => {
+    store = makeStore();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('数据变更后防抖 800ms 自动保存', () => {
+    vi.useFakeTimers();
+    const saveSpy = vi.spyOn(store.manager, 'save').mockResolvedValue(undefined);
+    store.createNewTask('Auto');
+    expect(saveSpy).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(799);
+    expect(saveSpy).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('连续数据变更合并为一次保存', () => {
+    vi.useFakeTimers();
+    const saveSpy = vi.spyOn(store.manager, 'save').mockResolvedValue(undefined);
+    store.createNewTask('A');
+    vi.advanceTimersByTime(500);
+    store.toggleTaskCompletion();
+    vi.advanceTimersByTime(500);
+    expect(saveSpy).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(300);
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('updateTaskProperty 与 undo 各自触发一次保存', () => {
+    vi.useFakeTimers();
+    const saveSpy = vi.spyOn(store.manager, 'save').mockResolvedValue(undefined);
+    const task = store.manager.list.selected!;
+    store.updateTaskProperty(task.id, 'priority', 'HIGH');
+    vi.advanceTimersByTime(800);
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+    store.toggleTaskCompletion();
+    vi.advanceTimersByTime(800);
+    expect(saveSpy).toHaveBeenCalledTimes(2);
+    store.undo();
+    vi.advanceTimersByTime(800);
+    expect(saveSpy).toHaveBeenCalledTimes(3);
+  });
+});
