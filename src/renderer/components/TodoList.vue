@@ -15,6 +15,7 @@
                 <!-- Task List -->
                 <div v-else class="buffer-content">
                     <TaskItem v-for="(task, index) in filteredTasks" :key="task.id" :task="task" :index="index"
+                        :is-group-leader="groupBox?.startId === task.id"
                         :search-term="searchTerm"
                         @title-input="handleTitleInput" @cursor-update="handleCursorUpdate"
                         @content-keydown="handleContentKeydown" @content-input="handleContentInput"

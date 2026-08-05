@@ -174,3 +174,15 @@ describe('TaskItem 子任务缩进渲染', () => {
     expect(sub.find('.task-line').classes()).toContain('subtask');
   });
 });
+
+describe('TaskItem 主任务强调（group-leader）', () => {
+  it('当前定位组的主任务：行带 group-leader class（淡绿背景强调主次）', () => {
+    const leader = mountItem(makeTask({ indent: 0 }), { isGroupLeader: true });
+    expect(leader.find('.task-line').classes()).toContain('group-leader');
+  });
+
+  it('非组首任务：无 group-leader class', () => {
+    const normal = mountItem(makeTask({ indent: 1 }), { isGroupLeader: false });
+    expect(normal.find('.task-line').classes()).not.toContain('group-leader');
+  });
+});

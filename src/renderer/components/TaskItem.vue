@@ -6,7 +6,8 @@
             'selected': task.selected,
             'completed': task.completed,
             'editing': task.status === TaskState.CONTENT_EDITING || task.status === TaskState.TITLE_EDITING,
-            'subtask': (task.indent || 0) > 0
+            'subtask': (task.indent || 0) > 0,
+            'group-leader': isGroupLeader
         }]">
             <span class="line-number">{{ index + 1 }}</span>
 
@@ -120,6 +121,8 @@ interface Props {
     index: number;
 
     searchTerm?: string;
+    /** 是否为当前定位组的主任务（组首）——行背景淡绿强调主次 */
+    isGroupLeader?: boolean;
 }
 
 interface Emits {
