@@ -4,12 +4,12 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const saveJsonFile = vi.fn(async () => undefined);
-const loadJsonFile = vi.fn(async () => null);
+const saveJsonFile = vi.fn();
+const loadJsonFile = vi.fn();
 
 vi.mock('../../utils/file-operations-ipc', () => ({
-    saveJsonFile: (...args: unknown[]) => saveJsonFile(...args),
-    loadJsonFile: (...args: unknown[]) => loadJsonFile(...args),
+    saveJsonFile,
+    loadJsonFile,
 }));
 
 vi.mock('../../utils/schedule-helper', () => ({
