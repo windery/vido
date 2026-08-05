@@ -376,9 +376,9 @@ onMounted(() => {
 /* Main content area */
 .group-box {
     position: absolute;
-    border: 1px solid var(--accent);
+    border: 1px solid rgba(89, 217, 138, 0.35);
     border-radius: 4px;
-    opacity: 0.55; /* 超细线感：1px 半透明绿，不抢内容 */
+    opacity: 0.3; /* 超细淡线：指示归属但不过度突出，不抢内容 */
     pointer-events: none;
     z-index: 1;
 }
