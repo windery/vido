@@ -56,11 +56,15 @@ describe('content 三态高度一致性契约', () => {
     expect(rule('\\.markdown-display :deep\\(p \\+ p\\)')).toContain('margin-top: 6px');
   });
 
-  it('两态 max-height 一致（calc(60vh - 24px)），滚动条隐藏对称（不占宽）', () => {
-    expect(rule('\\.content-editor')).toContain('max-height: calc(60vh - 24px)');
-    expect(rule('\\.markdown-display')).toContain('max-height: calc(60vh - 24px)');
-    expect(rule('\\.content-editor')).toContain('scrollbar-width: none');
-    expect(rule('\\.markdown-display')).toContain('scrollbar-width: none');
+  it('内容高度无上限（完整展示，不截断滚动）：两态均无 max-height 限制', () => {
+    expect(rule('\\.content-editor')).not.toMatch(/max-height/);
+    expect(rule('\\.markdown-display')).not.toMatch(/max-height/);
+    expect(rule('\\.task-content-area')).not.toMatch(/max-height/);
+  });
+
+  it('textare 高度由内容撑开（height: auto + adjustHeight），编辑态不出现滚动条', () => {
+    expect(rule('\\.content-editor')).toContain('height: auto');
+    expect(rule('\\.content-editor')).toContain('overflow-y: hidden');
   });
 
   it('markdown 换行规则与 textarea 一致（pre-wrap + break-word）', () => {

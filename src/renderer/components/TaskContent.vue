@@ -160,8 +160,7 @@ onMounted(() => {
     border-radius: 6px;
     box-sizing: border-box;
     box-shadow: inset 0 1px 0 var(--border-soft);
-    max-height: 60vh;
-    overflow: hidden;
+    /* 内容高度不做限制：完整展示全部内容，由外层列表容器滚动接管 */
 }
 
 /* 字体统一定义在 shell 上：textarea 与镜像层同源继承，保证块光标像素级对齐 */
@@ -186,11 +185,9 @@ onMounted(() => {
     width: 100%;
     box-sizing: border-box;
     overflow-x: hidden;
-    overflow-y: auto;
-    /* 隐藏滚动条但保留滚动：编辑态/导航态滚动条渲染差异（占宽）会导致换行数
-       不同 → 两态高度不一致；统一隐藏后宽度恒等，高度由内容决定，两态对齐 */
+    overflow-y: hidden;
+    /* 高度无上限：内容完整展示（adjustHeight 按 scrollHeight 撑高） */
     scrollbar-width: none;
-    max-height: calc(60vh - 24px);
     height: auto;
     display: block;
     caret-color: var(--accent-bright);
@@ -254,9 +251,8 @@ onMounted(() => {
     word-wrap: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
-    max-height: calc(60vh - 24px);
-    overflow-y: auto;
-    /* 与 .content-editor 对称：隐藏滚动条，两态宽度恒等、高度一致 */
+    /* 高度无上限：内容完整展示（与 textarea 一致），外层列表容器滚动接管 */
+    overflow: visible;
     scrollbar-width: none;
 }
 
