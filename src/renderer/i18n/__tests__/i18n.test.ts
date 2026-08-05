@@ -47,7 +47,7 @@ describe('prefs', () => {
 
 describe('i18n (single language: en)', () => {
   it('returns English strings', () => {
-    expect(t('header.title')).toBe('Vido - Vim Todo Manager');
+    expect(t('header.title')).toBe('tasks.json'); // 显示当前 buffer 文件名，不重复品牌
   });
 
   it('interpolates variables', () => {

@@ -13,7 +13,7 @@ export interface HelpSection {
 
 export const en = {
   header: {
-    title: 'Vido - Vim Todo Manager',
+    title: 'tasks.json',
     tasks: '{n} tasks',
     done: '{done}/{total} done',
   },

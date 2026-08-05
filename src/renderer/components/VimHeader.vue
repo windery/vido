@@ -20,7 +20,6 @@
                 <span class="progress-blocks">
                     <span v-for="(on, i) in blockStates" :key="i" :class="on ? 'on' : 'off'">{{ on ? '▰' : '▱' }}</span>
                 </span>
-                <span class="progress-count">{{ completedTasksCount }}/{{ filteredTasksCount }}</span>
             </div>
         </div>
     </div>
@@ -186,12 +185,6 @@ onUnmounted(() => {
 .progress-blocks .off {
     color: var(--ln);
     opacity: 0.65;
-}
-
-.progress-count {
-    color: var(--text-dim);
-    font-size: 11px;
-    font-variant-numeric: tabular-nums;
 }
 
 </style>
