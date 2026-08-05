@@ -966,15 +966,21 @@ describe('Store — 子任务缩进（tab / Shift+Tab）', () => {
     expect(cur(s).indent).toBe(1);
   });
 
-  it('tab 可继续加深（至少成为上一个任务的子任务）', () => {
+  it('tab 幂等：连续按 tab 结果不变（父任务的子任务就是它）', () => {
     const s = makeStore();
     s.indentSelectedTask(); // T2 → 1（T1 的子级）
-    s.indentSelectedTask(); // 继续加深 → 2
-    expect(cur(s).indent).toBe(2);
-    // T3：上一个 T2 已 indent=2 → 至少缩进到 3
+    s.indentSelectedTask(); // 再按还是 1
+    expect(cur(s).indent).toBe(1);
+    // T3：上一个 T2 已 indent=1 → 直接成为其子任务 = 2
     s.manager.list = s.manager.list.selectTask(3);
     s.indentSelectedTask();
-    expect(cur(s).indent).toBe(3);
+    expect(cur(s).indent).toBe(2);
+    s.indentSelectedTask(); // 幂等
+    expect(cur(s).indent).toBe(2);
+    // 若任务缩进过深（如 3），再 tab 收回到上一任务的子级 2
+    s.updateTaskProperty(3, 'indent', 3);
+    s.indentSelectedTask();
+    expect(cur(s).indent).toBe(2);
   });
 
   it('第一个任务无法缩进', () => {

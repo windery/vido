@@ -4,8 +4,12 @@
         <div :class="['task-line', {
             'selected': task.selected,
             'completed': task.completed,
-            'editing': task.status === TaskState.CONTENT_EDITING || task.status === TaskState.TITLE_EDITING
-        }]" :style="{ paddingLeft: 6 + (task.indent || 0) * 16 + 'px' }">
+            'editing': task.status === TaskState.CONTENT_EDITING || task.status === TaskState.TITLE_EDITING,
+            'subtask': (task.indent || 0) > 0
+        }]" :style="{ paddingLeft: 6 + (task.indent || 0) * 24 + 'px', '--indent': task.indent || 0 }">
+            <!-- 缩进引导线：每级一条竖线（VSCode 风格），不延伸进内容区 -->
+            <div v-if="(task.indent || 0) > 0" class="indent-guide"
+                :style="{ width: (task.indent || 0) * 24 + 'px' }"></div>
             <span class="line-number">{{ index + 1 }}</span>
 
             <!-- Task content in vim style -->
@@ -367,7 +371,7 @@ watchEffect(() => {
 .task-line.selected::before {
     content: '›';
     position: absolute;
-    left: 4px;
+    left: calc(4px + var(--indent, 0) * 24px); /* 跟随缩进：子任务的 › 在缩进区域右侧 */
     top: 0;
     bottom: 0;
     display: flex;
@@ -376,6 +380,21 @@ watchEffect(() => {
     color: var(--accent);
     font-weight: 700;
     font-size: 15px;
+}
+
+/* 缩进引导线：每级一条竖线（VSCode 风格），只在缩进区域内 */
+.indent-guide {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(to right, transparent 0 calc(24px - 1px), var(--border-soft) calc(24px - 1px) 24px);
+}
+
+/* 子任务次级感：行号弱化 */
+.task-line.subtask .line-number {
+    color: var(--text-3); /* 子任务次级感：行号弱化 */
 }
 
 .task-line.completed {

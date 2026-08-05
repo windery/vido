@@ -152,3 +152,26 @@ describe('TaskItem 标签配置：编号与删除高亮', () => {
     expect(wrapper.find('.config-tags-hint').text()).toContain('delete');
   });
 });
+
+describe('TaskItem 子任务缩进渲染', () => {
+  it('子任务：行 paddingLeft = 6 + indent×24px，且带缩进引导线', () => {
+    const sub = mountItem(makeTask({ indent: 2 }));
+    const line = sub.find('.task-line');
+    expect(line.attributes('style')).toContain('padding-left: 54px'); // 6 + 2×24
+    expect(sub.find('.indent-guide').exists()).toBe(true);
+    expect(sub.find('.indent-guide').attributes('style')).toContain('width: 48px');
+  });
+
+  it('顶级任务：无缩进、无引导线、行号不弱化', () => {
+    const top = mountItem(makeTask({ indent: 0 }));
+    const line = top.find('.task-line');
+    expect(line.attributes('style')).toContain('padding-left: 6px');
+    expect(top.find('.indent-guide').exists()).toBe(false);
+    expect(line.classes()).not.toContain('subtask');
+  });
+
+  it('子任务行带 subtask class（行号弱化）', () => {
+    const sub = mountItem(makeTask({ indent: 1 }));
+    expect(sub.find('.task-line').classes()).toContain('subtask');
+  });
+});

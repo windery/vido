@@ -557,7 +557,8 @@ export function insertLineAbove(list: TaskList): TaskList {
   return updateCursor(setLines(list, task, lines), task.id, line, 0);
 }
 
-/** tab：缩进一级；若当前比上一个任务浅，则至少缩进到上一个任务的子级（prev.indent+1） */
+/** tab：成为上一个任务的直接子任务（indent = prev.indent + 1）。
+ *  幂等：连续按 tab 结果不变——父任务的子任务就是它，不会继续加深。 */
 export function indentTask(list: TaskList, id: number): TaskList {
   const task = list.items.find((t) => t.id === id);
   if (!task) return list;
@@ -565,7 +566,7 @@ export function indentTask(list: TaskList, id: number): TaskList {
   const idx = items.findIndex((t) => t.id === id);
   const prev = idx > 0 ? items[idx - 1] : null;
   if (!prev) return list; // 第一个任务无法缩进
-  const newIndent = Math.max(task.indent + 1, prev.indent + 1);
+  const newIndent = prev.indent + 1;
   if (newIndent === task.indent) return list;
   return updateProperty(list, id, 'indent', newIndent);
 }
