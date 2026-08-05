@@ -17,7 +17,7 @@
                 <span v-if="task.priority" :class="['priority-indicator', getPriorityClass(task.priority)]">{{ getPriorityMark(task.priority) }}</span>
 
                 <span v-if="task.status === TaskState.TITLE_EDITING && task.selected" class="editing-inline">
-                    <input ref="titleEditRef" :value="task.title" class="title-editor" @input="handleTitleInput"
+                    <input ref="titleEditRef" :value="task.title" class="title-editor" spellcheck="false" @input="handleTitleInput"
                         @keydown="handleTitleKeydown" @blur="stopTitleEditing" @keydown.enter="stopTitleEditing"
                         @keydown.esc="stopTitleEditing" @compositionstart="handleCompositionStart"
                         @compositionend="handleCompositionEnd" />
@@ -56,7 +56,7 @@
           <template v-if="task.configState === 'schedule-select' || task.configState === 'schedule-edit'">
             <div v-if="task.configState === 'schedule-edit'" class="config-input-row">
               <span class="config-input-icon">@</span>
-              <input ref="scheduleInputRef" v-model="scheduleInputValue" class="config-input"
+              <input ref="scheduleInputRef" v-model="scheduleInputValue" class="config-input" spellcheck="false"
                 :placeholder="t('config.schedulePlaceholder')"
                 @keydown.enter.stop="saveScheduleInput" @keydown.escape.stop="cancelScheduleInput" />
             </div>
@@ -91,7 +91,7 @@
             <div v-if="task.tags?.length" class="config-tags-hint">{{ t('config.tagDeleteHint') }}</div>
             <div v-if="task.configState === 'tags-edit'" class="config-input-row">
               <span class="config-input-icon">#</span>
-              <input ref="tagInputRef" v-model="tagInputValue" class="config-input"
+              <input ref="tagInputRef" v-model="tagInputValue" class="config-input" spellcheck="false"
                 :placeholder="t('config.tagPlaceholder')"
                 @keydown.enter.stop="saveTagInput" @keydown.escape.stop="cancelTagInput" />
             </div>

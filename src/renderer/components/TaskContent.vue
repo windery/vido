@@ -8,7 +8,7 @@
             <div class="editor-shell">
                 <textarea :ref="(el) => setContentEditRef(el as HTMLTextAreaElement, task.id)" :value="task.content"
                     :readonly="isNav()" @input="handleInput" @keyup="handleCursorUpdate"
-                    @keydown="handleContentKeydown" @scroll="syncScroll"
+                    @keydown="handleContentKeydown" @scroll="syncScroll" spellcheck="false"
                     :class="['content-editor', { 'content-nav': isNav() }]"
                     :placeholder="t('content.placeholder')">
       </textarea>
