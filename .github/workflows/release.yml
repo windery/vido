@@ -39,8 +39,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build & package
-        run: pnpm build
+      - name: Type-check & build renderer
+        run: |
+          pnpm exec vue-tsc --noEmit
+          pnpm exec vite build
+
+      - name: Package (electron-builder, publish never)
+        run: pnpm exec electron-builder --publish never
         env:
           # CI 无签名证书：明确关闭自动发现，避免卡在签名步骤
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
