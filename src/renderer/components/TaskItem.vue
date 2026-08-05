@@ -384,16 +384,15 @@ watchEffect(() => {
     font-size: 15px;
 }
 
-/* 缩进引导线：每级一条竖线（VSCode 风格），只在缩进区域内 */
-/* 子任务次级感：行号弱化 */
+/* 子任务次级感：行号弱化（轻量辅助，不破坏统一） */
 .task-line.subtask .line-number {
-    color: var(--text-3); /* 子任务次级感：行号弱化 */
+    color: var(--text-3);
 }
 
-/* 主次分明（区域区分）：子任务行整体极淡底色——子任务区域'沉下去'，
-   主任务保持亮色无背景 → 组内一眼看出主从；hover/选中背景正常覆盖 */
-.task-line.subtask {
-    background: rgba(255, 255, 255, 0.025);
+/* 主次弱提示：当前定位组的主任务行极淡绿底色——'主'的区域暗示，
+   子任务零额外样式；hover/选中背景正常覆盖 */
+.task-line.group-leader {
+    background: rgba(89, 217, 138, 0.035);
 }
 
 .task-line.completed {
