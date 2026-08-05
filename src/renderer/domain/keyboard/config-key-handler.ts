@@ -9,7 +9,7 @@
  * 面板内键位（vim operator 前缀模型）：
  *   c 是前缀操作符 —— cc 清除当前项，cs/cp/ct 直达 日程/优先级/标签，600ms 超时或无匹配则取消
  *   d 是删除前缀（仅 tags-select）—— d + 序号 + Enter 删除对应编号标签，输入时高亮目标，Esc/非数字键取消
- *   j/k 放行命令层切换 section；其余未知键一律消费，防止落到命令层触发 paste/delete/undo 等全局副作用
+ *   j/k 放行命令层做任务级上下移动（配置展开也不改变 j/k 语义）；H/L 放行命令层横向切换 section；其余未知键一律消费，防止落到命令层触发 paste/delete/undo 等全局副作用
  */
 
 import { Store } from '../state/store';
@@ -128,8 +128,8 @@ export class ConfigKeyHandler {
         return true; // priority 只有 select 态，Enter 无操作
 
       default:
-        // j/k 交给命令层在 section 间切换；其余未知键一律消费，避免落到命令层产生全局副作用
-        if (key === 'j' || key === 'k') return false;
+        // j/k 放行命令层做任务级移动；H/L 放行命令层横向切换 section；其余未知键一律消费，避免落到命令层产生全局副作用
+        if (key === 'j' || key === 'k' || key === 'H' || key === 'L') return false;
         if (cs === 'schedule-select') this.handleSchedule(event, key, taskDataManager, task.id);
         else if (cs === 'priority-select') this.handlePriority(event, key, taskDataManager, task.id);
         // tags-select：无快捷选择，直接消费

@@ -23,7 +23,7 @@ export function createTask(list: TaskList, title: string = '', insertAfter: bool
     items.push(task);
   }
 
-  return { list: new TaskList(items, list.searchFilter), task };
+  return { list: new TaskList(items), task };
 }
 
 export function deleteSelected(list: TaskList): TaskList {
@@ -35,7 +35,7 @@ export function deleteSelected(list: TaskList): TaskList {
     const newIdx = Math.min(idx, items.length - 1);
     items[newIdx] = { ...items[newIdx], selected: true, status: TaskState.SELECTED } as Task;
   }
-  return new TaskList(items as Task[], list.searchFilter);
+  return new TaskList(items as Task[]);
 }
 
 export function toggleComplete(list: TaskList): TaskList {
@@ -43,7 +43,7 @@ export function toggleComplete(list: TaskList): TaskList {
   const idx = items.findIndex((t) => t.selected);
   if (idx < 0) return list;
   items[idx] = { ...items[idx], completed: !items[idx].completed, updatedAt: Date.now() } as Task;
-  return new TaskList(items as Task[], list.searchFilter);
+  return new TaskList(items as Task[]);
 }
 
 export function toggleFlag(list: TaskList): TaskList {
@@ -51,7 +51,7 @@ export function toggleFlag(list: TaskList): TaskList {
   const idx = items.findIndex((t) => t.selected);
   if (idx < 0) return list;
   items[idx] = { ...items[idx], flagged: !items[idx].flagged, updatedAt: Date.now() } as Task;
-  return new TaskList(items as Task[], list.searchFilter);
+  return new TaskList(items as Task[]);
 }
 
 /** 数据属性（更新时刷新 updatedAt）；UI/光标状态不视为数据变更 */
@@ -63,21 +63,21 @@ export function updateProperty(list: TaskList, taskId: number, key: string, valu
       ? ({ ...t, [key]: value, ...(DATA_KEYS.has(key) ? { updatedAt: Date.now() } : {}) } as Task)
       : t
   );
-  return new TaskList(items, list.searchFilter);
+  return new TaskList(items);
 }
 
 export function updateCursor(list: TaskList, taskId: number, line: number, col: number): TaskList {
   const items = list.items.map((t) =>
     t.id === taskId ? ({ ...t, cursorLine: line, cursorColumn: col } as Task) : t
   );
-  return new TaskList(items, list.searchFilter);
+  return new TaskList(items);
 }
 
 export function startTitleEditing(list: TaskList): TaskList {
   const items = list.items.map((t) =>
     t.selected ? ({ ...t, status: TaskState.TITLE_EDITING } as Task) : t
   );
-  return new TaskList(items, list.searchFilter);
+  return new TaskList(items);
 }
 
 export function sortTasks(list: TaskList, type: string): TaskList {
@@ -93,7 +93,7 @@ export function sortTasks(list: TaskList, type: string): TaskList {
     case 'updated': items.sort((a, b) => (b.updatedAt || b.id) - (a.updatedAt || a.id)); break;
     case 'completed': items.sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1)); break;
   }
-  return new TaskList(items as Task[], list.searchFilter);
+  return new TaskList(items as Task[]);
 }
 
 export function copySelected(list: TaskList): { list: TaskList; clipboard: Task | null } {
@@ -121,7 +121,7 @@ export function pasteTask(list: TaskList, clipboard: Task | null): { list: TaskL
   if (idx >= 0) items.splice(idx + 1, 0, task);
   else items.push(task);
 
-  return { list: new TaskList(items as Task[], list.searchFilter), task };
+  return { list: new TaskList(items as Task[]), task };
 }
 
 export function insertNewLineBelow(list: TaskList): TaskList {

@@ -4,9 +4,6 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import electron from 'vite-plugin-electron/simple';
 import pkg from './package.json';
-import AutoImport from 'unplugin-auto-import/vite';
-import Components from 'unplugin-vue-components/vite';
-import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
 import eslintPlugin from '@nabla/vite-plugin-eslint';
 
 // https://vitejs.dev/config/
@@ -32,12 +29,6 @@ export default defineConfig(({ command }) => {
     },
     plugins: [
       vue(),
-      AutoImport({
-        resolvers: [ElementPlusResolver()],
-      }),
-      Components({
-        resolvers: [ElementPlusResolver()],
-      }),
       eslintPlugin(),
       electron({
         main: {

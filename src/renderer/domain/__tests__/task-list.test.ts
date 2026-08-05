@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { TaskList } from '../entities/task-list';
+import { TaskList, taskMatchesSearch } from '../entities/task-list';
 import { Task, TaskState } from '../task';
 
 function makeTasks(n: number): Task[] {
@@ -58,23 +58,25 @@ describe('TaskList', () => {
     });
   });
 
-  describe('search filtering', () => {
-    it('filters by title', () => {
+  describe('taskMatchesSearch', () => {
+    it('matches title case-insensitively', () => {
       const tasks = makeTasks(3);
-      tasks[0].title = 'hello';
-      tasks[1].title = 'world';
-      tasks[2].title = 'hello world';
-      const list = new TaskList(tasks, 'hello');
-      expect(list.all).toHaveLength(2);
+      tasks[0].title = 'Hello World';
+      expect(taskMatchesSearch(tasks[0], 'hello')).toBe(true);
+      expect(taskMatchesSearch(tasks[0], 'WORLD')).toBe(true);
     });
 
-    it('isSearching is true with filter', () => {
-      const list = new TaskList(makeTasks(3), 'hello');
-      expect(list.isSearching).toBe(true);
+    it('matches content and tags', () => {
+      const tasks = makeTasks(3);
+      tasks[1].content = 'write report';
+      tasks[2].tags = ['urgent', 'dev'];
+      expect(taskMatchesSearch(tasks[1], 'report')).toBe(true);
+      expect(taskMatchesSearch(tasks[2], 'URGENT')).toBe(true);
     });
 
-    it('isSearching is false without filter', () => {
-      expect(new TaskList(makeTasks(3)).isSearching).toBe(false);
+    it('matches all when term is empty', () => {
+      expect(taskMatchesSearch(makeTasks(1)[0], '')).toBe(true);
+      expect(taskMatchesSearch(makeTasks(1)[0], undefined as unknown as string)).toBe(true);
     });
   });
 });

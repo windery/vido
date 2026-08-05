@@ -82,7 +82,7 @@ describe('TaskItem 配置面板标题条', () => {
     expect(header.exists()).toBe(true);
     expect(header.find('.config-header-icon').text()).toBe('@');
     expect(header.find('.config-header-icon').classes()).toContain('cfg-schedule');
-    expect(header.text()).toContain('日程');
+    expect(header.text()).toContain('Schedule');
     expect(header.find('.config-header-phase').text()).toBe('');
   });
 
@@ -91,7 +91,7 @@ describe('TaskItem 配置面板标题条', () => {
     const header = wrapper.find('.config-header');
     expect(header.find('.config-header-icon').text()).toBe('!');
     expect(header.find('.config-header-icon').classes()).toContain('cfg-priority');
-    expect(header.text()).toContain('优先级');
+    expect(header.text()).toContain('Priority');
   });
 
   it('tags-select：图标 # + 标题「标签」', () => {
@@ -99,7 +99,7 @@ describe('TaskItem 配置面板标题条', () => {
     const header = wrapper.find('.config-header');
     expect(header.find('.config-header-icon').text()).toBe('#');
     expect(header.find('.config-header-icon').classes()).toContain('cfg-tags');
-    expect(header.text()).toContain('标签');
+    expect(header.text()).toContain('Tags');
   });
 
   it('edit 态显示 EDIT 相位角标', () => {
@@ -149,6 +149,6 @@ describe('TaskItem 标签配置：编号与删除高亮', () => {
 
   it('删除提示行显示', () => {
     const wrapper = mountItem(makeTask({ configState: 'tags-select', tags: ['a'] }));
-    expect(wrapper.find('.config-tags-hint').text()).toContain('删除');
+    expect(wrapper.find('.config-tags-hint').text()).toContain('delete');
   });
 });

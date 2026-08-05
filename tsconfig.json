@@ -15,9 +15,7 @@
     ],
     "skipLibCheck": true,
     "noEmit": true,
-    "types": [
-      "element-plus/global"
-    ],
+    "types": [],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],

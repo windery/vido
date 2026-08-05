@@ -31,11 +31,6 @@ export function useTaskActions() {
     taskDataManager.pasteTask();
   };
 
-  // ============ 调试方法 ============
-  const getDebugInfo = () => {
-    return taskDataManager.getDebugInfo();
-  };
-
   return {
     // 任务状态切换
     toggleTaskCompletion,
@@ -47,8 +42,5 @@ export function useTaskActions() {
     // 任务复制粘贴
     copySelectedTask,
     pasteTask,
-
-    // 调试
-    getDebugInfo,
   };
 }

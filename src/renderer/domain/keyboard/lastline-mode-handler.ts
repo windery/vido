@@ -6,7 +6,7 @@ import { ModeHandler } from './base-handler';
 import { Store } from '../state/store';
 import { TaskPriority } from '../task';
 import { logger } from '../../utils/logger';
-import { setTheme, setLang, prefs } from '../state/prefs';
+import { setTheme, prefs } from '../state/prefs';
 import { t } from '../../i18n';
 
 /** 优先级符号：与 CLAUDE.md 符号约定一致（!!!高 !!中 !低） */
@@ -108,7 +108,6 @@ export class LastLineModeHandler implements ModeHandler {
         taskDataManager.deleteSelectedTask();
         return true;
       case 'schedule':
-      case 'sched':
         this.setTaskSchedule(args, taskDataManager);
         return true;
       case 'time':
@@ -133,10 +132,6 @@ export class LastLineModeHandler implements ModeHandler {
         return true;
       case 'redo':
         taskDataManager.redo();
-        return true;
-      case 'lang':
-      case 'language':
-        this.setLanguage(args, taskDataManager);
         return true;
       default:
         logger.warn('LastLineModeHandler', `Unknown vim command: ${command}`);
@@ -346,19 +341,6 @@ export class LastLineModeHandler implements ModeHandler {
     else theme = prefs.theme === 'dark' ? 'light' : 'dark';
     setTheme(theme);
     taskDataManager.setFlashMessage(t('flash.themeSet', { theme }));
-  }
-
-  /**
-   * 切换语言：:lang zh | :lang en | :lang（无参数切换）
-   */
-  private setLanguage(args: string[], taskDataManager: Store): void {
-    const arg = args[0]?.toLowerCase();
-    let lang: 'zh' | 'en';
-    if (arg === 'zh' || arg === 'cn' || arg === '中文') lang = 'zh';
-    else if (arg === 'en' || arg === 'english') lang = 'en';
-    else lang = prefs.lang === 'zh' ? 'en' : 'zh';
-    setLang(lang);
-    taskDataManager.setFlashMessage(t('flash.langSet', { lang: lang === 'zh' ? '中文' : 'English' }));
   }
 
   /**

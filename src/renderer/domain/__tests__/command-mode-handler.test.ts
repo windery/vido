@@ -105,4 +105,42 @@ describe('CommandModeHandler integration with TaskList', () => {
     handler.handleKey(makeEvent('c'), 'c', tdm, false);
     expect(tdm.setConfigState).toHaveBeenCalledWith(1, 'schedule-select');
   });
+
+  it('L cycles config section forward (schedule → priority)', () => {
+    const tasks = makeTasks(2);
+    tasks[0].configState = 'schedule-select';
+    const tdm = createMockTDM(tasks);
+    handler = new CommandModeHandler();
+    handler.handleKey(makeEvent('L'), 'L', tdm, false);
+    expect(tdm.setConfigState).toHaveBeenCalledWith(1, 'priority-select');
+  });
+
+  it('H cycles config section backward (schedule → tags, wraps)', () => {
+    const tasks = makeTasks(2);
+    tasks[0].configState = 'schedule-select';
+    const tdm = createMockTDM(tasks);
+    handler = new CommandModeHandler();
+    handler.handleKey(makeEvent('H'), 'H', tdm, false);
+    expect(tdm.setConfigState).toHaveBeenCalledWith(1, 'tags-select');
+  });
+
+  it('j/k keep task-level movement when config is open (no section switch)', () => {
+    const tasks = makeTasks(2);
+    tasks[0].configState = 'schedule-select';
+    const tdm = createMockTDM(tasks);
+    handler = new CommandModeHandler();
+    handler.handleKey(makeEvent('j'), 'j', tdm, false);
+    expect(tdm.setConfigState).not.toHaveBeenCalled();
+    expect(tdm._list().selected?.id).toBe(2); // 任务下移
+  });
+
+  it('H/L without config open are consumed (no-op, no task movement)', () => {
+    const tasks = makeTasks(3);
+    const tdm = createMockTDM(tasks);
+    handler = new CommandModeHandler();
+    handler.handleKey(makeEvent('L'), 'L', tdm, false);
+    handler.handleKey(makeEvent('H'), 'H', tdm, false);
+    expect(tdm.setConfigState).not.toHaveBeenCalled();
+    expect(tdm._list().selected?.id).toBe(1); // 不移动任务
+  });
 });

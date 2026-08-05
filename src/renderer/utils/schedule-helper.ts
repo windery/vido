@@ -1,7 +1,5 @@
 import { Schedule, ScheduleType, Weekday } from '../domain/schedule';
 import { logger } from './logger';
-import { weekdayName } from '../i18n';
-import { prefs } from '../domain/state/prefs';
 import {
   getCurrentDate,
   getTomorrowDate,
@@ -11,14 +9,6 @@ import {
 } from './date-formatter';
 
 export function getScheduleDisplayText(schedule: Schedule): string {
-  // 周循环类型按当前语言输出（Schedule 实体内部固定中文）
-  if (schedule.type === ScheduleType.WEEKLY) {
-    const wt = schedule.weeklyTime;
-    if (!wt?.days?.length) return '';
-    const names = wt.days.map((d) => weekdayName(d)).join(', ');
-    const prefix = prefs.lang === 'zh' ? '每' : 'every ';
-    return wt.recurring ? `${prefix}${names}` : names;
-  }
   return schedule.getDisplayText();
 }
 
@@ -147,12 +137,12 @@ export function parseScheduleFromString(timeStr: string): Schedule | null {
     const mm = trimmed.slice(10, 12);
     return createSpecificDateTimeSchedule(`${y}-${m}-${d} ${hh}:${mm}:00`);
   }
-  // 20260306 → 2026-03-06
+  // 20260306 → 2026-03-06（无时间 → 默认上午 10:00）
   if (/^\d{8}$/.test(trimmed)) {
     const y = trimmed.slice(0, 4);
     const m = trimmed.slice(4, 6);
     const d = trimmed.slice(6, 8);
-    return createSpecificDateSchedule(`${y}-${m}-${d}`);
+    return createSpecificDateTimeSchedule(`${y}-${m}-${d} 10:00:00`);
   }
   // 15:33 或 15:33:00 → 今天的时间
   if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
@@ -169,7 +159,8 @@ export function parseScheduleFromString(timeStr: string): Schedule | null {
     return createSpecificDateTimeSchedule(dt);
   }
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    return createSpecificDateSchedule(trimmed);
+    // 纯日期无时间 → 默认上午 10:00
+    return createSpecificDateTimeSchedule(`${trimmed} 10:00:00`);
   }
 
   if (trimmed.includes('-') || trimmed.includes('到')) {

@@ -4,6 +4,17 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "dev",
+      "type": "shell",
+      "command": "pnpm dev",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "detail": "手动启动 Vite + Electron（Ctrl+Shift+B 或 Tasks: Run Task → dev）"
+    },
+    {
       "label": "Before Debug",
       "type": "shell",
       "command": "node .vscode/.debug.script.mjs",

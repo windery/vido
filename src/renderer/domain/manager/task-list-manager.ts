@@ -26,15 +26,52 @@ export class TaskListManager {
 
   // ======== 导航 ========
 
+  /** 配置面板跟随选中任务：导航时把 configState 从原任务迁移到新选中任务（j/k 保持任务级移动语义） */
+  private migrateConfigState(fromId: number | undefined, toId: number | undefined): void {
+    if (fromId === undefined || toId === undefined || fromId === toId) return;
+    const from = this.list.items.find((t) => t.id === fromId);
+    const to = this.list.items.find((t) => t.id === toId);
+    if (!from || !to || !from.configState) return;
+    this.list = this.list.withItems(
+      this.list.items.map((t) => {
+        if (t.id === fromId) return { ...t, configState: undefined };
+        if (t.id === toId) return { ...t, configState: from.configState };
+        return t;
+      })
+    );
+  }
+
   selectTask(id: number): void {
+    const fromId = this.list.selected?.id;
     this.list = this.list.selectTask(id);
+    this.migrateConfigState(fromId, this.list.selected?.id);
     logger.debug('Manager', `Selected task: ${id}`);
   }
 
-  selectNext(): void { this.list = this.list.selectNext(); logger.debug('Manager', `Selected task: ${this.list.selected?.id}`); }
-  selectPrevious(): void { this.list = this.list.selectPrevious(); logger.debug('Manager', `Selected task: ${this.list.selected?.id}`); }
-  goToFirst(): void { this.list = this.list.goToFirst(); logger.debug('Manager', `Selected task: ${this.list.selected?.id}`); }
-  goToLast(): void { this.list = this.list.goToLast(); logger.debug('Manager', `Selected task: ${this.list.selected?.id}`); }
+  selectNext(): void {
+    const fromId = this.list.selected?.id;
+    this.list = this.list.selectNext();
+    this.migrateConfigState(fromId, this.list.selected?.id);
+    logger.debug('Manager', `Selected task: ${this.list.selected?.id}`);
+  }
+  selectPrevious(): void {
+    const fromId = this.list.selected?.id;
+    this.list = this.list.selectPrevious();
+    this.migrateConfigState(fromId, this.list.selected?.id);
+    logger.debug('Manager', `Selected task: ${this.list.selected?.id}`);
+  }
+  goToFirst(): void {
+    const fromId = this.list.selected?.id;
+    this.list = this.list.goToFirst();
+    this.migrateConfigState(fromId, this.list.selected?.id);
+    logger.debug('Manager', `Selected task: ${this.list.selected?.id}`);
+  }
+  goToLast(): void {
+    const fromId = this.list.selected?.id;
+    this.list = this.list.goToLast();
+    this.migrateConfigState(fromId, this.list.selected?.id);
+    logger.debug('Manager', `Selected task: ${this.list.selected?.id}`);
+  }
 
   // ======== CRUD ========
 
@@ -105,13 +142,6 @@ export class TaskListManager {
 
   get selectedTask(): Task | null { return this.list.selected; }
   get filteredTasks(): Task[] { return this.list.all; }
-  get isSearching(): boolean { return this.list.isSearching; }
-
-  // ======== 搜索 ========
-
-  setSearch(filter?: string): void {
-    this.list = this.list.withSearch(filter);
-  }
 
   // ======== 配置 ========
 

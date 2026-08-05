@@ -100,25 +100,3 @@ export function getTomorrowDate(): string {
   tomorrow.setDate(tomorrow.getDate() + 1);
   return formatDate(tomorrow);
 }
-
-/**
- * 周几的中文名称映射
- */
-export const WEEKDAY_NAMES = {
-  0: '周日',
-  1: '周一',
-  2: '周二',
-  3: '周三',
-  4: '周四',
-  5: '周五',
-  6: '周六',
-} as const;
-
-/**
- * 获取周几的中文名称
- * @param weekday 周几的数字(0-6)
- * @returns 中文名称，如: "周一"
- */
-export function getWeekdayName(weekday: number): string {
-  return WEEKDAY_NAMES[weekday as keyof typeof WEEKDAY_NAMES] || '未知';
-}

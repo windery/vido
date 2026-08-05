@@ -84,7 +84,6 @@ export class Store {
   }
 
   private restore(items: Task[]): void {
-    const searchFilter = this.manager.list.searchFilter;
     // 撤销/重做只还原数据；status 是瞬态编辑态，统一归位，防止 undo 后任务卡在编辑框
     const normalized = items.map((t) => {
       const task = { ...t, status: t.selected ? TaskState.SELECTED : TaskState.VIEWING } as Task;
@@ -94,7 +93,7 @@ export class Store {
       }
       return task;
     });
-    this.manager.list = new TaskList(normalized, searchFilter);
+    this.manager.list = new TaskList(normalized);
     this.syncSelection();
   }
 
@@ -277,15 +276,27 @@ export class Store {
   }
 
   get selectedTask(): any { return this.manager.list.selected; }
-  get isSearching(): boolean { return this.manager.list.isSearching; }
   get filteredTasks(): any[] { return this.manager.list.all; }
 
   // 转发 manager 方法（每个写操作后触发 changed）
   selectTask(id: number): void { this.manager.selectTask(id); this.syncSelection(); this.changed(); }
-  selectNext(): void { this.manager.selectNext(); this.syncSelection(); this.changed(); }
-  selectPrevious(): void { this.manager.selectPrevious(); this.syncSelection(); this.changed(); }
+  /** 搜索激活时 j/k 只在匹配集内移动（所见即所动）；否则全量移动 */
+  selectNext(): void {
+    if (this.isSearchActive()) { this.searchNext(1); return; }
+    this.manager.selectNext(); this.syncSelection(); this.changed();
+  }
+  selectPrevious(): void {
+    if (this.isSearchActive()) { this.searchNext(-1); return; }
+    this.manager.selectPrevious(); this.syncSelection(); this.changed();
+  }
   goToFirst(): void { this.manager.goToFirst(); this.syncSelection(); this.changed(); }
   goToLast(): void { this.manager.goToLast(); this.syncSelection(); this.changed(); }
+
+  /** 搜索是否激活（lastlineContent 以 / 开头且有词） */
+  private isSearchActive(): boolean {
+    const f = this.state.lastlineContent;
+    return !!(f && f.startsWith('/') && f.length > 1);
+  }
   createNewTask(title?: string, after?: boolean): any {
     let result: any;
     this.mutate(() => { result = this.manager.createNewTask(title, after); });
@@ -380,9 +391,6 @@ export class Store {
       this.setFlashMessage(t('flash.saveFailed'));
     });
   }
-  stopEditing(): void {}
-  startEditingAtCursor(): void { this.setTaskStatus(TaskState.CONTENT_EDITING); this.changed(); }
-  getDebugInfo(): any { return {}; }
   updateLastlineContent(content: string): void { this.state.lastlineContent = content; this.changed(); }
   updateCursorPosition(line: number, col: number): void { this.state.cursorPosition = { line, column: col }; this.changed(); }
 }

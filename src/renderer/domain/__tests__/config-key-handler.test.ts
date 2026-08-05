@@ -156,10 +156,17 @@ describe('ConfigKeyHandler state machine', () => {
     expect(tdm.setConfigState).not.toHaveBeenCalled();
   });
 
-  it('j/k are not handled by config handler (command layer switches sections)', () => {
+  it('H/L are not handled by config handler (command layer switches sections)', () => {
+    const tdm = createTDM(makeTask('schedule-select'));
+    expect(handler.handleKey(makeEvent('H'), 'H', tdm)).toBe(false);
+    expect(handler.handleKey(makeEvent('L'), 'L', tdm)).toBe(false);
+  });
+
+  it('j/k are not handled by config handler (task-level movement passes through)', () => {
     const tdm = createTDM(makeTask('schedule-select'));
     expect(handler.handleKey(makeEvent('j'), 'j', tdm)).toBe(false);
     expect(handler.handleKey(makeEvent('k'), 'k', tdm)).toBe(false);
+    expect(tdm.setConfigState).not.toHaveBeenCalled();
   });
 
   it('unknown keys are consumed to prevent leaking to command layer', () => {
@@ -239,12 +246,12 @@ describe('ConfigKeyHandler 标签删除（d + 序号 + Enter）', () => {
     expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
   });
 
-  it('非数字键取消待确认，j 放行命令层切换 section', () => {
+  it('非数字键取消待确认并放行命令层（j/k 任务级移动）', () => {
     const tdm = createTDM(makeTagTask(['a', 'b']));
 
     handler.handleKey(makeEvent('d'), 'd', tdm);
     const ok = handler.handleKey(makeEvent('j'), 'j', tdm);
-    expect(ok).toBe(false); // 放行命令层
+    expect(ok).toBe(false); // 放行命令层做任务移动
     expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(0);
     expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
   });

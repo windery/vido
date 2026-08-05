@@ -1,7 +1,7 @@
+import { weekdayName } from '../i18n';
 import {
   formatDate,
   formatDateTime,
-  getWeekdayName,
 } from '../utils/date-formatter';
 
 export enum ScheduleType {
@@ -104,8 +104,8 @@ export class Schedule {
   private getWeeklyDisplayText(): string {
     const wt = this.weeklyTime;
     if (!wt?.days?.length) return '';
-    const names = wt.days.map((d) => getWeekdayName(d)).join(', ');
-    return wt.recurring ? `每${names}` : names;
+    const names = wt.days.map((d) => weekdayName(d)).join(', ');
+    return wt.recurring ? `every ${names}` : names;
   }
 
   private getRangeDisplayText(): string {

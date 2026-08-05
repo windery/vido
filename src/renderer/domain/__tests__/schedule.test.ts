@@ -40,21 +40,21 @@ describe('Schedule', () => {
       const s = new Schedule(ScheduleType.WEEKLY, {
         weeklyTime: { days: [Weekday.MONDAY] },
       });
-      expect(s.getDisplayText()).toBe('周一');
+      expect(s.getDisplayText()).toBe('Mon');
     });
 
     it('displays "每" prefix when recurring', () => {
       const s = new Schedule(ScheduleType.WEEKLY, {
         weeklyTime: { days: [Weekday.MONDAY], recurring: true },
       });
-      expect(s.getDisplayText()).toBe('每周一');
+      expect(s.getDisplayText()).toBe('every Mon');
     });
 
     it('shows multiple days joined by comma', () => {
       const s = new Schedule(ScheduleType.WEEKLY, {
         weeklyTime: { days: [Weekday.MONDAY, Weekday.WEDNESDAY, Weekday.FRIDAY] },
       });
-      expect(s.getDisplayText()).toBe('周一, 周三, 周五');
+      expect(s.getDisplayText()).toBe('Mon, Wed, Fri');
     });
 
     it('returns empty when days array is empty', () => {
@@ -104,7 +104,7 @@ describe('Schedule', () => {
       const s = new Schedule(ScheduleType.WEEKLY, {
         weeklyTime: { days: [Weekday.MONDAY], recurring: true },
       });
-      expect(s.getShortText()).toBe('每周一');
+      expect(s.getShortText()).toBe('every Mon');
     });
   });
 });

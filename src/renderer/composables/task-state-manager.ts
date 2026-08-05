@@ -48,8 +48,3 @@ store.afterChange(() => {
 export function getGlobalStateRef() {
   return globalStateRef;
 }
-
-export function resetGlobalState(): void {
-  isInit = false;
-  logger.info('TaskStateManager', 'Global state reset');
-}

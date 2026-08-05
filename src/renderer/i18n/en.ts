@@ -1,8 +1,17 @@
-/** English dictionary */
+/** English dictionary (single language) */
 
-import type { HelpSection } from './zh';
+export interface HelpItem {
+  key: string;
+  desc: string;
+}
 
-export const en: typeof import('./zh').zh = {
+export interface HelpSection {
+  title: string;
+  commands: HelpItem[];
+  notes?: string[];
+}
+
+export const en = {
   header: {
     title: 'Vido - Vim Todo Manager',
     tasks: '{n} tasks',
@@ -44,7 +53,7 @@ export const en: typeof import('./zh').zh = {
     tagDeleteHint: 'd + index + ⏎ to delete',
     tagPlaceholder: 'Type a tag, Enter to save',
     add: 'Add',
-    footer: '<kbd>j</kbd><kbd>k</kbd> cycle config · <kbd>Esc</kbd> exit',
+    footer: '<kbd>H</kbd><kbd>L</kbd> cycle config · <kbd>Esc</kbd> exit',
   },
   content: {
     placeholder: '# Task content (markdown supported)',
@@ -77,7 +86,6 @@ export const en: typeof import('./zh').zh = {
     tagsShown: 'Tags: {tags}',
     tagAdded: 'Added tag: #{tag}',
     themeSet: 'Theme: {theme}',
-    langSet: 'Language: {lang}',
     searchCleared: 'Search cleared',
     unknownCommand: 'Unknown command: {cmd}',
     saveFailed: 'Save failed! Data not written to disk',
@@ -110,7 +118,6 @@ export const en: typeof import('./zh').zh = {
           { key: ':', desc: 'Enter command mode' },
           { key: 'cc', desc: 'Expand task config inline (schedule/priority/tags)' },
           { key: 'T', desc: 'Toggle theme' },
-          { key: 'L', desc: 'Toggle language' },
           { key: '?', desc: 'Show/hide this help' },
         ],
       },
@@ -128,7 +135,6 @@ export const en: typeof import('./zh').zh = {
           { key: ':w', desc: 'Save tasks' },
           { key: ':q', desc: 'Quit application' },
           { key: ':theme [dark|light]', desc: 'Switch theme' },
-          { key: ':lang [zh|en]', desc: 'Switch language' },
           { key: '↑/↓ after : or /', desc: 'Browse command/search history' },
           { key: 'Tab after command name', desc: 'Complete commands (e.g. :th + Tab → :theme)' },
         ],
@@ -138,18 +144,18 @@ export const en: typeof import('./zh').zh = {
         commands: [
           { key: ':time', desc: 'Show current task schedule' },
           { key: ':schedule', desc: 'Set to today (no args)' },
-          { key: ':sched today', desc: 'Set to today (short form)' },
-          { key: ':sched tomorrow', desc: 'Set to tomorrow' },
-          { key: ':sched monday', desc: 'Set to this Monday' },
-          { key: ':sched every monday', desc: 'Set to every Monday (recurring)' },
-          { key: ':sched 2025-08-01', desc: 'Set specific date' },
-          { key: ':sched 2025-08-01 14:30:00', desc: 'Set date & time' },
-          { key: ':sched clear', desc: 'Clear schedule' },
+          { key: ':schedule tomorrow', desc: 'Set to tomorrow' },
+          { key: ':schedule monday', desc: 'Set to this Monday' },
+          { key: ':schedule every monday', desc: 'Set to every Monday (recurring)' },
+          { key: ':schedule 2025-08-01', desc: 'Set specific date' },
+          { key: ':schedule 2025-08-01 14:30:00', desc: 'Set date & time' },
+          { key: ':schedule clear', desc: 'Clear schedule' },
         ],
         notes: [
           'Time format: YYYY-MM-DD HH:MM:SS',
-          'Supports: 周一~周日, 星期一~星期日, Monday~Sunday',
-          ':sched is short for :schedule',
+          'Weekdays: monday~sunday (also accepts 周一~周日 for CJK input)',
+          'Date without a time defaults to 10:00',
+          'Tab completes commands and schedule values (today/tomorrow/weekdays/dates)',
         ],
       },
       {
@@ -176,7 +182,7 @@ export const en: typeof import('./zh').zh = {
         title: 'CONFIG MODE',
         commands: [
           { key: 'cs / cp / ct', desc: 'Jump to schedule/priority/tags' },
-          { key: 'j/k', desc: 'Navigate between sections' },
+          { key: 'H / L', desc: 'Navigate between sections (same task, sideways)' },
           { key: '1 / 2 / 3', desc: 'Quick select (priority/schedule)' },
           { key: 'cc', desc: 'Clear (schedule/priority/tags)' },
           { key: 'd + index + ⏎', desc: 'Delete the tag with that number (shown before each tag)' },

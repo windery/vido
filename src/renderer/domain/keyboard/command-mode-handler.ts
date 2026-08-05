@@ -5,7 +5,7 @@
 
 import { ModeHandler } from './base-handler';
 import { Store } from '../state/store';
-import { toggleTheme, toggleLang, prefs } from '../state/prefs';
+import { toggleTheme, prefs } from '../state/prefs';
 import { t } from '../../i18n';
 
 export class CommandModeHandler implements ModeHandler {
@@ -77,20 +77,20 @@ export class CommandModeHandler implements ModeHandler {
 
       case 'j':
         event.preventDefault();
-        if (selectedTaskId) {
-          const task = (currentState as any).tasks?.find((t: any) => t.id === selectedTaskId);
-          if (task?.configState) {
-            this.navigateConfig(taskDataManager, selectedTaskId, task.configState, 'next');
-            this.resetAll();
-            return true;
-          }
-        }
         this.repeatAction(() => taskDataManager.selectNext(), count);
         this.scrollToSelectedTask();
         this.resetAll();
         return true;
 
       case 'k':
+        event.preventDefault();
+        this.repeatAction(() => taskDataManager.selectPrevious(), count);
+        this.scrollToSelectedTask();
+        this.resetAll();
+        return true;
+
+      // 配置展开时：H/L 在同一任务的配置项间横向切换（j/k 留给任务级上下移动）
+      case 'H':
         event.preventDefault();
         if (selectedTaskId) {
           const task = (currentState as any).tasks?.find((t: any) => t.id === selectedTaskId);
@@ -100,8 +100,19 @@ export class CommandModeHandler implements ModeHandler {
             return true;
           }
         }
-        this.repeatAction(() => taskDataManager.selectPrevious(), count);
-        this.scrollToSelectedTask();
+        this.resetAll();
+        return true;
+
+      case 'L':
+        event.preventDefault();
+        if (selectedTaskId) {
+          const task = (currentState as any).tasks?.find((t: any) => t.id === selectedTaskId);
+          if (task?.configState) {
+            this.navigateConfig(taskDataManager, selectedTaskId, task.configState, 'next');
+            this.resetAll();
+            return true;
+          }
+        }
         this.resetAll();
         return true;
 
@@ -171,13 +182,6 @@ export class CommandModeHandler implements ModeHandler {
         event.preventDefault();
         toggleTheme();
         taskDataManager.setFlashMessage(t('flash.themeSet', { theme: prefs.theme }));
-        this.resetAll();
-        return true;
-
-      case 'L':
-        event.preventDefault();
-        toggleLang();
-        taskDataManager.setFlashMessage(t('flash.langSet', { lang: prefs.lang === 'zh' ? '中文' : 'English' }));
         this.resetAll();
         return true;
 
@@ -301,7 +305,7 @@ export class CommandModeHandler implements ModeHandler {
 
   private navigateConfig(tdm: Store, taskId: number, current: string, dir: 'next' | 'prev'): void {
     const cycle = ['schedule-select', 'priority-select', 'tags-select'];
-    // edit 态由输入框独占，不参与 j/k 切换
+    // edit 态由输入框独占，不参与 H/L 切换
     const idx = cycle.indexOf(current);
     if (idx < 0) return;
     const nextIdx = dir === 'next'

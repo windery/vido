@@ -66,10 +66,10 @@ describe('parseScheduleFromString', () => {
     expect(s!.weeklyTime?.days).toEqual([Weekday.MONDAY]);
   });
 
-  it('parses date string "2026-05-15"', () => {
+  it('parses date string "2026-05-15" with default 10:00 time', () => {
     const s = parseScheduleFromString('2026-05-15');
-    expect(s!.type).toBe(ScheduleType.QUICK);
-    expect(s!.quickTime?.date).toBe('2026-05-15');
+    expect(s!.type).toBe(ScheduleType.TIME);
+    expect(s!.quickTime?.time).toBe('2026-05-15 10:00:00');
   });
 
   it('parses compact datetime "202603061513" → YYYY-MM-DD HH:MM:SS', () => {
@@ -78,10 +78,10 @@ describe('parseScheduleFromString', () => {
     expect(s!.quickTime?.time).toBe('2026-03-06 15:13:00');
   });
 
-  it('parses compact date "20260306" → YYYY-MM-DD', () => {
+  it('parses compact date "20260306" → YYYY-MM-DD with default 10:00', () => {
     const s = parseScheduleFromString('20260306');
-    expect(s!.type).toBe(ScheduleType.QUICK);
-    expect(s!.quickTime?.date).toBe('2026-03-06');
+    expect(s!.type).toBe(ScheduleType.TIME);
+    expect(s!.quickTime?.time).toBe('2026-03-06 10:00:00');
   });
 
   it('parses time-only "15:33" as today at that time', () => {

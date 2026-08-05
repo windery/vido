@@ -89,6 +89,13 @@ function focusMainWindow(): void {
 }
 
 async function createWindow() {
+  // macOS Dock 图标：F5 调试跑的是 Electron 二进制，bundle 图标是默认的，
+  // 用 app.dock.setIcon 运行时替换成 vido 图标（与打包后的 .icns 一致）。
+  // 注意 setIcon 需要 PNG/ICNS，favicon.ico 是 ICO 格式不适用。
+  if (process.platform === 'darwin') {
+    app.dock.setIcon(path.join(process.env.VITE_PUBLIC, 'icon.png'));
+  }
+
   win = new BrowserWindow({
     title: 'Vido',
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),

@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import LastLine from '../LastLine.vue';
 import { store } from '../../domain/state/store';
+import { getCurrentDate } from '../../utils/date-formatter';
 
 /** 直接清空内部历史（测试隔离，避免跨用例累积） */
 function clearHistory(): void {
@@ -110,5 +111,189 @@ describe('LastLine — 输入框占位提示', () => {
     const wrapper = mount(LastLine);
     await nextTick();
     expect(wrapper.find('input').exists()).toBe(false);
+  });
+});
+
+describe('LastLine — 命令补全（灰色候选 + Tab 循环）', () => {
+  beforeEach(() => {
+    if (store.state.lastlineVisible) store.transition('Escape');
+    clearHistory();
+    store.transition(':');
+  });
+
+  it('输入 :sc 时灰色候选显示第一个匹配命令的剩余部分', async () => {
+    store.updateLastlineContent(':sc');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    expect(wrapper.find('.ghost').exists()).toBe(true);
+    expect(wrapper.find('.ghost').text()).toBe('hedule'); // schedule 的剩余
+  });
+
+  it('唯一匹配时灰色候选显示完整剩余', async () => {
+    store.updateLastlineContent(':sch');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    expect(wrapper.find('.ghost').text()).toBe('edule');
+  });
+
+  it('无匹配或空输入时不显示灰色候选', async () => {
+    const wrapper = mount(LastLine);
+    await nextTick();
+    expect(wrapper.find('.ghost').exists()).toBe(false);
+    store.updateLastlineContent(':zzz');
+    await nextTick();
+    expect(wrapper.find('.ghost').exists()).toBe(false);
+  });
+
+  it('搜索模式不显示灰色候选', async () => {
+    store.transition('Escape');
+    store.transition('/');
+    store.updateLastlineContent('/sc');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    expect(wrapper.find('.ghost').exists()).toBe(false);
+  });
+
+  it('Tab 补全为第一个候选，再按 Tab 循环下一个候选', async () => {
+    store.updateLastlineContent(':s');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    const input = wrapper.find('input');
+
+    await input.trigger('keydown', { key: 'Tab' });
+    expect(store.state.lastlineContent).toBe(':schedule');
+
+    await input.trigger('keydown', { key: 'Tab' });
+    expect(store.state.lastlineContent).toBe(':sort');
+
+    await input.trigger('keydown', { key: 'Tab' });
+    expect(store.state.lastlineContent).toBe(':schedule'); // 循环回第一个
+  });
+
+  it('补全后键入新字符重置循环，回到首个候选', async () => {
+    store.updateLastlineContent(':s');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    const input = wrapper.find('input');
+
+    await input.trigger('keydown', { key: 'Tab' });
+    expect(store.state.lastlineContent).toBe(':schedule');
+
+    // 键入字符（触发 @input）重置会话
+    await input.setValue('sort');
+    await input.trigger('input');
+    await input.trigger('keydown', { key: 'Tab' });
+    // 新输入 sort 唯一匹配自身
+    expect(store.state.lastlineContent).toBe(':sort');
+  });
+
+  it('完整输入唯一命令时 Tab 无副作用', async () => {
+    store.updateLastlineContent(':theme');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    const input = wrapper.find('input');
+    await input.trigger('keydown', { key: 'Tab' });
+    expect(store.state.lastlineContent).toBe(':theme');
+  });
+});
+
+describe('LastLine — schedule 参数补全（关键字/日期/时间）', () => {
+  beforeEach(() => {
+    if (store.state.lastlineVisible) store.transition('Escape');
+    clearHistory();
+    store.transition(':');
+  });
+
+  it('空格后灰色候选显示第一个参数关键字 today', async () => {
+    store.updateLastlineContent(':schedule ');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    expect(wrapper.find('.ghost').exists()).toBe(true);
+    expect(wrapper.find('.ghost').text()).toBe('today');
+  });
+
+  it('参数前缀匹配显示剩余（tom → orrow）', async () => {
+    store.updateLastlineContent(':schedule tom');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    expect(wrapper.find('.ghost').text()).toBe('orrow');
+  });
+
+  it('Tab 在参数关键字间循环（today → tomorrow → next week → monday…）', async () => {
+    store.updateLastlineContent(':schedule ');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    const input = wrapper.find('input');
+
+    await input.trigger('keydown', { key: 'Tab' });
+    expect(store.state.lastlineContent).toBe(':schedule today');
+
+    await input.trigger('keydown', { key: 'Tab' });
+    expect(store.state.lastlineContent).toBe(':schedule tomorrow');
+
+    await input.trigger('keydown', { key: 'Tab' });
+    expect(store.state.lastlineContent).toBe(':schedule next week');
+
+    await input.trigger('keydown', { key: 'Tab' });
+    expect(store.state.lastlineContent).toBe(':schedule monday');
+
+    // 完整循环 13 个关键字后回到 today
+    for (let i = 0; i < 9; i++) await input.trigger('keydown', { key: 'Tab' });
+    expect(store.state.lastlineContent).toBe(':schedule today');
+  });
+
+  it('数字输入时灰色候选补全为今天日期（提醒日期格式）', async () => {
+    const today = getCurrentDate(); // 动态：2026-08-05 等
+    store.updateLastlineContent(`:schedule ${today.slice(0, 7)}`); // YYYY-MM
+    const wrapper = mount(LastLine);
+    await nextTick();
+    expect(wrapper.find('.ghost').exists()).toBe(true);
+    expect(wrapper.find('.ghost').text()).toBe(today.slice(7)); // -DD
+  });
+
+  it('完整日期后灰色候选消失，按空格出现默认时间 10:00', async () => {
+    store.updateLastlineContent(':schedule 2025-08-01');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    expect(wrapper.find('.ghost').exists()).toBe(false);
+
+    store.updateLastlineContent(':schedule 2025-08-01 ');
+    await nextTick();
+    expect(wrapper.find('.ghost').exists()).toBe(true);
+    expect(wrapper.find('.ghost').text()).toBe('10:00');
+  });
+
+  it('时间前缀匹配默认时间（1 → 0:00），Tab 补全完整时间', async () => {
+    store.updateLastlineContent(':schedule 2025-08-01 1');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    expect(wrapper.find('.ghost').text()).toBe('0:00');
+
+    await wrapper.find('input').trigger('keydown', { key: 'Tab' });
+    expect(store.state.lastlineContent).toBe(':schedule 2025-08-01 10:00');
+  });
+
+  it('every 后空格灰色候选显示 monday，Tab 补全 every monday', async () => {
+    store.updateLastlineContent(':schedule every ');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    expect(wrapper.find('.ghost').text()).toBe('monday');
+
+    await wrapper.find('input').trigger('keydown', { key: 'Tab' });
+    expect(store.state.lastlineContent).toBe(':schedule every monday');
+  });
+
+  it('完整关键字输入时无候选（正好符合预期，直接 Enter）', async () => {
+    store.updateLastlineContent(':schedule tomorrow');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    expect(wrapper.find('.ghost').exists()).toBe(false);
+  });
+
+  it('非 schedule 命令无参数补全', async () => {
+    store.updateLastlineContent(':sort ');
+    const wrapper = mount(LastLine);
+    await nextTick();
+    expect(wrapper.find('.ghost').exists()).toBe(false);
   });
 });

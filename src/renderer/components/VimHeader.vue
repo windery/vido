@@ -28,7 +28,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { prefs } from '../domain/state/prefs';
 import { t } from '../i18n';
 
 const PROGRESS_BLOCKS = 10;
@@ -44,7 +43,7 @@ const now = ref(new Date());
 let timeInterval: ReturnType<typeof setInterval> | null = null;
 
 const currentTime = computed(() => {
-    return now.value.toLocaleString(prefs.lang === 'zh' ? 'zh-CN' : 'en-US', {
+    return now.value.toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',

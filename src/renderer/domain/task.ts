@@ -8,12 +8,10 @@ export class Task {
   flagged: boolean;
   selected: boolean;
   status: TaskState;
-  remind?: TaskRemind;
   tags?: string[];
   priority?: TaskPriority;
   schedule?: Schedule;
   configState?: string;
-  isNewlyCreated?: boolean;
   /** 最近一次数据变更时间戳（ms），供 :sort updated */
   updatedAt?: number;
   /** 剪贴板任务保留原始任务 id，供 paste 日志记录来源 */
@@ -31,20 +29,8 @@ export class Task {
     this.priority = undefined;
     this.completed = false;
     this.flagged = false;
-    this.isNewlyCreated = false;
     this.cursorLine = 0;
     this.cursorColumn = 0;
-  }
-}
-
-export class TaskRemind {
-  date: Date;
-  location?: string;
-  repeat?: boolean;
-
-  constructor(date: Date, repeat: boolean) {
-    this.date = date;
-    this.repeat = repeat;
   }
 }
 

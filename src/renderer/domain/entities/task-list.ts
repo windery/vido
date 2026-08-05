@@ -15,17 +15,12 @@ export function taskMatchesSearch(t: Task, term: string): boolean {
 }
 
 export class TaskList {
-  constructor(readonly items: Task[], readonly searchFilter?: string) {}
+  constructor(readonly items: Task[]) {}
 
   // ======== 查询 ========
 
   get all(): Task[] {
-    if (!this.searchFilter) return this.items;
-    const term = this.searchFilter;
-    if (!term) return this.items;
-    return this.items.filter(
-      (t) => t.title.includes(term) || t.content.includes(term)
-    );
+    return this.items;
   }
 
   get selected(): Task | null {
@@ -34,10 +29,6 @@ export class TaskList {
 
   get selectedIndex(): number {
     return this.all.findIndex((t) => t.selected);
-  }
-
-  get isSearching(): boolean {
-    return !!(this.searchFilter && this.searchFilter.length > 0);
   }
 
   // ======== 导航 ========
@@ -89,10 +80,6 @@ export class TaskList {
   // ======== 内部工具 ========
 
   withItems(items: Task[]): TaskList {
-    return new TaskList(items, this.searchFilter);
-  }
-
-  withSearch(filter?: string): TaskList {
-    return new TaskList(this.items, filter);
+    return new TaskList(items);
   }
 }

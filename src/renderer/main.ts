@@ -1,17 +1,9 @@
 import { createApp } from 'vue';
-import { createPinia } from 'pinia';
 import App from './App.vue';
-import ElementPlus from 'element-plus';
-import 'element-plus/dist/index.css';
-import 'element-plus/theme-chalk/dark/css-vars.css'; // 引入暗色主题的样式变量
 
 import './style.css';
 
-const pinia = createPinia();
-
 const app = createApp(App);
-app.use(ElementPlus);
-app.use(pinia);
 
 // 在Pinia设置完成后再初始化
 import('./initialize').then(() => {

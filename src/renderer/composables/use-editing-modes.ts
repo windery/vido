@@ -13,14 +13,6 @@ export function useEditingModes() {
     taskDataManager.startContentNavigation();
   };
 
-  const startEditingAtCursor = () => {
-    taskDataManager.startEditingAtCursor();
-  };
-
-  const stopEditing = () => {
-    taskDataManager.stopEditing();
-  };
-
   const startTitleEditing = () => {
     taskDataManager.startTitleEditing();
   };
@@ -33,8 +25,6 @@ export function useEditingModes() {
   return {
     // 编辑模式切换
     startContentNavigation,
-    startEditingAtCursor,
-    stopEditing,
     startTitleEditing,
 
     // 状态转换

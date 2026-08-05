@@ -111,7 +111,8 @@ describe('Store — 撤销 / 重做', () => {
   it('一次内容编辑会话内的连续输入合并为一条撤销记录（一次 u 还原整段编辑）', () => {
     const task = store.manager.list.selected!;
     const orig = task.content;
-    store.startEditingAtCursor();
+    store.transition('i');
+    store.transition('i');
     store.updateTaskProperty(task.id, 'content', orig + '\n- 第一行');
     store.updateTaskProperty(task.id, 'content', orig + '\n- 第一行\n- 第二行');
     store.updateTaskProperty(task.id, 'content', orig + '\n- 第一行\n- 第二行\n- 第三行');
@@ -121,7 +122,8 @@ describe('Store — 撤销 / 重做', () => {
 
   it('undo 内容编辑后任务 status 归一化回 SELECTED（不卡在编辑态）', () => {
     const task = store.manager.list.selected!;
-    store.startEditingAtCursor();
+    store.transition('i');
+    store.transition('i');
     store.updateTaskProperty(task.id, 'content', '# 新内容');
     expect(store.manager.list.selected?.status).toBe(TaskState.CONTENT_EDITING);
     store.undo();
@@ -133,11 +135,13 @@ describe('Store — 撤销 / 重做', () => {
     const task = store.manager.list.selected!;
     const orig = task.content;
     // 会话 1
-    store.startEditingAtCursor();
+    store.transition('i');
+    store.transition('i');
     store.updateTaskProperty(task.id, 'content', orig + '\n- A');
     store.exitContentNavigation();
     // 会话 2（重新进入编辑态，开新会话）
-    store.startEditingAtCursor();
+    store.transition('i');
+    store.transition('i');
     store.updateTaskProperty(task.id, 'content', orig + '\n- B');
     store.undo();
     expect(store.manager.list.selected?.content).toBe(orig + '\n- A');
@@ -249,11 +253,6 @@ describe('Store — task.status 与 editorMode 保持同步', () => {
   it('startContentNavigation 设置任务状态为 CONTENT_NAVIGATION', () => {
     store.startContentNavigation();
     expect(store.manager.list.selected?.status).toBe(TaskState.CONTENT_NAVIGATION);
-  });
-
-  it('startEditingAtCursor 设置任务状态为 CONTENT_EDITING', () => {
-    store.startEditingAtCursor();
-    expect(store.manager.list.selected?.status).toBe(TaskState.CONTENT_EDITING);
   });
 
   it('transition(i) 从 COMMAND 进入 CONTENT_NAVIGATION 并同步任务状态', () => {
@@ -618,5 +617,94 @@ describe('Store — 防抖自动保存', () => {
     store.undo();
     vi.advanceTimersByTime(800);
     expect(saveSpy).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('Store — 配置面板跟随选中任务（j/k 移动时 configState 迁移）', () => {
+  function makeMultiStore(): Store {
+    const store = new Store();
+    const mk = (id: number, title: string) => {
+      const t = new Task(id);
+      t.title = title;
+      t.selected = false;
+      t.status = TaskState.VIEWING;
+      return t;
+    };
+    store.manager = new TaskListManager(new TaskList([mk(1, 'A'), mk(2, 'B'), mk(3, 'C')]), 4);
+    store.manager.selectTask(1);
+    return store;
+  }
+
+  it('配置展开时 selectNext 把 configState 迁移到新选中任务', () => {
+    const store = makeMultiStore();
+    store.setConfigState(1, 'schedule-select');
+    store.selectNext();
+    const selected = store.manager.list.selected!;
+    expect(selected.id).toBe(2);
+    expect(selected.configState).toBe('schedule-select');
+    expect(store.manager.list.items.find((t) => t.id === 1)!.configState).toBeUndefined();
+  });
+
+  it('selectPrevious 反向迁移同样生效', () => {
+    const store = makeMultiStore();
+    store.manager.selectTask(3);
+    store.setConfigState(3, 'tags-select');
+    store.selectPrevious();
+    const selected = store.manager.list.selected!;
+    expect(selected.id).toBe(2);
+    expect(selected.configState).toBe('tags-select');
+    expect(store.manager.list.items.find((t) => t.id === 3)!.configState).toBeUndefined();
+  });
+
+  it('未展开配置时移动任务不受影响', () => {
+    const store = makeMultiStore();
+    store.selectNext();
+    expect(store.manager.list.selected!.configState).toBeUndefined();
+  });
+});
+
+describe('Store — 搜索激活时 j/k 只在匹配集内移动', () => {
+  function makeSearchStore(): Store {
+    const store = new Store();
+    const mk = (id: number, title: string) => {
+      const t = new Task(id);
+      t.title = title;
+      t.selected = false;
+      t.status = TaskState.VIEWING;
+      return t;
+    };
+    store.manager = new TaskListManager(new TaskList([
+      mk(1, 'apple'),
+      mk(2, 'banana'),
+      mk(3, 'apple pie'),
+      mk(4, 'cherry'),
+    ]), 5);
+    store.manager.selectTask(1);
+    return store;
+  }
+
+  it('搜索 /apple 时 selectNext 只在匹配集（1,3）内移动', () => {
+    const store = makeSearchStore();
+    store.updateLastlineContent('/apple');
+    store.selectNext(); // 1 → 3（跳过 banana）
+    expect(store.manager.list.selected?.id).toBe(3);
+    store.selectNext(); // 3 → 1（回卷）
+    expect(store.manager.list.selected?.id).toBe(1);
+  });
+
+  it('搜索 /apple 时 selectPrevious 反向移动', () => {
+    const store = makeSearchStore();
+    store.updateLastlineContent('/apple');
+    store.manager.selectTask(3);
+    store.selectPrevious(); // 3 → 1
+    expect(store.manager.list.selected?.id).toBe(1);
+  });
+
+  it('搜索激活时移动不会落到不可见任务', () => {
+    const store = makeSearchStore();
+    store.updateLastlineContent('/apple');
+    store.selectNext();
+    const id = store.manager.list.selected!.id;
+    expect([1, 3]).toContain(id);
   });
 });
