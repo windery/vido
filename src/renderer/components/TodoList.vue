@@ -66,19 +66,22 @@ function measureGroup(): void {
     const g = groupBox.value;
     const content = contentRef.value;
     if (!g || !content) { boxStyle.value = null; return; }
-    // 测 .task-container（含展开的内容区），框住整个组
     const startEl = content.querySelector(`[data-task-id="${g.startId}"]`);
     const endEl = content.querySelector(`[data-task-id="${g.endId}"]`);
     if (!startEl || !endEl) { boxStyle.value = null; return; }
     const contentRect = content.getBoundingClientRect();
+    // 高度：首行容器到末行容器（含展开的内容区）
     const sr = startEl.getBoundingClientRect();
     const er = endEl.getBoundingClientRect();
-    // 左右对齐组首行（主任务行）的容器边界——不朝外
+    // 左右：对齐行内容（.task-line）的左右缘——不贴容器边，
+    // 行号/标题与框之间自然留白（line 自带 padding）
+    const lineEl = startEl.querySelector('.task-line');
+    const lr = lineEl ? lineEl.getBoundingClientRect() : sr;
     boxStyle.value = {
         top: sr.top - contentRect.top,
         height: er.bottom - sr.top,
-        left: sr.left - contentRect.left,
-        width: sr.width,
+        left: lr.left - contentRect.left,
+        width: lr.width,
     };
 }
 
