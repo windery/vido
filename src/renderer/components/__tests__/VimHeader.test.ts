@@ -14,7 +14,6 @@ describe('VimHeader', () => {
       props: { filteredTasksCount: 3, completedTasksCount: 1 },
     });
     expect(wrapper.text()).toContain('vido'); // logo 品牌
-    expect(wrapper.text()).toContain('tasks.json'); // 当前 buffer 文件名（不再重复品牌）
     expect(wrapper.text()).toContain('tasks'); // 数字与单位分离，不重复
     expect(wrapper.text()).toContain('done');
   });

@@ -13,7 +13,6 @@ export interface HelpSection {
 
 export const en = {
   header: {
-    title: 'tasks.json',
     tasks: 'tasks',
     done: 'done',
   },

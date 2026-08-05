@@ -2,7 +2,6 @@
     <div class="vim-header">
         <div class="file-info">
             <span class="logo">vido</span>
-            <span class="file-name">{{ t('header.title') }}</span>
             <span class="file-status">{{ currentTime }}</span>
         </div>
         <div class="header-right">
@@ -113,14 +112,6 @@ onUnmounted(() => {
     display: inline-flex;
     align-items: center;
     flex-shrink: 0;
-}
-
-.file-name {
-    color: var(--text-bright);
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .file-status {
