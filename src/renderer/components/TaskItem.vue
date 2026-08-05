@@ -387,9 +387,10 @@ watchEffect(() => {
     color: var(--text-3); /* 子任务次级感：行号弱化 */
 }
 
-/* 主次分明：子任务标题整体变暗，主任务保持亮色——组内一眼看出主从 */
-.task-line.subtask .task-title {
-    color: var(--text-2);
+/* 主次分明（区域区分）：子任务行整体极淡底色——子任务区域'沉下去'，
+   主任务保持亮色无背景 → 组内一眼看出主从；hover/选中背景正常覆盖 */
+.task-line.subtask {
+    background: rgba(255, 255, 255, 0.025);
 }
 
 .task-line.completed {
