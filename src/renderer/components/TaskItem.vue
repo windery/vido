@@ -387,6 +387,11 @@ watchEffect(() => {
     color: var(--text-3); /* 子任务次级感：行号弱化 */
 }
 
+/* 主次分明：子任务标题整体变暗，主任务保持亮色——组内一眼看出主从 */
+.task-line.subtask .task-title {
+    color: var(--text-2);
+}
+
 .task-line.completed {
     opacity: 0.6;
 }
