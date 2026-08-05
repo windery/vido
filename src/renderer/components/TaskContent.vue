@@ -250,6 +250,12 @@ onMounted(() => {
     white-space: pre-wrap;
     max-height: calc(60vh - 24px);
     overflow-y: auto;
+    /* 与 .content-editor 对称：隐藏滚动条，两态宽度恒等、高度一致 */
+    scrollbar-width: none;
+}
+
+.markdown-display::-webkit-scrollbar {
+    display: none;
 }
 
 .markdown-display :deep(h1),

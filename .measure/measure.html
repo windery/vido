@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  * { box-sizing: border-box; }
+  .shell { font-family: 'SF Mono','Monaco','Inconsolata','Roboto Mono',monospace; font-size: 13px; line-height: 1.65; }
+  textarea.editor { background: transparent; border: none; padding: 0; font-family: inherit; font-size: inherit; line-height: inherit; resize: none; width: 100%; min-height: 24px; overflow-y: auto; height: auto; display: block; }
+  .md { font-family: 'SF Mono','Monaco','Inconsolata','Roboto Mono',monospace; font-size: 13px; line-height: 1.65; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; }
+  .md p { margin: 0; padding: 0; }
+  .md p + p { margin-top: 6px; }
+</style>
+</head>
+<body>
+  <div class="shell"><textarea class="editor" id="ta">line one
+line two
+line three</textarea></div>
+  <div class="md" id="md"><p>line one
+line two
+line three</p></div>
+</body>
+</html>
