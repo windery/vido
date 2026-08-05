@@ -189,3 +189,15 @@ describe('TaskItem 子任务缩进渲染', () => {
     expect(parent.find('.task-line').classes()).not.toContain('subtask');
   });
 });
+
+describe('TaskItem 连接线延续', () => {
+  it('中间子任务（下一行仍是子任务）：引导线带 extends 延伸类（衔接不断线）', () => {
+    const mid = mountItem(makeTask({ indent: 1 }), { lineContinues: true });
+    expect(mid.find('.indent-guide').classes()).toContain('extends');
+  });
+
+  it('最后一个子任务（下一行非子任务）：引导线不延伸', () => {
+    const last = mountItem(makeTask({ indent: 1 }), { lineContinues: false });
+    expect(last.find('.indent-guide').classes()).not.toContain('extends');
+  });
+});

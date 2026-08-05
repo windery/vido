@@ -3,7 +3,7 @@
         :style="{ marginLeft: (task.indent || 0) * 24 + 'px' }">
         <!-- 缩进引导线：子任务画在缩进轨道；父任务（有子任务）画延伸线衔接下一行，
              两者同一 x 位置 → 视觉连续，清晰表达父子归属 -->
-        <div v-if="(task.indent || 0) > 0" class="indent-guide"
+        <div v-if="(task.indent || 0) > 0" class="indent-guide" :class="{ 'extends': lineContinues }"
             :style="{ left: -(task.indent || 0) * 24 + 'px', width: (task.indent || 0) * 24 + 'px' }"></div>
         <div v-else-if="hasChildren" class="indent-guide parent-guide"
             :style="{ left: '0px', width: '24px' }"></div>
@@ -126,6 +126,8 @@ interface Props {
     index: number;
     /** 是否有直接子任务（下一行缩进更深）——父任务行画延伸连接线 */
     hasChildren?: boolean;
+    /** 下一行仍是子任务——引导线需向下延伸衔接（多个连续子任务线不断） */
+    lineContinues?: boolean;
     searchTerm?: string;
 }
 
@@ -399,6 +401,11 @@ watchEffect(() => {
 
 /* 父任务延伸线：向下覆盖行间距（4px）与子任务引导线衔接，形成连续树线 */
 .parent-guide {
+    bottom: -5px;
+}
+
+/* 连续子任务：引导线向下延伸覆盖行间距，与下一个子任务的线衔接（不断线） */
+.indent-guide.extends {
     bottom: -5px;
 }
 
