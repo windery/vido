@@ -85,8 +85,15 @@ export class Store {
 
   private restore(items: Task[]): void {
     // 撤销/重做只还原数据；status 是瞬态编辑态，统一归位，防止 undo 后任务卡在编辑框
+    // 例外：撤销前处于 content-nav 导航态（vim normal 编辑操作 x/dd/dw…）时保持导航，
+    // 否则块光标（caret-mirror）因 status 归位为 SELECTED 而消失
+    const current = this.manager.list.selected;
+    const keepNav = current?.status === TaskState.CONTENT_NAVIGATION;
     const normalized = items.map((t) => {
-      const task = { ...t, status: t.selected ? TaskState.SELECTED : TaskState.VIEWING } as Task;
+      const status = t.selected
+        ? keepNav ? TaskState.CONTENT_NAVIGATION : TaskState.SELECTED
+        : TaskState.VIEWING;
+      const task = { ...t, status } as Task;
       // structuredClone 丢失 Schedule 原型，须重建，否则渲染时 getDisplayText 崩溃
       if (task.schedule && typeof (task.schedule as any).getDisplayText !== 'function') {
         task.schedule = migrateSchedule(task.schedule as any) || undefined;

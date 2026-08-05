@@ -901,3 +901,51 @@ describe('Store — content-nav vim 编辑操作', () => {
     expect(cur(s).cursorLine).toBe(1);
   });
 });
+
+describe('Store — content-nav undo 保持导航态（块光标不消失）', () => {
+  function makeNavStore(content: string): Store {
+    const store = new Store();
+    const t = new Task(1);
+    t.title = 'A';
+    t.selected = true;
+    t.status = TaskState.SELECTED;
+    t.content = content;
+    store.manager = new TaskListManager(new TaskList([t]), 2);
+    store.transition('i'); // → CONTENT_NAVIGATION
+    return store;
+  }
+  const cur = (s: Store) => s.manager.list.selected!;
+
+  it('dd 后 u：内容与光标恢复，且仍在 content-nav（块光标渲染依赖此状态）', () => {
+    const s = makeNavStore('a\nb');
+    s.moveCursorDown(); // 光标第 2 行
+    s.deleteLineAtCursor(); // dd
+    expect(cur(s).content).toBe('a');
+    s.undo();
+    expect(cur(s).content).toBe('a\nb');
+    expect(cur(s).status).toBe(TaskState.CONTENT_NAVIGATION); // 关键：光标可见
+    expect(cur(s).cursorLine).toBe(1); // 光标回到删除前的位置
+  });
+
+  it('x 后 u：内容恢复且仍在 content-nav', () => {
+    const s = makeNavStore('hello');
+    s.moveCursorRight();
+    s.deleteCharAtCursor();
+    expect(cur(s).content).toBe('hllo');
+    s.undo();
+    expect(cur(s).content).toBe('hello');
+    expect(cur(s).status).toBe(TaskState.CONTENT_NAVIGATION);
+    expect(cur(s).cursorColumn).toBe(1);
+  });
+
+  it('非导航态 undo：恢复后归位 SELECTED（keepNav 不误判）', () => {
+    const s = makeNavStore('abc');
+    s.transition('Escape'); // nav → COMMAND，status 归位 SELECTED
+    expect(cur(s).status).toBe(TaskState.SELECTED);
+    const oldTitle = cur(s).title;
+    s.updateTaskProperty(cur(s).id, 'title', 'new title');
+    s.undo();
+    expect(cur(s).title).toBe(oldTitle);
+    expect(cur(s).status).toBe(TaskState.SELECTED); // 不卡编辑态、不误判导航态
+  });
+});
