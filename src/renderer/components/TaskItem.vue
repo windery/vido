@@ -1,15 +1,16 @@
 <template>
-    <div class="task-container" :data-task-id="task.id">
-        <!-- Task line -->
+    <div class="task-container" :data-task-id="task.id"
+        :style="{ marginLeft: (task.indent || 0) * 24 + 'px' }">
+        <!-- 缩进引导线：画在缩进轨道（margin 区），每级一条竖线，不延伸进内容区 -->
+        <div v-if="(task.indent || 0) > 0" class="indent-guide"
+            :style="{ left: -(task.indent || 0) * 24 + 'px', width: (task.indent || 0) * 24 + 'px' }"></div>
+        <!-- Task line（整体右移，选中高亮不覆盖缩进轨道） -->
         <div :class="['task-line', {
             'selected': task.selected,
             'completed': task.completed,
             'editing': task.status === TaskState.CONTENT_EDITING || task.status === TaskState.TITLE_EDITING,
             'subtask': (task.indent || 0) > 0
-        }]" :style="{ paddingLeft: 6 + (task.indent || 0) * 24 + 'px', '--indent': task.indent || 0 }">
-            <!-- 缩进引导线：每级一条竖线（VSCode 风格），不延伸进内容区 -->
-            <div v-if="(task.indent || 0) > 0" class="indent-guide"
-                :style="{ width: (task.indent || 0) * 24 + 'px' }"></div>
+        }]">
             <span class="line-number">{{ index + 1 }}</span>
 
             <!-- Task content in vim style -->
@@ -371,7 +372,7 @@ watchEffect(() => {
 .task-line.selected::before {
     content: '›';
     position: absolute;
-    left: calc(4px + var(--indent, 0) * 24px); /* 跟随缩进：子任务的 › 在缩进区域右侧 */
+    left: 4px; /* task-line 已整体右移（container margin），› 即在缩进行首 */
     top: 0;
     bottom: 0;
     display: flex;
@@ -387,7 +388,6 @@ watchEffect(() => {
     position: absolute;
     top: 0;
     bottom: 0;
-    left: 0;
     pointer-events: none;
     background-image: repeating-linear-gradient(to right, transparent 0 calc(24px - 1px), var(--border-soft) calc(24px - 1px) 24px);
 }
