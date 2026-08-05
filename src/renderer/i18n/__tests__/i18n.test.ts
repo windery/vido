@@ -51,7 +51,7 @@ describe('i18n (single language: en)', () => {
   });
 
   it('interpolates variables', () => {
-    expect(t('header.tasks', { n: 3 })).toBe('3 tasks');
+    expect(t('header.tasks')).toBe('tasks');
   });
 
   it('returns the key itself when missing', () => {

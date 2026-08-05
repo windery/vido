@@ -9,11 +9,11 @@
             <div class="stats">
                 <span class="stat-block">
                     <span class="stat-num">{{ filteredTasksCount }}</span>
-                    <span class="stat-label">{{ t('header.tasks', { n: filteredTasksCount }) }}</span>
+                    <span class="stat-label">{{ t('header.tasks') }}</span>
                 </span>
                 <span class="stat-block stat-done-block">
                     <span class="stat-num">{{ completedTasksCount }}<span class="stat-sep">/</span>{{ filteredTasksCount }}</span>
-                    <span class="stat-label stat-done-label">{{ t('header.done', { done: completedTasksCount, total: filteredTasksCount }) }}</span>
+                    <span class="stat-label stat-done-label">{{ t('header.done') }}</span>
                 </span>
             </div>
             <div class="progress" role="img" :aria-label="progressLabel">

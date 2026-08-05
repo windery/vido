@@ -14,8 +14,8 @@ export interface HelpSection {
 export const en = {
   header: {
     title: 'tasks.json',
-    tasks: '{n} tasks',
-    done: '{done}/{total} done',
+    tasks: 'tasks',
+    done: 'done',
   },
   mode: {
     titleEdit: '-- TITLE EDIT -- (editing task title)',
