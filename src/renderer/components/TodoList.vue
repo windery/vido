@@ -15,7 +15,6 @@
                 <!-- Task List -->
                 <div v-else class="buffer-content">
                     <TaskItem v-for="(task, index) in filteredTasks" :key="task.id" :task="task" :index="index"
-                        :has-children="(filteredTasks[index + 1]?.indent || 0) > (task.indent || 0)"
                         :search-term="searchTerm"
                         @title-input="handleTitleInput" @cursor-update="handleCursorUpdate"
                         @content-keydown="handleContentKeydown" @content-input="handleContentInput"

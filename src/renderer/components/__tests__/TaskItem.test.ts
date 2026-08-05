@@ -154,50 +154,23 @@ describe('TaskItem 标签配置：编号与删除高亮', () => {
 });
 
 describe('TaskItem 子任务缩进渲染', () => {
-  it('子任务：container 整体右移（margin-left = indent×24px），引导线画在缩进轨道', () => {
+  it('子任务：container 整体右移（margin-left = indent×24px）', () => {
     const sub = mountItem(makeTask({ indent: 2 }));
     const container = sub.find('.task-container');
     expect(container.attributes('style')).toContain('margin-left: 48px'); // 2×24，整行右移
     // task-line 本身不再 padding 缩进（背景/高亮不覆盖缩进轨道）
     const line = sub.find('.task-line');
     expect(line.attributes('style') || '').not.toContain('padding-left');
-    // 引导线：左侧轨道宽 48px
-    const guide = sub.find('.indent-guide');
-    expect(guide.exists()).toBe(true);
-    expect(guide.attributes('style')).toContain('width: 48px');
-    expect(guide.attributes('style')).toContain('left: -48px');
   });
 
-  it('顶级任务：无缩进、无引导线、行号不弱化', () => {
+  it('顶级任务：无缩进、行号不弱化', () => {
     const top = mountItem(makeTask({ indent: 0 }));
-    const container = top.find('.task-container');
-    expect(container.attributes('style')).toContain('margin-left: 0px'); // 顶级无缩进
-    expect(top.find('.indent-guide').exists()).toBe(false);
+    expect(top.find('.task-container').attributes('style')).toContain('margin-left: 0px');
     expect(top.find('.task-line').classes()).not.toContain('subtask');
   });
 
   it('子任务行带 subtask class（行号弱化）', () => {
     const sub = mountItem(makeTask({ indent: 1 }));
     expect(sub.find('.task-line').classes()).toContain('subtask');
-  });
-
-  it('父任务（有子任务）：左侧画延伸连接线，与子任务引导线同列对齐', () => {
-    const parent = mountItem(makeTask({ indent: 0 }), { hasChildren: true });
-    const guide = parent.find('.indent-guide.parent-guide');
-    expect(guide.exists()).toBe(true);
-    expect(guide.attributes('style')).toContain('width: 24px');
-    expect(parent.find('.task-line').classes()).not.toContain('subtask');
-  });
-});
-
-describe('TaskItem 连接线延续', () => {
-  it('中间子任务（下一行仍是子任务）：引导线带 extends 延伸类（衔接不断线）', () => {
-    const mid = mountItem(makeTask({ indent: 1 }), { lineContinues: true });
-    expect(mid.find('.indent-guide').classes()).toContain('extends');
-  });
-
-  it('最后一个子任务（下一行非子任务）：引导线不延伸', () => {
-    const last = mountItem(makeTask({ indent: 1 }), { lineContinues: false });
-    expect(last.find('.indent-guide').classes()).not.toContain('extends');
   });
 });
