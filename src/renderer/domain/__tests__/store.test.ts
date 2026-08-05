@@ -949,3 +949,55 @@ describe('Store — content-nav undo 保持导航态（块光标不消失）', (
     expect(cur(s).status).toBe(TaskState.SELECTED); // 不卡编辑态、不误判导航态
   });
 });
+
+describe('Store — 子任务缩进（tab / Shift+Tab）', () => {
+  function makeStore(): Store {
+    const store = new Store();
+    const tasks = [new Task(1), new Task(2), new Task(3)];
+    tasks.forEach((t, i) => { t.title = `T${i + 1}`; t.selected = i === 1; });
+    store.manager = new TaskListManager(new TaskList(tasks), 4);
+    return store;
+  }
+  const cur = (s: Store) => s.manager.list.selected!;
+
+  it('tab：选中任务缩进为上一个任务的子任务（indent = 上一个 indent+1）', () => {
+    const s = makeStore(); // 选中 T2，前一个 T1.indent=0
+    s.indentSelectedTask();
+    expect(cur(s).indent).toBe(1);
+  });
+
+  it('tab 可继续加深（至少成为上一个任务的子任务）', () => {
+    const s = makeStore();
+    s.indentSelectedTask(); // T2 → 1（T1 的子级）
+    s.indentSelectedTask(); // 继续加深 → 2
+    expect(cur(s).indent).toBe(2);
+    // T3：上一个 T2 已 indent=2 → 至少缩进到 3
+    s.manager.list = s.manager.list.selectTask(3);
+    s.indentSelectedTask();
+    expect(cur(s).indent).toBe(3);
+  });
+
+  it('第一个任务无法缩进', () => {
+    const s = makeStore();
+    s.manager.list = s.manager.list.selectTask(1);
+    s.indentSelectedTask();
+    expect(cur(s).indent).toBe(0);
+  });
+
+  it('Shift+Tab：取消缩进（indent-1，最低 0）', () => {
+    const s = makeStore();
+    s.indentSelectedTask(); // 1
+    s.unindentSelectedTask(); // 0
+    expect(cur(s).indent).toBe(0);
+    s.unindentSelectedTask(); // 已在 0，不变
+    expect(cur(s).indent).toBe(0);
+  });
+
+  it('缩进可撤销（u）', () => {
+    const s = makeStore();
+    s.indentSelectedTask();
+    expect(cur(s).indent).toBe(1);
+    s.undo();
+    expect(cur(s).indent).toBe(0);
+  });
+});

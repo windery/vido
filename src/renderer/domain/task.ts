@@ -18,6 +18,8 @@ export class Task {
   sourceId?: number;
   cursorLine: number;
   cursorColumn: number;
+  /** 缩进层级（子任务）：0 = 顶级，tab 缩进、Shift+Tab 取消 */
+  indent: number;
 
   constructor(id?: number) {
     this.id = id || 0;
@@ -31,6 +33,7 @@ export class Task {
     this.flagged = false;
     this.cursorLine = 0;
     this.cursorColumn = 0;
+    this.indent = 0;
   }
 }
 

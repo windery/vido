@@ -5,7 +5,7 @@
             'selected': task.selected,
             'completed': task.completed,
             'editing': task.status === TaskState.CONTENT_EDITING || task.status === TaskState.TITLE_EDITING
-        }]">
+        }]" :style="{ paddingLeft: 6 + (task.indent || 0) * 16 + 'px' }">
             <span class="line-number">{{ index + 1 }}</span>
 
             <!-- Task content in vim style -->

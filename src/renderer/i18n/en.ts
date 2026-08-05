@@ -165,6 +165,7 @@ export const en = {
           { key: 'w / b / e', desc: 'Next word / prev word / word end' },
           { key: '0 / $', desc: 'Line start / line end' },
           { key: 'gg / G', desc: 'First line / last line' },
+          { key: 'Tab / Shift+Tab', desc: 'Indent as subtask / unindent' },
           { key: 'x / X', desc: 'Delete char under / before cursor' },
           { key: 'd + motion', desc: 'Delete: dw db de d$ d0 dd dgg dG' },
           { key: 'c + motion', desc: 'Change (delete + insert): cw cc c$' },

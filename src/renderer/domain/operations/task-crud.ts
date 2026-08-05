@@ -556,3 +556,23 @@ export function insertLineAbove(list: TaskList): TaskList {
   lines.splice(line, 0, '');
   return updateCursor(setLines(list, task, lines), task.id, line, 0);
 }
+
+/** tab：缩进一级；若当前比上一个任务浅，则至少缩进到上一个任务的子级（prev.indent+1） */
+export function indentTask(list: TaskList, id: number): TaskList {
+  const task = list.items.find((t) => t.id === id);
+  if (!task) return list;
+  const items = list.items;
+  const idx = items.findIndex((t) => t.id === id);
+  const prev = idx > 0 ? items[idx - 1] : null;
+  if (!prev) return list; // 第一个任务无法缩进
+  const newIndent = Math.max(task.indent + 1, prev.indent + 1);
+  if (newIndent === task.indent) return list;
+  return updateProperty(list, id, 'indent', newIndent);
+}
+
+/** Shift+Tab：取消缩进（indent-1，最低 0） */
+export function unindentTask(list: TaskList, id: number): TaskList {
+  const task = list.items.find((t) => t.id === id);
+  if (!task || task.indent <= 0) return list;
+  return updateProperty(list, id, 'indent', task.indent - 1);
+}

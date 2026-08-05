@@ -379,6 +379,26 @@ export class Store {
   copyToLineEnd(): void { this.contentClipboard = { text: this.manager.copyText('toEnd'), isLine: false }; }
   pasteAfter(): void { const cb = this.contentClipboard; if (cb) { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.pasteText(cb.text, cb.isLine, false)); logger.info('Store', 'paste content', { taskId: id }); } }
   pasteBefore(): void { const cb = this.contentClipboard; if (cb) { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.pasteText(cb.text, cb.isLine, true)); logger.info('Store', 'paste content', { taskId: id }); } }
+
+  // ============ 子任务缩进（tab / Shift+Tab） ============
+
+  indentSelectedTask(): void {
+    const id = this.manager.list.selected?.id;
+    if (id === undefined) return;
+    const before = this.manager.list.selected?.indent ?? 0;
+    this.mutate(() => this.manager.indentTask(id));
+    const after = this.manager.list.selected?.indent ?? 0;
+    if (after !== before) logger.info('Store', 'indent task', { taskId: id, indent: after });
+  }
+
+  unindentSelectedTask(): void {
+    const id = this.manager.list.selected?.id;
+    if (id === undefined) return;
+    const before = this.manager.list.selected?.indent ?? 0;
+    this.mutate(() => this.manager.unindentTask(id));
+    const after = this.manager.list.selected?.indent ?? 0;
+    if (after !== before) logger.info('Store', 'unindent task', { taskId: id, indent: after });
+  }
   moveCursorUp(): void { this.manager.moveCursorUp(); this.changed(); }
   moveCursorDown(): void { this.manager.moveCursorDown(); this.changed(); }
   moveCursorLeft(): void { this.manager.moveCursorLeft(); this.changed(); }

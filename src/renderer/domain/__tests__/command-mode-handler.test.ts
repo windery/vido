@@ -3,8 +3,8 @@ import { CommandModeHandler } from '../keyboard/command-mode-handler';
 import { Task, TaskState } from '../task';
 import { TaskList } from '../entities/task-list';
 
-function makeEvent(key: string): KeyboardEvent {
-  return new KeyboardEvent('keydown', { key, bubbles: true });
+function makeEvent(key: string, init: KeyboardEventInit = {}): KeyboardEvent {
+  return new KeyboardEvent('keydown', { key, bubbles: true, ...init });
 }
 
 function makeTasks(count: number): Task[] {
@@ -57,9 +57,20 @@ describe('CommandModeHandler', () => {
       deleteSelectedTask: vi.fn(), copySelectedTask: vi.fn(), pasteTask: vi.fn(),
       setConfigState: vi.fn(), undo: vi.fn(), redo: vi.fn(),
       searchNext: vi.fn(),
+      indentSelectedTask: vi.fn(), unindentSelectedTask: vi.fn(),
     };
   });
 
+  it('Tab calls indentSelectedTask', () => {
+    handler.handleKey(makeEvent('Tab'), 'Tab', mockTDM, false);
+    expect(mockTDM.indentSelectedTask).toHaveBeenCalled();
+    expect(mockTDM.unindentSelectedTask).not.toHaveBeenCalled();
+  });
+  it('Shift+Tab calls unindentSelectedTask', () => {
+    handler.handleKey(makeEvent('Tab', { shiftKey: true }), 'Tab', mockTDM, false);
+    expect(mockTDM.unindentSelectedTask).toHaveBeenCalled();
+    expect(mockTDM.indentSelectedTask).not.toHaveBeenCalled();
+  });
   it('j calls selectNext', () => { handler.handleKey(makeEvent('j'), 'j', mockTDM, false); expect(mockTDM.selectNext).toHaveBeenCalled(); });
   it('k calls selectPrevious', () => { handler.handleKey(makeEvent('k'), 'k', mockTDM, false); expect(mockTDM.selectPrevious).toHaveBeenCalled(); });
   it('G calls goToLast', () => { handler.handleKey(makeEvent('G'), 'G', mockTDM, false); expect(mockTDM.goToLast).toHaveBeenCalled(); });

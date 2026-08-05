@@ -11,6 +11,7 @@ import {
   deleteCharAtCursor, deleteCharBeforeCursor, deleteWordForward, deleteWordBackward, deleteWordEnd,
   deleteToLineEnd, deleteToLineStart, deleteToFirstLine, deleteToLastLine, mergeLineBelow,
   replaceCharAtCursor, swapCaseAtCursor, copyTextAtCursor, pasteTextAtCursor,
+  indentTask, unindentTask,
   moveCursorToLineStart, moveCursorToLineEnd, moveCursorToFirstLine, moveCursorToLastLine,
   moveCursorWordForward, moveCursorWordBackward, moveCursorWordEnd,
 } from '../operations/task-crud';
@@ -142,6 +143,8 @@ export class TaskListManager {
   swapCaseAtCursor(): void { this.list = swapCaseAtCursor(this.list); }
   copyText(kind: 'line' | 'word' | 'toEnd'): string { return copyTextAtCursor(this.list, kind); }
   pasteText(text: string, isLine: boolean, before: boolean): void { this.list = pasteTextAtCursor(this.list, text, isLine, before); }
+  indentTask(id: number): void { this.list = indentTask(this.list, id); }
+  unindentTask(id: number): void { this.list = unindentTask(this.list, id); }
 
   // ======== 光标移动 ========
 

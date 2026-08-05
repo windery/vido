@@ -75,6 +75,13 @@ export class CommandModeHandler implements ModeHandler {
         this.resetAll();
         return true;
 
+      case 'Tab':
+        // tab：选中任务缩进为上一任务的子任务；Shift+Tab 取消缩进
+        event.preventDefault();
+        if (event.shiftKey) taskDataManager.unindentSelectedTask();
+        else taskDataManager.indentSelectedTask();
+        return true;
+
       case 'j':
         event.preventDefault();
         this.repeatAction(() => taskDataManager.selectNext(), count);
