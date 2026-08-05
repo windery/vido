@@ -8,7 +8,7 @@
             <div class="vim-content" ref="contentRef">
                 <!-- 当前定位组（主任务 + 其子任务）的超细绿线框 -->
                 <div v-if="boxStyle" class="group-box"
-                    :style="{ top: boxStyle.top + 'px', height: boxStyle.height + 'px' }"></div>
+                    :style="{ top: boxStyle.top + 'px', height: boxStyle.height + 'px', left: boxStyle.left + 'px', width: boxStyle.width + 'px' }"></div>
                 <!-- Empty Buffer -->
                 <EmptyBuffer v-if="filteredTasks.length === 0" :is-searching="isSearching" />
 
@@ -57,7 +57,7 @@ const completedTasksCount = computed(() => {
 // 组 = 选中任务所在的主任务及其连续子任务（indent>0 直到下一个顶级）。
 // 仅当组 ≥ 2 行（确有子任务）时显示框，且只在选中组展示。
 const contentRef = ref<HTMLElement | null>(null);
-const boxStyle = ref<{ top: number; height: number } | null>(null);
+const boxStyle = ref<{ top: number; height: number; left: number; width: number } | null>(null);
 
 const groupBox = computed<{ startId: number; endId: number } | null>(() =>
     computeGroupBox(filteredTasks.value, selectedTask.value)
@@ -67,16 +67,19 @@ function measureGroup(): void {
     const g = groupBox.value;
     const content = contentRef.value;
     if (!g || !content) { boxStyle.value = null; return; }
-    // 用 .task-line 测量（不含展开内容区，框住任务行本身）
-    const startEl = content.querySelector(`[data-task-id="${g.startId}"] .task-line`);
-    const endEl = content.querySelector(`[data-task-id="${g.endId}"] .task-line`);
+    // 测 .task-container（含展开的内容区），框住整个组
+    const startEl = content.querySelector(`[data-task-id="${g.startId}"]`);
+    const endEl = content.querySelector(`[data-task-id="${g.endId}"]`);
     if (!startEl || !endEl) { boxStyle.value = null; return; }
     const contentRect = content.getBoundingClientRect();
     const sr = startEl.getBoundingClientRect();
     const er = endEl.getBoundingClientRect();
+    // 左右对齐组首行（主任务行）的容器边界——不朝外
     boxStyle.value = {
         top: sr.top - contentRect.top,
         height: er.bottom - sr.top,
+        left: sr.left - contentRect.left,
+        width: sr.width,
     };
 }
 
@@ -373,8 +376,6 @@ onMounted(() => {
 /* Main content area */
 .group-box {
     position: absolute;
-    left: 2px;
-    right: 2px;
     border: 1px solid var(--accent);
     border-radius: 4px;
     opacity: 0.55; /* 超细线感：1px 半透明绿，不抢内容 */
