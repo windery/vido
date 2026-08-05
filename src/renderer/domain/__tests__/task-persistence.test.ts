@@ -4,8 +4,10 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const saveJsonFile = vi.fn();
-const loadJsonFile = vi.fn();
+const { saveJsonFile, loadJsonFile } = vi.hoisted(() => ({
+    saveJsonFile: vi.fn(),
+    loadJsonFile: vi.fn(),
+}));
 
 vi.mock('../../utils/file-operations-ipc', () => ({
     saveJsonFile,
