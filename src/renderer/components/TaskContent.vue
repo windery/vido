@@ -30,7 +30,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, computed, watchEffect } from 'vue';
 import { Task, TaskState } from '../domain/task';
-import { marked } from 'marked';
+import { renderMarkdown } from '../utils/markdown';
 import { t } from '../i18n';
 
 interface Props {
@@ -141,10 +141,7 @@ const adjustHeight = (textarea?: HTMLTextAreaElement) => {
     }
 };
 
-const renderMarkdown = (content: string) => {
-    const result = marked(content);
-    return typeof result === 'string' ? result : result.toString();
-};
+
 
 onMounted(() => {
     nextTick(() => {
