@@ -313,8 +313,14 @@ onMounted(() => {
 }
 
 .markdown-display :deep(p) {
-    margin: 6px 0;
+    margin: 0;
     padding: 0;
+}
+
+/* 段落间距只在相邻段落之间（markdown 多段可读性）；
+   单段纯文本零 margin → 与 textarea 高度严格一致 */
+.markdown-display :deep(p + p) {
+    margin-top: 6px;
 }
 
 .markdown-display :deep(blockquote) {
