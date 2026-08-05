@@ -336,12 +336,42 @@ export class Store {
     const task = this.manager.list.selected;
     logger.info('Store', 'insert line', { taskId, line: task?.cursorLine });
   }
+  insertLineAbove(): void {
+    const taskId = this.manager.list.selected?.id;
+    this.mutate(() => this.manager.insertLineAbove());
+    const task = this.manager.list.selected;
+    logger.info('Store', 'insert line', { taskId, line: task?.cursorLine, dir: 'above' });
+  }
   deleteLineAtCursor(): void {
     const taskId = this.manager.list.selected?.id;
     const line = this.manager.list.selected?.cursorLine;
     this.mutate(() => this.manager.deleteLineAtCursor());
     logger.info('Store', 'delete line', { taskId, line });
   }
+
+  // ============ content-nav vim 编辑操作 ============
+
+  private contentClipboard: { text: string; isLine: boolean } | null = null;
+
+  deleteCharAtCursor(): void { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.deleteCharAtCursor()); logger.info('Store', 'delete char', { taskId: id }); }
+  deleteCharBeforeCursor(): void { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.deleteCharBeforeCursor()); logger.info('Store', 'delete char before', { taskId: id }); }
+  deleteWordForward(): void { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.deleteWordForward()); logger.info('Store', 'delete word', { taskId: id, dir: 'forward' }); }
+  deleteWordBackward(): void { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.deleteWordBackward()); logger.info('Store', 'delete word', { taskId: id, dir: 'backward' }); }
+  deleteWordEnd(): void { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.deleteWordEnd()); logger.info('Store', 'delete word', { taskId: id, dir: 'end' }); }
+  deleteToLineEnd(): void { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.deleteToLineEnd()); logger.info('Store', 'delete to line end', { taskId: id }); }
+  deleteToLineStart(): void { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.deleteToLineStart()); logger.info('Store', 'delete to line start', { taskId: id }); }
+  deleteToFirstLine(): void { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.deleteToFirstLine()); logger.info('Store', 'delete to first line', { taskId: id }); }
+  deleteToLastLine(): void { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.deleteToLastLine()); logger.info('Store', 'delete to last line', { taskId: id }); }
+  mergeLineBelow(): void { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.mergeLineBelow()); logger.info('Store', 'merge line', { taskId: id }); }
+  replaceCharAtCursor(char: string): void { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.replaceCharAtCursor(char)); logger.info('Store', 'replace char', { taskId: id }); }
+  swapCaseAtCursor(): void { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.swapCaseAtCursor()); logger.info('Store', 'swap case', { taskId: id }); }
+
+  // 内容剪贴板（y 复制 / p 粘贴）
+  copyLine(): void { this.contentClipboard = { text: this.manager.copyText('line'), isLine: true }; }
+  copyWord(): void { this.contentClipboard = { text: this.manager.copyText('word'), isLine: false }; }
+  copyToLineEnd(): void { this.contentClipboard = { text: this.manager.copyText('toEnd'), isLine: false }; }
+  pasteAfter(): void { const cb = this.contentClipboard; if (cb) { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.pasteText(cb.text, cb.isLine, false)); logger.info('Store', 'paste content', { taskId: id }); } }
+  pasteBefore(): void { const cb = this.contentClipboard; if (cb) { const id = this.manager.list.selected?.id; this.mutate(() => this.manager.pasteText(cb.text, cb.isLine, true)); logger.info('Store', 'paste content', { taskId: id }); } }
   moveCursorUp(): void { this.manager.moveCursorUp(); this.changed(); }
   moveCursorDown(): void { this.manager.moveCursorDown(); this.changed(); }
   moveCursorLeft(): void { this.manager.moveCursorLeft(); this.changed(); }

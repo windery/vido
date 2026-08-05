@@ -311,3 +311,248 @@ export function moveCursorToLastLine(list: TaskList): TaskList {
   const col = Math.min(task.cursorColumn || 0, lines[lastLine]?.length || 0);
   return updateCursor(list, task.id, lastLine, col);
 }
+
+// ==================== vim 编辑操作（content-nav 模式） ====================
+
+function linesOf(task: Task): string[] {
+  return (task.content || '').split('\n');
+}
+function setLines(list: TaskList, task: Task, lines: string[]): TaskList {
+  return updateProperty(list, task.id, 'content', lines.join('\n'));
+}
+
+/** vim x：删光标处字符；行尾则连接下一行（删换行符） */
+export function deleteCharAtCursor(list: TaskList): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return list;
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0, col = task.cursorColumn || 0;
+  const text = lines[line] || '';
+  if (col < text.length) {
+    lines[line] = text.slice(0, col) + text.slice(col + 1);
+    return updateCursor(setLines(list, task, lines), task.id, line, col);
+  }
+  if (line < lines.length - 1) {
+    lines[line] = text + lines[line + 1];
+    lines.splice(line + 1, 1);
+    return updateCursor(setLines(list, task, lines), task.id, line, col);
+  }
+  return list;
+}
+
+/** vim X：删光标前一字符；行首则连接上一行 */
+export function deleteCharBeforeCursor(list: TaskList): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return list;
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0, col = task.cursorColumn || 0;
+  const text = lines[line] || '';
+  if (col > 0) {
+    lines[line] = text.slice(0, col - 1) + text.slice(col);
+    return updateCursor(setLines(list, task, lines), task.id, line, col - 1);
+  }
+  if (line > 0) {
+    const prev = lines[line - 1] || '';
+    lines[line - 1] = prev + text;
+    lines.splice(line, 1);
+    return updateCursor(setLines(list, task, lines), task.id, line - 1, prev.length);
+  }
+  return list;
+}
+
+// ---- 词定位辅助（行内） ----
+function nextWordStartInLine(text: string, col: number): number {
+  let i = col;
+  while (i < text.length && isWordChar(text[i])) i++;
+  while (i < text.length && /\s/.test(text[i])) i++;
+  return i;
+}
+function wordEndInLine(text: string, col: number): number {
+  let i = col;
+  while (i < text.length && /\s/.test(text[i])) i++;
+  while (i < text.length && isWordChar(text[i])) i++;
+  return i;
+}
+function wordStartInLine(text: string, col: number): number {
+  let i = col;
+  while (i > 0 && !isWordChar(text[i - 1])) i--;
+  while (i > 0 && isWordChar(text[i - 1])) i--;
+  return i;
+}
+
+/** vim dw：删到下一个词首（行内无目标则删到行尾） */
+export function deleteWordForward(list: TaskList): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return list;
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0, col = task.cursorColumn || 0;
+  const text = lines[line] || '';
+  const end = nextWordStartInLine(text, col);
+  if (end > col) {
+    lines[line] = text.slice(0, col) + text.slice(end);
+    return updateCursor(setLines(list, task, lines), task.id, line, col);
+  }
+  return list;
+}
+
+/** vim de：删到当前词尾（含光标后到词尾） */
+export function deleteWordEnd(list: TaskList): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return list;
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0, col = task.cursorColumn || 0;
+  const text = lines[line] || '';
+  const end = wordEndInLine(text, col);
+  if (end > col) {
+    lines[line] = text.slice(0, col) + text.slice(end);
+    return updateCursor(setLines(list, task, lines), task.id, line, col);
+  }
+  return list;
+}
+
+/** vim db：删到当前/上一词首 */
+export function deleteWordBackward(list: TaskList): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return list;
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0, col = task.cursorColumn || 0;
+  const text = lines[line] || '';
+  const start = wordStartInLine(text, col);
+  if (start < col) {
+    lines[line] = text.slice(0, start) + text.slice(col);
+    return updateCursor(setLines(list, task, lines), task.id, line, start);
+  }
+  return list;
+}
+
+/** vim d$ / D：删到行尾（含光标字符） */
+export function deleteToLineEnd(list: TaskList): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return list;
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0, col = task.cursorColumn || 0;
+  const text = lines[line] || '';
+  if (col < text.length) {
+    lines[line] = text.slice(0, col);
+    return updateCursor(setLines(list, task, lines), task.id, line, col);
+  }
+  return list;
+}
+
+/** vim d0：删到行首（不含光标字符） */
+export function deleteToLineStart(list: TaskList): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return list;
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0, col = task.cursorColumn || 0;
+  const text = lines[line] || '';
+  if (col > 0) {
+    lines[line] = text.slice(col);
+    return updateCursor(setLines(list, task, lines), task.id, line, 0);
+  }
+  return list;
+}
+
+/** vim dgg：删第 1 行到光标行（含），光标落在新的第 1 行 */
+export function deleteToFirstLine(list: TaskList): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return list;
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0;
+  if (line <= 0) return list;
+  lines.splice(0, line);
+  return updateCursor(setLines(list, task, lines), task.id, 0, 0);
+}
+
+/** vim dG：删光标行到末行（含），光标落在新的最后一行 */
+export function deleteToLastLine(list: TaskList): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return list;
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0;
+  lines.splice(line, lines.length - line);
+  const newLine = Math.max(0, lines.length - 1);
+  return updateCursor(setLines(list, task, lines), task.id, newLine, 0);
+}
+
+/** vim J：合并下一行到当前行（中间加一个空格），光标落在连接处 */
+export function mergeLineBelow(list: TaskList): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return list;
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0;
+  if (line >= lines.length - 1) return list;
+  const text = lines[line] || '';
+  const next = lines[line + 1];
+  lines[line] = text ? `${text} ${next}` : next;
+  lines.splice(line + 1, 1);
+  const col = (lines[line] || '').length - (next?.length || 0);
+  return updateCursor(setLines(list, task, lines), task.id, line, col);
+}
+
+/** vim r{char}：替换光标处字符（行尾不可替换） */
+export function replaceCharAtCursor(list: TaskList, char: string): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return list;
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0, col = task.cursorColumn || 0;
+  const text = lines[line] || '';
+  if (col >= text.length || !char) return list;
+  lines[line] = text.slice(0, col) + char + text.slice(col + 1);
+  return updateCursor(setLines(list, task, lines), task.id, line, col + 1);
+}
+
+/** vim ~：切换光标字符大小写，光标右移 */
+export function swapCaseAtCursor(list: TaskList): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return list;
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0, col = task.cursorColumn || 0;
+  const text = lines[line] || '';
+  const ch = text[col];
+  if (!ch) return list;
+  const swapped = ch === ch.toUpperCase() ? ch.toLowerCase() : ch.toUpperCase();
+  lines[line] = text.slice(0, col) + swapped + text.slice(col + 1);
+  const newCol = col + 1 <= (lines[line] || '').length ? col + 1 : col;
+  return updateCursor(setLines(list, task, lines), task.id, line, newCol);
+}
+
+/** 复制辅助：返回光标处要复制的文本（line=整行 / word=当前词 / toEnd=到行尾） */
+export function copyTextAtCursor(list: TaskList, kind: 'line' | 'word' | 'toEnd'): string {
+  const task = list.selected;
+  if (!task) return '';
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0, col = task.cursorColumn || 0;
+  const text = lines[line] || '';
+  if (kind === 'line') return text;
+  if (kind === 'toEnd') return text.slice(col);
+  const end = wordEndInLine(text, col);
+  return text.slice(col, end);
+}
+
+/** vim p / P：粘贴。isLine=整行模式（光标行下方/上方插入新行），否则光标后/前插入文本 */
+export function pasteTextAtCursor(list: TaskList, text: string, isLine: boolean, before: boolean): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION || !text) return list;
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0, col = task.cursorColumn || 0;
+  if (isLine) {
+    lines.splice(before ? line : line + 1, 0, text);
+    const newLine = before ? line : line + 1;
+    return updateCursor(setLines(list, task, lines), task.id, newLine, 0);
+  }
+  const cur = lines[line] || '';
+  const insertAt = before ? col : col;
+  lines[line] = cur.slice(0, insertAt) + text + cur.slice(insertAt);
+  return updateCursor(setLines(list, task, lines), task.id, line, insertAt + text.length);
+}
+
+/** vim O：上方插入空行，光标落新行行首 */
+export function insertLineAbove(list: TaskList): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return list;
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0;
+  lines.splice(line, 0, '');
+  return updateCursor(setLines(list, task, lines), task.id, line, 0);
+}

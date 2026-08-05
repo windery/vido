@@ -759,3 +759,145 @@ describe('Store — content-nav 模式 dd 删除当前行', () => {
     expect(task.cursorLine).toBe(0);
   });
 });
+
+describe('Store — content-nav vim 编辑操作', () => {
+  function makeNavStore(content: string): Store {
+    const store = new Store();
+    const t = new Task(1);
+    t.title = 'A';
+    t.selected = true;
+    t.status = TaskState.SELECTED;
+    t.content = content;
+    store.manager = new TaskListManager(new TaskList([t]), 2);
+    store.transition('i'); // → CONTENT_NAVIGATION
+    return store;
+  }
+  const cur = (s: Store) => s.manager.list.selected!;
+
+  it('x 删除光标处字符', () => {
+    const s = makeNavStore('hello world');
+    s.moveCursorRight(); // 光标 col=1
+    s.deleteCharAtCursor();
+    expect(cur(s).content).toBe('hllo world');
+    expect(cur(s).cursorColumn).toBe(1);
+  });
+
+  it('x 在行尾连接下一行', () => {
+    const s = makeNavStore('foo\nbar');
+    s.moveCursorToLineEnd();
+    s.deleteCharAtCursor();
+    expect(cur(s).content).toBe('foobar');
+  });
+
+  it('X 删除前一字符；行首连接上一行', () => {
+    const s = makeNavStore('foo\nbar');
+    s.moveCursorDown(); // 到第 2 行，col=0 行首
+    s.deleteCharBeforeCursor(); // 连接上一行
+    expect(cur(s).content).toBe('foobar');
+    expect(cur(s).cursorLine).toBe(0);
+    expect(cur(s).cursorColumn).toBe(3);
+  });
+
+  it('dw 删到下一词首', () => {
+    const s = makeNavStore('one two three');
+    s.deleteWordForward();
+    expect(cur(s).content).toBe('two three');
+  });
+
+  it('de 删到当前词尾', () => {
+    const s = makeNavStore('hello world');
+    s.deleteWordEnd();
+    expect(cur(s).content).toBe(' world');
+  });
+
+  it('db 删到词首', () => {
+    const s = makeNavStore('hello world');
+    s.moveCursorToLineEnd(); // col=11
+    s.deleteWordBackward();
+    expect(cur(s).content).toBe('hello ');
+  });
+
+  it('d$ 删到行尾', () => {
+    const s = makeNavStore('hello world');
+    s.moveCursorToLineStart();
+    s.moveCursorRight(); s.moveCursorRight(); // col=2
+    s.deleteToLineEnd();
+    expect(cur(s).content).toBe('he');
+  });
+
+  it('d0 删到行首', () => {
+    const s = makeNavStore('hello');
+    s.moveCursorToLineEnd();
+    s.deleteToLineStart();
+    expect(cur(s).content).toBe(''); // col=5 删 [0,5) 整行
+  });
+
+  it('dgg 删第 1 行到光标行', () => {
+    const s = makeNavStore('a\nb\nc');
+    s.moveCursorDown(); s.moveCursorDown(); // 第 3 行
+    s.deleteToFirstLine();
+    expect(cur(s).content).toBe('c');
+    expect(cur(s).cursorLine).toBe(0);
+  });
+
+  it('dG 删光标行到末行', () => {
+    const s = makeNavStore('a\nb\nc');
+    s.deleteToLastLine(); // 第 1 行开始删
+    expect(cur(s).content).toBe('');
+  });
+
+  it('J 合并下一行（加空格）', () => {
+    const s = makeNavStore('foo\nbar');
+    s.mergeLineBelow();
+    expect(cur(s).content).toBe('foo bar');
+    expect(cur(s).cursorLine).toBe(0);
+  });
+
+  it('r 替换光标处字符', () => {
+    const s = makeNavStore('abc');
+    s.replaceCharAtCursor('Z');
+    expect(cur(s).content).toBe('Zbc');
+    expect(cur(s).cursorColumn).toBe(1);
+  });
+
+  it('~ 切换大小写', () => {
+    const s = makeNavStore('ab');
+    s.swapCaseAtCursor();
+    expect(cur(s).content).toBe('Ab');
+    expect(cur(s).cursorColumn).toBe(1);
+  });
+
+  it('yy + p 复制整行并粘贴到下方', () => {
+    const s = makeNavStore('a\nb');
+    s.moveCursorDown(); // 到第 2 行 'b'
+    s.copyLine();
+    s.pasteAfter();
+    expect(cur(s).content).toBe('a\nb\nb');
+    expect(cur(s).cursorLine).toBe(2);
+  });
+
+  it('yw + p 复制词并在光标后粘贴', () => {
+    const s = makeNavStore('ab cd');
+    s.copyWord(); // 复制 'ab'
+    s.moveCursorWordForward(); // 光标到 'cd' 开头 col=3
+    s.pasteAfter(); // 在 col=3 后插入 ab
+    expect(cur(s).content).toBe('ab abcd');
+  });
+
+  it('u 撤销编辑操作', () => {
+    const s = makeNavStore('hello');
+    s.moveCursorToLineEnd();
+    s.deleteToLineStart();
+    expect(cur(s).content).toBe(''); // col=5 删 [0,5) 整行
+    s.undo();
+    expect(cur(s).content).toBe('hello');
+  });
+
+  it('O 上方插入空行', () => {
+    const s = makeNavStore('a\nb');
+    s.moveCursorDown();
+    s.insertLineAbove();
+    expect(cur(s).content).toBe('a\n\nb');
+    expect(cur(s).cursorLine).toBe(1);
+  });
+});

@@ -7,7 +7,10 @@ import { TaskList } from '../entities/task-list';
 import {
   createTask, deleteSelected, toggleComplete, toggleFlag, updateProperty, updateCursor,
   startTitleEditing, sortTasks, copySelected, pasteTask,
-  insertNewLineBelow, deleteLineAtCursor, moveCursorUp, moveCursorDown, moveCursorLeft, moveCursorRight,
+  insertNewLineBelow, insertLineAbove, deleteLineAtCursor, moveCursorUp, moveCursorDown, moveCursorLeft, moveCursorRight,
+  deleteCharAtCursor, deleteCharBeforeCursor, deleteWordForward, deleteWordBackward, deleteWordEnd,
+  deleteToLineEnd, deleteToLineStart, deleteToFirstLine, deleteToLastLine, mergeLineBelow,
+  replaceCharAtCursor, swapCaseAtCursor, copyTextAtCursor, pasteTextAtCursor,
   moveCursorToLineStart, moveCursorToLineEnd, moveCursorToFirstLine, moveCursorToLastLine,
   moveCursorWordForward, moveCursorWordBackward, moveCursorWordEnd,
 } from '../operations/task-crud';
@@ -123,7 +126,22 @@ export class TaskListManager {
   insertNewLineBelow(): void {
     this.list = insertNewLineBelow(this.list);
   }
+  insertLineAbove(): void { this.list = insertLineAbove(this.list); }
   deleteLineAtCursor(): void { this.list = deleteLineAtCursor(this.list); }
+  deleteCharAtCursor(): void { this.list = deleteCharAtCursor(this.list); }
+  deleteCharBeforeCursor(): void { this.list = deleteCharBeforeCursor(this.list); }
+  deleteWordForward(): void { this.list = deleteWordForward(this.list); }
+  deleteWordBackward(): void { this.list = deleteWordBackward(this.list); }
+  deleteWordEnd(): void { this.list = deleteWordEnd(this.list); }
+  deleteToLineEnd(): void { this.list = deleteToLineEnd(this.list); }
+  deleteToLineStart(): void { this.list = deleteToLineStart(this.list); }
+  deleteToFirstLine(): void { this.list = deleteToFirstLine(this.list); }
+  deleteToLastLine(): void { this.list = deleteToLastLine(this.list); }
+  mergeLineBelow(): void { this.list = mergeLineBelow(this.list); }
+  replaceCharAtCursor(char: string): void { this.list = replaceCharAtCursor(this.list, char); }
+  swapCaseAtCursor(): void { this.list = swapCaseAtCursor(this.list); }
+  copyText(kind: 'line' | 'word' | 'toEnd'): string { return copyTextAtCursor(this.list, kind); }
+  pasteText(text: string, isLine: boolean, before: boolean): void { this.list = pasteTextAtCursor(this.list, text, isLine, before); }
 
   // ======== 光标移动 ========
 
