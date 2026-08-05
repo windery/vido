@@ -1,7 +1,7 @@
 <template>
     <div class="vim-header">
         <div class="file-info">
-            <span class="logo">vido</span>
+            <span class="logo"><span class="logo-caret">❯</span>vido</span>
             <span class="file-status">{{ currentTime }}</span>
         </div>
         <div class="header-right">
@@ -102,16 +102,28 @@ onUnmounted(() => {
 .logo {
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
     font-weight: 700;
-    font-size: 15px;
-    letter-spacing: 0.04em;
-    color: var(--text-bright);
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    color: var(--accent-bright);
     background: var(--accent-dim);
-    border: 1px solid var(--logo-border);
-    padding: 2px 8px;
+    border: 1px solid rgba(89, 217, 138, 0.32);
+    box-shadow: 0 0 8px rgba(89, 217, 138, 0.12);
+    padding: 3px 10px 3px 8px;
     border-radius: 5px;
     display: inline-flex;
     align-items: center;
     flex-shrink: 0;
+    user-select: none;
+}
+
+/* 终端提示符 ❯：磷光绿、略暗于主文字，形成纵深 */
+.logo-caret {
+    color: var(--accent);
+    opacity: 0.85;
+    font-size: 12px;
+    margin-right: 5px;
+    letter-spacing: 0;
+    transform: translateY(-0.5px);
 }
 
 .file-status {
