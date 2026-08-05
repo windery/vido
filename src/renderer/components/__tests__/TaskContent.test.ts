@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import TaskContent from '../TaskContent.vue';
 import { Task, TaskState } from '../../domain/task';
@@ -67,5 +68,35 @@ describe('TaskContent — vim 块光标镜像层', () => {
     const wrapper = mountContent(t);
     expect(wrapper.find('.caret-mirror').exists()).toBe(false);
     expect(wrapper.find('.content-editor').exists()).toBe(true);
+  });
+});
+
+describe('TaskContent — 进入 nav/edit 态自动撑高（adjustHeight 触发）', () => {
+  it('content 变更（非 input 路径）触发 watchEffect → textarea inline height 更新', async () => {
+    const t = makeTask();
+    const wrapper = mountContent(t);
+    // 模拟初始 scrollHeight 66（3 行 × 22px）
+    await nextTick();
+    await nextTick();
+    const ta = wrapper.find('.content-editor').element as HTMLTextAreaElement;
+    Object.defineProperty(ta, 'scrollHeight', { value: 66, configurable: true });
+    // dd/x/undo 等通过 store 改 content，:value 更新但无 input 事件 → 高度必须重算
+    await wrapper.setProps({ task: { ...t, content: 'line1\nline2\nline3' } });
+    await nextTick();
+    await nextTick();
+    expect(ta.style.height).toBe('66px');
+  });
+
+  it('从 normal（SELECTED）切到 nav（CONTENT_NAVIGATION）时新挂载 textarea 被撑高', async () => {
+    const t = makeTask({ status: TaskState.SELECTED });
+    const wrapper = mountContent(t);
+    expect(wrapper.find('.content-editor').exists()).toBe(false); // normal：markdown 分支
+    await wrapper.setProps({ task: { ...t, status: TaskState.CONTENT_NAVIGATION } }); // i 键进入
+    const ta = wrapper.find('.content-editor').element as HTMLTextAreaElement;
+    Object.defineProperty(ta, 'scrollHeight', { value: 88, configurable: true });
+    await wrapper.setProps({ task: { ...t, status: TaskState.CONTENT_NAVIGATION } }); // 触发重算
+    await nextTick();
+    await nextTick();
+    expect(ta.style.height).toBe('88px'); // 不再停留在固有 2 行默认高度
   });
 });

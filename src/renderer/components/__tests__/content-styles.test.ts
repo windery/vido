@@ -29,11 +29,11 @@ describe('content 三态高度一致性契约', () => {
     expect(rule('\\.markdown-display')).toContain(MONO_FONT);
   });
 
-  it('两态字号一致（13px），行高一致（1.65）', () => {
+  it('两态字号一致（13px），行高一致（整数 22px，textarea 行高向上取整须与 markdown 对齐）', () => {
     expect(rule('\\.editor-shell')).toContain('font-size: 13px');
-    expect(rule('\\.editor-shell')).toContain('line-height: 1.65');
+    expect(rule('\\.editor-shell')).toContain('line-height: 22px');
     expect(rule('\\.markdown-display')).toContain('font-size: 13px');
-    expect(rule('\\.markdown-display')).toContain('line-height: 1.65');
+    expect(rule('\\.markdown-display')).toContain('line-height: 22px');
   });
 
   it('textarea 继承 shell 的字体/字号/行高（无独立值造成偏差）', () => {
@@ -41,6 +41,11 @@ describe('content 三态高度一致性契约', () => {
     expect(editor).toContain('font-family: inherit');
     expect(editor).toContain('font-size: inherit');
     expect(editor).toContain('line-height: inherit');
+  });
+
+  it('textarea rows="1" 消除固有最小 2 行高度（1 行内容与 markdown 对齐）', () => {
+    expect(source).toContain('rows="1"');
+    expect(rule('\\.content-editor')).not.toContain('min-height');
   });
 
   it('单段纯文本零 margin（marked 会把文本包成单个 <p>，上下 margin 曾导致 normal 高 12px）', () => {

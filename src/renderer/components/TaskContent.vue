@@ -6,7 +6,7 @@
                  块光标已改自定义镜像层、原生 caret 本就隐藏，readonly 不影响显示；
                  导航移动靠 setSelectionRange（readonly 下仍有效），禁止输入靠 readonly + keydown 拦截 + input 回滚 -->
             <div class="editor-shell">
-                <textarea :ref="(el) => setContentEditRef(el as HTMLTextAreaElement, task.id)" :value="task.content"
+                <textarea :ref="(el) => setContentEditRef(el as HTMLTextAreaElement, task.id)" rows="1" :value="task.content"
                     :readonly="isNav()" @input="handleInput" @keyup="handleCursorUpdate"
                     @keydown="handleContentKeydown" @scroll="syncScroll" spellcheck="false"
                     :class="['content-editor', { 'content-nav': isNav() }]"
@@ -81,12 +81,20 @@ const caretChar = computed(() => {
     return cur[col] || ' ';
 });
 
-// 进入导航态/焦点滚动后同步镜像层初始滚动偏移（长内容聚焦时 textarea 可能已滚动）
+// 进入导航/编辑态时同步高度与镜像层滚动偏移：
+// textarea 的 CSS height:auto 只显示固有 rows 高度（约 2 行），必须由
+// adjustHeight 设 inline height = scrollHeight 撑到内容高度；否则从
+// normal（markdown 完整渲染）切到 nav/edit 时内容区明显变矮（跳动）。
+// content 依赖收集：dd/x/undo 等非 input 路径的内容变更也会触发重算。
 watchEffect(() => {
-    if (isNav()) {
+    const content = props.task.content; // 响应式依赖：内容变更触发
+    if (isEditing()) {
         nextTick(() => {
             const ta = contentEditRefs.value.get(props.task.id);
-            if (ta) scrollTop.value = ta.scrollTop;
+            if (ta) {
+                adjustHeight(ta);
+                if (isNav()) scrollTop.value = ta.scrollTop;
+            }
         });
     }
 });
@@ -164,7 +172,9 @@ onMounted(() => {
     position: relative;
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
     font-size: 13px;
-    line-height: 1.65;
+    /* 整数像素行高：textarea 内部行高向上取整（21.45 → 22），
+       markdown 亚像素累计（21.45×行数），取整后两态逐行对齐 */
+    line-height: 22px;
 }
 
 .content-editor {
@@ -177,7 +187,6 @@ onMounted(() => {
     line-height: inherit;
     resize: none;
     width: 100%;
-    min-height: 24px;
     box-sizing: border-box;
     overflow-x: hidden;
     overflow-y: auto;
@@ -244,7 +253,7 @@ onMounted(() => {
        切换 normal ⇄ content-nav/edit 内容区不跳动 */
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
     font-size: 13px;
-    line-height: 1.65;
+    line-height: 22px;
     word-wrap: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;

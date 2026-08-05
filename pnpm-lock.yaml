@@ -69,6 +69,9 @@ importers:
       jsdom:
         specifier: ^26.1.0
         version: 26.1.0(utf-8-validate@5.0.10)
+      playwright-core:
+        specifier: ^1.62.1
+        version: 1.62.1
       prettier:
         specifier: ^3.3.3
         version: 3.9.6
@@ -2495,6 +2498,11 @@ packages:
   pify@3.0.0:
     resolution: {integrity: sha512-C3FsVNH1udSEX48gGX1xfvwTWfsYWj5U+8/uK15BGzIGrKoUpghX8hWZwa/OFnakBiiVNmBvemTJR5mcy7iPcg==}
     engines: {node: '>=4'}
+
+  playwright-core@1.62.1:
+    resolution: {integrity: sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   plist@3.1.1:
     resolution: {integrity: sha512-ZIfcLJC+7E7FBFnDxm9MPmt7D+DidyQ26lewieO75AdhA2ayMtsJSES0iWzqJQbcVRSrTufQoy0DR94xHue0oA==}
@@ -5944,6 +5952,8 @@ snapshots:
 
   pify@3.0.0:
     optional: true
+
+  playwright-core@1.62.1: {}
 
   plist@3.1.1:
     dependencies:
