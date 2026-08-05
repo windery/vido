@@ -1,7 +1,7 @@
 name: Release
 
-# 推送 v* 标签（如 v0.1.0）时自动构建并发布 GitHub Release。
-# 也可在 Actions 页手动触发（workflow_dispatch，跑在默认分支，适合测试流程）。
+# 推送 v* 标签（如 v0.1.0）时自动在 macOS / Windows / Linux 上打包，
+# 并统一发布到 GitHub Release。也可在 Actions 页手动触发测试。
 on:
   push:
     tags:
@@ -12,9 +12,16 @@ permissions:
   contents: write
 
 jobs:
-  build-mac:
-    name: Build & release (macOS dmg)
-    runs-on: macos-latest
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+          - os: windows-latest
+          - os: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,15 +38,32 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build & package (dmg)
+      - name: Build & package
         run: pnpm build
         env:
           # CI 无签名证书：明确关闭自动发现，避免卡在签名步骤
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
-      - name: Upload artifacts to GitHub Release
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: release/**/*.dmg
+          name: vido-${{ matrix.os }}
+          path: release/**
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*.{dmg,exe,AppImage}
           generate_release_notes: true
