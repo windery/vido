@@ -168,6 +168,7 @@ export const en = {
           { key: 'i', desc: 'Insert at cursor position' },
           { key: 'a', desc: 'Insert at line end' },
           { key: 'o', desc: 'Insert new line below' },
+          { key: 'dd', desc: 'Delete current line' },
           { key: 'ESC', desc: 'Return to normal mode' },
         ],
       },

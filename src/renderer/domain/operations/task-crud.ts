@@ -135,6 +135,20 @@ export function insertNewLineBelow(list: TaskList): TaskList {
   return updateCursor(updateProperty(list, task.id, 'content', newContent), task.id, cursorLine + 1, 0);
 }
 
+/** vim dd：删除光标所在行；光标落到下一行行首（原行号），删最后一行则落在新的最后一行 */
+export function deleteLineAtCursor(list: TaskList): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return list;
+  const content = task.content || '';
+  const lines = content.split('\n');
+  const line = task.cursorLine || 0;
+  if (line >= lines.length) return list;
+  lines.splice(line, 1);
+  const newContent = lines.join('\n');
+  const newLine = line >= lines.length ? Math.max(0, lines.length - 1) : line;
+  return updateCursor(updateProperty(list, task.id, 'content', newContent), task.id, newLine, 0);
+}
+
 export function moveCursorUp(list: TaskList): TaskList {
   const task = list.selected;
   if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return list;

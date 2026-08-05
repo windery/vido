@@ -48,12 +48,15 @@ if (!app.requestSingleInstanceLock()) {
   process.exit(0);
 }
 
-// 默认 Electron 菜单把 Ctrl+R 绑定为「重新加载」，会在渲染进程收到按键前劫持它，
-// 导致 vim 的 Ctrl+R 重做失效。改为自定义菜单，去掉 reload 加速键，保留系统级编辑快捷键。
+// 应用菜单：macOS 保留自定义菜单（系统顶部栏不占窗口，且去掉 reload 加速键以免劫持 vim 的 Ctrl+R）。
+// Windows/Linux 完全移除菜单栏——一切操作走键盘命令；同时菜单加速键一并移除，Ctrl+R 不再被劫持。
 function setupAppMenu(): void {
-  const isMac = process.platform === 'darwin';
+  if (process.platform !== 'darwin') {
+    Menu.setApplicationMenu(null);
+    return;
+  }
   const template: Electron.MenuItemConstructorOptions[] = [
-    ...(isMac ? [{ role: 'appMenu' as const }] : []),
+    { role: 'appMenu' },
     { role: 'fileMenu' },
     { role: 'editMenu' },
     {
@@ -112,6 +115,20 @@ async function createWindow() {
       contextIsolation: true,
     },
   });
+
+  // Windows/Linux 移除菜单栏后，文本框的 Ctrl+C/V/X/A 编辑快捷键会失效，手动补回
+  if (process.platform !== 'darwin') {
+    win.webContents.on('before-input-event', (event, input) => {
+      if (input.type !== 'keyDown' || !input.control) return;
+      const k = input.key.toLowerCase();
+      if (k === 'c') win?.webContents.copy();
+      else if (k === 'v') win?.webContents.paste();
+      else if (k === 'x') win?.webContents.cut();
+      else if (k === 'a') win?.webContents.selectAll();
+      else return;
+      event.preventDefault();
+    });
+  }
 
   // 渲染完成（首次绘制）后显示窗口并强制获取焦点；后台模式保持隐藏
   win.once('ready-to-show', () => {

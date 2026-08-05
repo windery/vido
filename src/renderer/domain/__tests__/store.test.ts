@@ -708,3 +708,54 @@ describe('Store — 搜索激活时 j/k 只在匹配集内移动', () => {
     expect([1, 3]).toContain(id);
   });
 });
+
+describe('Store — content-nav 模式 dd 删除当前行', () => {
+  function makeContentStore(): Store {
+    const store = new Store();
+    const t = new Task(1);
+    t.title = 'A';
+    t.selected = true;
+    t.status = TaskState.SELECTED;
+    t.content = 'line1\nline2\nline3';
+    store.manager = new TaskListManager(new TaskList([t]), 2);
+    store.transition('i'); // COMMAND → CONTENT_NAVIGATION
+    return store;
+  }
+
+  it('dd 删除光标所在行，光标落在下一行行首', () => {
+    const store = makeContentStore();
+    store.moveCursorDown(); // 光标到第 2 行
+    store.deleteLineAtCursor();
+    const task = store.manager.list.selected!;
+    expect(task.content).toBe('line1\nline3');
+    expect(task.cursorLine).toBe(1);
+    expect(task.status).toBe(TaskState.CONTENT_NAVIGATION); // 不退出导航
+  });
+
+  it('删除最后一行时光标落在新的最后一行', () => {
+    const store = makeContentStore();
+    store.moveCursorDown();
+    store.moveCursorDown(); // 光标到最后一行（第 3 行）
+    store.deleteLineAtCursor();
+    const task = store.manager.list.selected!;
+    expect(task.content).toBe('line1\nline2');
+    expect(task.cursorLine).toBe(1);
+  });
+
+  it('dd 可撤销恢复被删行', () => {
+    const store = makeContentStore();
+    store.deleteLineAtCursor();
+    expect(store.manager.list.selected!.content).toBe('line2\nline3');
+    store.undo();
+    expect(store.manager.list.selected!.content).toBe('line1\nline2\nline3');
+  });
+
+  it('单行内容删除后为空串，光标仍有效', () => {
+    const store = makeContentStore();
+    store.manager.list.selected!.content = 'only';
+    store.deleteLineAtCursor();
+    const task = store.manager.list.selected!;
+    expect(task.content).toBe('');
+    expect(task.cursorLine).toBe(0);
+  });
+});

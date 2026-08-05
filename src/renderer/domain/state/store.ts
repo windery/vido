@@ -336,6 +336,12 @@ export class Store {
     const task = this.manager.list.selected;
     logger.info('Store', 'insert line', { taskId, line: task?.cursorLine });
   }
+  deleteLineAtCursor(): void {
+    const taskId = this.manager.list.selected?.id;
+    const line = this.manager.list.selected?.cursorLine;
+    this.mutate(() => this.manager.deleteLineAtCursor());
+    logger.info('Store', 'delete line', { taskId, line });
+  }
   moveCursorUp(): void { this.manager.moveCursorUp(); this.changed(); }
   moveCursorDown(): void { this.manager.moveCursorDown(); this.changed(); }
   moveCursorLeft(): void { this.manager.moveCursorLeft(); this.changed(); }

@@ -126,6 +126,18 @@ export class ContentNavigationModeHandler implements ModeHandler {
         setTimeout(() => { this.keySequence = ''; }, 1000);
         return true;
 
+      case 'd':
+        this.keySequence += key;
+        if (this.keySequence === 'dd') {
+          event.preventDefault();
+          taskDataManager.deleteLineAtCursor();
+          this.keySequence = '';
+          return true;
+        }
+        event.preventDefault();
+        setTimeout(() => { this.keySequence = ''; }, 1000);
+        return true;
+
       default:
         // 未绑定键，退出导航回 command 模式
         if (key.length === 1 && !['Shift', 'Control', 'Alt', 'Meta'].includes(key)) {

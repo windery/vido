@@ -7,7 +7,7 @@ import { TaskList } from '../entities/task-list';
 import {
   createTask, deleteSelected, toggleComplete, toggleFlag, updateProperty, updateCursor,
   startTitleEditing, sortTasks, copySelected, pasteTask,
-  insertNewLineBelow, moveCursorUp, moveCursorDown, moveCursorLeft, moveCursorRight,
+  insertNewLineBelow, deleteLineAtCursor, moveCursorUp, moveCursorDown, moveCursorLeft, moveCursorRight,
   moveCursorToLineStart, moveCursorToLineEnd, moveCursorToFirstLine, moveCursorToLastLine,
   moveCursorWordForward, moveCursorWordBackward, moveCursorWordEnd,
 } from '../operations/task-crud';
@@ -123,6 +123,7 @@ export class TaskListManager {
   insertNewLineBelow(): void {
     this.list = insertNewLineBelow(this.list);
   }
+  deleteLineAtCursor(): void { this.list = deleteLineAtCursor(this.list); }
 
   // ======== 光标移动 ========
 
