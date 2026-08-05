@@ -1,9 +1,12 @@
 <template>
     <div class="task-container" :data-task-id="task.id"
         :style="{ marginLeft: (task.indent || 0) * 24 + 'px' }">
-        <!-- 缩进引导线：画在缩进轨道（margin 区），每级一条竖线，不延伸进内容区 -->
+        <!-- 缩进引导线：子任务画在缩进轨道；父任务（有子任务）画延伸线衔接下一行，
+             两者同一 x 位置 → 视觉连续，清晰表达父子归属 -->
         <div v-if="(task.indent || 0) > 0" class="indent-guide"
             :style="{ left: -(task.indent || 0) * 24 + 'px', width: (task.indent || 0) * 24 + 'px' }"></div>
+        <div v-else-if="hasChildren" class="indent-guide parent-guide"
+            :style="{ left: '0px', width: '24px' }"></div>
         <!-- Task line（整体右移，选中高亮不覆盖缩进轨道） -->
         <div :class="['task-line', {
             'selected': task.selected,
@@ -121,6 +124,8 @@ import { t } from '../i18n';
 interface Props {
     task: Task;
     index: number;
+    /** 是否有直接子任务（下一行缩进更深）——父任务行画延伸连接线 */
+    hasChildren?: boolean;
     searchTerm?: string;
 }
 
@@ -390,6 +395,11 @@ watchEffect(() => {
     bottom: 0;
     pointer-events: none;
     background-image: repeating-linear-gradient(to right, transparent 0 calc(24px - 1px), var(--border-soft) calc(24px - 1px) 24px);
+}
+
+/* 父任务延伸线：向下覆盖行间距（4px）与子任务引导线衔接，形成连续树线 */
+.parent-guide {
+    bottom: -5px;
 }
 
 /* 子任务次级感：行号弱化 */

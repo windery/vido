@@ -13,9 +13,9 @@ function makeTask(overrides: Partial<Task> = {}): Task {
   return t;
 }
 
-function mountItem(task: Task) {
+function mountItem(task: Task, extra: Record<string, unknown> = {}) {
   return mount(TaskItem, {
-    props: { task, index: 0 },
+    props: { task, index: 0, ...extra },
     global: { stubs: { TaskContent: true } },
   });
 }
@@ -179,5 +179,13 @@ describe('TaskItem 子任务缩进渲染', () => {
   it('子任务行带 subtask class（行号弱化）', () => {
     const sub = mountItem(makeTask({ indent: 1 }));
     expect(sub.find('.task-line').classes()).toContain('subtask');
+  });
+
+  it('父任务（有子任务）：左侧画延伸连接线，与子任务引导线同列对齐', () => {
+    const parent = mountItem(makeTask({ indent: 0 }), { hasChildren: true });
+    const guide = parent.find('.indent-guide.parent-guide');
+    expect(guide.exists()).toBe(true);
+    expect(guide.attributes('style')).toContain('width: 24px');
+    expect(parent.find('.task-line').classes()).not.toContain('subtask');
   });
 });
