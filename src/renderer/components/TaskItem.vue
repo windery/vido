@@ -389,9 +389,9 @@ watchEffect(() => {
     color: var(--text-3);
 }
 
-/* 主次弱提示：当前定位组的主任务行极淡绿底色——'主'的区域暗示，
-   子任务零额外样式；hover/选中背景正常覆盖 */
-.task-line.group-leader {
+/* 主次弱提示：仅当主任务【未选中】（即子任务被选中定位到本组）时，
+   主任务行极淡绿底——'主'的区域暗示；主任务自己选中时保留正常选中高亮 */
+.task-line.group-leader:not(.selected) {
     background: rgba(89, 217, 138, 0.035);
 }
 
