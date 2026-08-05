@@ -48,32 +48,11 @@ if (!app.requestSingleInstanceLock()) {
   process.exit(0);
 }
 
-// 应用菜单：macOS 保留自定义菜单（系统顶部栏不占窗口，且去掉 reload 加速键以免劫持 vim 的 Ctrl+R）。
-// Windows/Linux 完全移除菜单栏——一切操作走键盘命令；同时菜单加速键一并移除，Ctrl+R 不再被劫持。
+// 应用菜单：全平台移除。vido 是全 vim 按键操作，菜单栏完全没有必要；
+// 同时移除菜单加速键，避免 Ctrl+R/Cmd+R 等系统快捷键劫持 vim 操作
+// （reload/DevTools 等调试入口仍可通过 VIDO_DEVTOOLS / 命令行获得）。
 function setupAppMenu(): void {
-  if (process.platform !== 'darwin') {
-    Menu.setApplicationMenu(null);
-    return;
-  }
-  const template: Electron.MenuItemConstructorOptions[] = [
-    { role: 'appMenu' },
-    { role: 'fileMenu' },
-    { role: 'editMenu' },
-    {
-      label: 'View',
-      submenu: [
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' },
-      ],
-    },
-    { role: 'windowMenu' },
-  ];
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+  Menu.setApplicationMenu(null);
 }
 
 let win: BrowserWindow | null = null;
@@ -116,19 +95,20 @@ async function createWindow() {
     },
   });
 
-  // Windows/Linux 移除菜单栏后，文本框的 Ctrl+C/V/X/A 编辑快捷键会失效，手动补回
-  if (process.platform !== 'darwin') {
-    win.webContents.on('before-input-event', (event, input) => {
-      if (input.type !== 'keyDown' || !input.control) return;
-      const k = input.key.toLowerCase();
-      if (k === 'c') win?.webContents.copy();
-      else if (k === 'v') win?.webContents.paste();
-      else if (k === 'x') win?.webContents.cut();
-      else if (k === 'a') win?.webContents.selectAll();
-      else return;
-      event.preventDefault();
-    });
-  }
+  // 全平台移除菜单栏后，文本框的 Cmd/Ctrl+C/V/X/A 编辑快捷键会失效（原本由菜单
+  // 加速键提供），手动补回：macOS 用 Cmd（meta），Windows/Linux 用 Ctrl（control）
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return;
+    const mod = process.platform === 'darwin' ? input.meta : input.control;
+    if (!mod) return;
+    const k = input.key.toLowerCase();
+    if (k === 'c') win?.webContents.copy();
+    else if (k === 'v') win?.webContents.paste();
+    else if (k === 'x') win?.webContents.cut();
+    else if (k === 'a') win?.webContents.selectAll();
+    else return;
+    event.preventDefault();
+  });
 
   // 渲染完成（首次绘制）后显示窗口并强制获取焦点；后台模式保持隐藏
   win.once('ready-to-show', () => {
