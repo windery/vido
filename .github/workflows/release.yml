@@ -1,0 +1,45 @@
+name: Release
+
+# 推送 v* 标签（如 v0.1.0）时自动构建并发布 GitHub Release。
+# 也可在 Actions 页手动触发（workflow_dispatch，跑在默认分支，适合测试流程）。
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-mac:
+    name: Build & release (macOS dmg)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.node-version'
+          cache: 'pnpm'
+
+      - name: Enable pnpm (corepack)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build & package (dmg)
+        run: pnpm build
+        env:
+          # CI 无签名证书：明确关闭自动发现，避免卡在签名步骤
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Upload artifacts to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: release/**/*.dmg
+          generate_release_notes: true
