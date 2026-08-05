@@ -240,6 +240,10 @@ onMounted(() => {
     padding: 0;
     width: 100%;
     color: var(--text);
+    /* 与编辑器（editor-shell）同源等宽字体/字号：无特殊样式时高度一致，
+       切换 normal ⇄ content-nav/edit 内容区不跳动 */
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: 13px;
     line-height: 1.65;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -310,6 +314,7 @@ onMounted(() => {
 
 .markdown-display :deep(p) {
     margin: 6px 0;
+    padding: 0;
 }
 
 .markdown-display :deep(blockquote) {
