@@ -557,18 +557,16 @@ export function insertLineAbove(list: TaskList): TaskList {
   return updateCursor(setLines(list, task, lines), task.id, line, 0);
 }
 
-/** tab：成为上一个顶级任务的直接子任务（indent = 1）。
- *  幂等：连续按 tab 结果不变；子任务最多 1 级——上一个任务是子任务
- *  （indent ≥ 1）时不允许再缩进（防止产生 2 级嵌套）。 */
+/** tab：缩进为父任务的直接子任务（indent = 1，最多 1 级）。
+ *  父任务 = 上一个顶级任务：prev 是顶级则父=prev；prev 是子任务则父=其父
+ *  （prev 前面的顶级任务）——当前任务与上一个子任务同父同级。
+ *  幂等：已缩进（indent=1）时结果不变。 */
 export function indentTask(list: TaskList, id: number): TaskList {
   const task = list.items.find((t) => t.id === id);
   if (!task) return list;
-  const items = list.items;
-  const idx = items.findIndex((t) => t.id === id);
-  const prev = idx > 0 ? items[idx - 1] : null;
-  if (!prev) return list; // 第一个任务无法缩进
-  if (prev.indent >= 1) return list; // 上一个已是子任务 → 最多 1 级，不允许再缩进
-  if (task.indent === 1) return list; // 幂等
+  const idx = list.items.findIndex((t) => t.id === id);
+  if (idx <= 0) return list; // 第一个任务无法缩进（没有可依附的父任务）
+  if (task.indent === 1) return list; // 幂等：已是子任务，不会产生 2 级
   return updateProperty(list, id, 'indent', 1);
 }
 

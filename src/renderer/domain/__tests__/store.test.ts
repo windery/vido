@@ -971,15 +971,16 @@ describe('Store — 子任务缩进（tab / Shift+Tab）', () => {
     s.indentSelectedTask(); // T2 → 1（T1 的子级）
     s.indentSelectedTask(); // 再按还是 1（幂等）
     expect(cur(s).indent).toBe(1);
-    // T3：上一个 T2 已是子任务（indent=1）→ 不允许缩进（防止 2 级嵌套）
+    // T3：上一个 T2 是子任务 → 与 T2 同父（T1）缩进为子任务 → 1
     s.manager.list = s.manager.list.selectTask(3);
     s.indentSelectedTask();
+    expect(cur(s).indent).toBe(1);
+    s.indentSelectedTask(); // 幂等，不产生 2 级
+    expect(cur(s).indent).toBe(1);
+    // 取消缩进后恢复顶级，再缩进仍生效
+    s.unindentSelectedTask(); // T3 → 0
     expect(cur(s).indent).toBe(0);
-    // 顶级任务（T1）之后仍可缩进
-    s.manager.list = s.manager.list.selectTask(2);
-    s.unindentSelectedTask(); // T2 → 0
-    s.manager.list = s.manager.list.selectTask(3);
-    s.indentSelectedTask(); // 上一个 T2 indent=0 → 允许，T3 → 1
+    s.indentSelectedTask(); // 上一个 T2 indent=1 → 同父缩进 → 1
     expect(cur(s).indent).toBe(1);
   });
 
