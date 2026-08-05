@@ -71,5 +71,9 @@ jobs:
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*.{dmg,exe,AppImage}
+          # 只上传三个平台的安装包（避免 glob 误匹配 NSIS/unpacked 中间产物）
+          files: |
+            artifacts/**/Vido-Mac-*-Installer.dmg
+            artifacts/**/Vido-Windows-*-Setup.exe
+            artifacts/**/Vido-Linux-*.AppImage
           generate_release_notes: true
