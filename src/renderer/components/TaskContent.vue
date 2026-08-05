@@ -181,10 +181,17 @@ onMounted(() => {
     box-sizing: border-box;
     overflow-x: hidden;
     overflow-y: auto;
+    /* 隐藏滚动条但保留滚动：编辑态/导航态滚动条渲染差异（占宽）会导致换行数
+       不同 → 两态高度不一致；统一隐藏后宽度恒等，高度由内容决定，两态对齐 */
+    scrollbar-width: none;
     max-height: calc(60vh - 24px);
     height: auto;
     display: block;
     caret-color: var(--accent-bright);
+}
+
+.content-editor::-webkit-scrollbar {
+    display: none;
 }
 
 .content-editor:focus {
