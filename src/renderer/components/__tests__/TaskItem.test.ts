@@ -68,9 +68,9 @@ describe('TaskItem 信息符号渲染', () => {
     expect(noTags.find('.task-meta').exists()).toBe(false);
   });
 
-  it('日程以 @ 前缀渲染于 meta 行', () => {
+  it('日程渲染于 meta 行（无 @ 前缀，智能文案）', () => {
     const wrapper = mountItem(makeTask({ schedule: createSpecificDateSchedule('2026-08-04') }));
-    expect(wrapper.find('.task-meta').text()).toContain('@');
+    expect(wrapper.find('.task-meta').text()).not.toContain('@');
     expect(wrapper.find('.task-meta').text()).toContain('2026-08-04');
   });
 });

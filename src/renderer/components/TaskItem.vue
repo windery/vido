@@ -42,7 +42,7 @@
                 <span v-for="tag in task.tags" :key="tag" class="meta-tag">#{{ tag }}</span>
             </span>
             <span v-if="task.schedule" class="meta-schedule" :class="'sch-' + getScheduleDisplay(task.schedule).status">
-                @{{ getScheduleDisplay(task.schedule).text }}
+                {{ getScheduleDisplay(task.schedule).text }}
                 <span v-if="isScheduleExpired(task.schedule)" class="expired-indicator">{{ t('task.expired') }}</span>
             </span>
         </div>
@@ -545,18 +545,17 @@ watchEffect(() => {
     white-space: nowrap;
 }
 
-/* 日程提醒状态色（ANSI 红黄绿语义）：
-   today=今天（磷光绿，提醒醒目）/ overdue=过期（红）/
-   upcoming=未来7天内（琥珀黄）/ normal=远期（灰） */
+/* 日程提醒状态色（柔和色相，可区分但不扎眼）：
+   today=今天（柔绿）/ overdue=过期（柔红）/
+   upcoming=未来7天内（柔琥珀）/ normal=远期（灰） */
 .meta-schedule.sch-today {
-    color: var(--accent-bright);
-    font-weight: 600;
+    color: #7fbd90;
 }
 .meta-schedule.sch-overdue {
-    color: #f85149;
+    color: #d99a9a;
 }
 .meta-schedule.sch-upcoming {
-    color: #d29922;
+    color: #c9b576;
 }
 
 .config-input-row {
