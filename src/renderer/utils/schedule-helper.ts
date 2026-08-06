@@ -373,7 +373,8 @@ export function getScheduleDisplay(
     // 今天：有时间只显示时间；否则 Today
     text = timeStr || 'Today';
   } else if (diff === 1) {
-    text = timeStr ? `Tomorrow ${timeStr}` : 'Tomorrow';
+    // 明天也显示具体日期（统一：日期提示用日期，不用文字）
+    text = timeStr ? `${dateStr} ${timeStr}` : dateStr;
   } else if (diff === -1) {
     text = 'Yesterday';
   } else if (diff !== null && diff > 1 && diff <= 7) {

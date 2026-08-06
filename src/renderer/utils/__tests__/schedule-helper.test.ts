@@ -223,9 +223,9 @@ describe('getScheduleDisplay — 智能展示文案 + 提醒状态', () => {
     expect(r.status).toBe('today');
   });
 
-  it('明天：Tomorrow（+时间）', () => {
-    expect(getScheduleDisplay(date('2026-05-09'), NOW).text).toBe('Tomorrow');
-    expect(getScheduleDisplay(dt('2026-05-09 09:00:00'), NOW).text).toBe('Tomorrow 09:00');
+  it('明天：显示具体日期（+时间）', () => {
+    expect(getScheduleDisplay(date('2026-05-09'), NOW).text).toBe('2026-05-09');
+    expect(getScheduleDisplay(dt('2026-05-09 09:00:00'), NOW).text).toBe('2026-05-09 09:00');
   });
 
   it('昨天：Yesterday', () => {
