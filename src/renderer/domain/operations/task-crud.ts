@@ -570,9 +570,20 @@ export function indentTask(list: TaskList, id: number): TaskList {
   return updateProperty(list, id, 'indent', 1);
 }
 
-/** Shift+Tab：取消缩进（indent-1，最低 0） */
+/** Shift+Tab：取消缩进（indent-1，最低 0）。
+ *  父任务按"前一个顶级任务"推断——若只取消当前任务，其后的兄弟子任务会
+ *  错误地挂到它名下。因此取消子任务时，其后连续的兄弟子任务跟随取消
+ *  （整个子任务组一起回到顶级）。 */
 export function unindentTask(list: TaskList, id: number): TaskList {
   const task = list.items.find((t) => t.id === id);
   if (!task || task.indent <= 0) return list;
-  return updateProperty(list, id, 'indent', task.indent - 1);
+  let updated = updateProperty(list, id, 'indent', task.indent - 1);
+  if (task.indent === 1) {
+    // 后续连续子任务（indent>0，兄弟）跟随取消，避免归属错乱
+    for (let i = list.items.findIndex((t) => t.id === id) + 1;
+         i < list.items.length && list.items[i].indent > 0; i++) {
+      updated = updateProperty(updated, list.items[i].id, 'indent', 0);
+    }
+  }
+  return updated;
 }

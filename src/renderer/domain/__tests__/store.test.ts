@@ -1008,3 +1008,47 @@ describe('Store — 子任务缩进（tab / Shift+Tab）', () => {
     expect(cur(s).indent).toBe(0);
   });
 });
+
+describe('Store — 取消缩进不破坏兄弟归属（严重 bug 回归）', () => {
+  it('T2 取消缩进后，后续兄弟子任务 T3 跟随取消（不挂在 T2 名下）', () => {
+    const store = new Store();
+    const tasks = [new Task(1), new Task(2), new Task(3)];
+    tasks[0].title = 'T1';
+    tasks[1].title = 'T2';
+    tasks[2].title = 'T3';
+    tasks[0].indent = 0;
+    tasks[1].indent = 1; // T1 的子任务
+    tasks[2].indent = 1; // 与 T2 同属 T1
+    tasks[1].selected = true;
+    store.manager = new TaskListManager(new TaskList(tasks), 4);
+    store.unindentSelectedTask(); // 取消 T2
+    const items = store.manager.list.items;
+    expect(items[1].indent).toBe(0);
+    expect(items[2].indent).toBe(0); // T3 跟随取消，不会变成 T2 的子任务
+  });
+
+  it('只有单个子任务：取消后无跟随对象', () => {
+    const store = new Store();
+    const tasks = [new Task(1), new Task(2)];
+    tasks[0].indent = 0;
+    tasks[1].indent = 1;
+    tasks[1].selected = true;
+    store.manager = new TaskListManager(new TaskList(tasks), 3);
+    store.unindentSelectedTask();
+    expect(store.manager.list.items[1].indent).toBe(0);
+  });
+
+  it('取消中间子任务：其后的兄弟全部跟随，不留下挂错父的任务', () => {
+    const store = new Store();
+    const tasks = [new Task(1), new Task(2), new Task(3), new Task(4), new Task(5)];
+    [0, 1, 1, 1, 0].forEach((indent, i) => { tasks[i].indent = indent; });
+    tasks[1].selected = true; // T2 是第一个子任务
+    store.manager = new TaskListManager(new TaskList(tasks), 6);
+    store.unindentSelectedTask();
+    const items = store.manager.list.items;
+    expect(items[1].indent).toBe(0);
+    expect(items[2].indent).toBe(0);
+    expect(items[3].indent).toBe(0);
+    expect(items[4].indent).toBe(0); // 下一组顶级任务不受影响（本来就 0）
+  });
+});
