@@ -239,12 +239,12 @@ describe('getScheduleDisplay — 智能展示文案 + 提醒状态', () => {
     expect(r.status).toBe('overdue');
   });
 
-  it('未来 7 天内：周几（+时间），状态 upcoming', () => {
+  it('未来 7 天内：显示具体日期（+时间），状态 upcoming', () => {
     const r = getScheduleDisplay(date('2026-05-10'), NOW); // 周日
-    expect(r.text).toBe('Sun');
+    expect(r.text).toBe('2026-05-10');
     expect(r.status).toBe('upcoming');
     const rt = getScheduleDisplay(dt('2026-05-10 08:30:00'), NOW);
-    expect(rt.text).toBe('Sun 08:30');
+    expect(rt.text).toBe('2026-05-10 08:30');
   });
 
   it('远期：原始日期，状态 normal', () => {

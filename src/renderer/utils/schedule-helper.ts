@@ -377,9 +377,8 @@ export function getScheduleDisplay(
   } else if (diff === -1) {
     text = 'Yesterday';
   } else if (diff !== null && diff > 1 && diff <= 7) {
-    const wd = parseDate(dateStr);
-    const name = wd ? DAY_NAMES[wd.getDay()] : dateStr;
-    text = timeStr ? `${name} ${timeStr}` : name;
+    // 未来一周内：直接显示具体日期（周几太不明显）
+    text = timeStr ? `${dateStr} ${timeStr}` : dateStr;
   } else {
     text = dateStr; // 远期：保持原始日期
   }
