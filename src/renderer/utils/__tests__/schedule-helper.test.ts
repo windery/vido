@@ -6,7 +6,9 @@ import {
   createTodaySchedule,
   createTomorrowSchedule,
   createSpecificDateSchedule,
+  createSpecificDateTimeSchedule,
   createWeekdaySchedule,
+  getScheduleDisplay,
 } from '../schedule-helper';
 import { Schedule, ScheduleType, Weekday } from '../../domain/schedule';
 
@@ -201,5 +203,70 @@ describe('factory functions', () => {
     const s = createWeekdaySchedule(Weekday.FRIDAY, true);
     expect(s.type).toBe(ScheduleType.WEEKLY);
     expect(s.weeklyTime?.recurring).toBe(true);
+  });
+});
+
+describe('getScheduleDisplay — 智能展示文案 + 提醒状态', () => {
+  const NOW = new Date(2026, 4, 8, 12, 0, 0); // 2026-05-08 周五
+  const date = (d: string) => createSpecificDateSchedule(d);
+  const dt = (s: string) => createSpecificDateTimeSchedule(s);
+
+  it('今天：显示 Today，状态 today', () => {
+    const r = getScheduleDisplay(date('2026-05-08'), NOW);
+    expect(r.text).toBe('Today');
+    expect(r.status).toBe('today');
+  });
+
+  it('今天的时间：只显示时间不显示日期', () => {
+    const r = getScheduleDisplay(dt('2026-05-08 14:30:00'), NOW);
+    expect(r.text).toBe('14:30');
+    expect(r.status).toBe('today');
+  });
+
+  it('明天：Tomorrow（+时间）', () => {
+    expect(getScheduleDisplay(date('2026-05-09'), NOW).text).toBe('Tomorrow');
+    expect(getScheduleDisplay(dt('2026-05-09 09:00:00'), NOW).text).toBe('Tomorrow 09:00');
+  });
+
+  it('昨天：Yesterday', () => {
+    const r = getScheduleDisplay(date('2026-05-07'), NOW);
+    expect(r.text).toBe('Yesterday');
+    expect(r.status).toBe('overdue');
+  });
+
+  it('过期：状态 overdue', () => {
+    const r = getScheduleDisplay(date('2026-05-01'), NOW);
+    expect(r.status).toBe('overdue');
+  });
+
+  it('未来 7 天内：周几（+时间），状态 upcoming', () => {
+    const r = getScheduleDisplay(date('2026-05-10'), NOW); // 周日
+    expect(r.text).toBe('Sun');
+    expect(r.status).toBe('upcoming');
+    const rt = getScheduleDisplay(dt('2026-05-10 08:30:00'), NOW);
+    expect(rt.text).toBe('Sun 08:30');
+  });
+
+  it('远期：原始日期，状态 normal', () => {
+    const r = getScheduleDisplay(date('2026-12-01'), NOW);
+    expect(r.text).toBe('2026-12-01');
+    expect(r.status).toBe('normal');
+  });
+
+  it('每周重复：保持原文案，状态 normal', () => {
+    const r = getScheduleDisplay(createWeekdaySchedule(Weekday.MONDAY, true), NOW);
+    expect(r.status).toBe('normal');
+    expect(r.text.length).toBeGreaterThan(0);
+  });
+
+  it('时间范围：显示起止时间', () => {
+    const r = getScheduleDisplay(createSpecificDateTimeSchedule('2026-05-08 10:00:00'), NOW);
+    void r;
+    const range = new Schedule(ScheduleType.RANGE, {
+      rangeTime: { startDateTime: '2026-05-08 10:00:00', endDateTime: '2026-05-08 12:00:00' },
+    });
+    const rr = getScheduleDisplay(range, NOW);
+    expect(rr.text).toBe('10:00-12:00');
+    expect(rr.status).toBe('today');
   });
 });

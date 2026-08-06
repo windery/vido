@@ -273,3 +273,115 @@ export function migrateSchedule(raw: any): Schedule | undefined {
       return undefined;
   }
 }
+
+// ==================== 智能展示（相对今天文案 + 提醒状态） ====================
+
+export type ScheduleStatus = 'today' | 'overdue' | 'upcoming' | 'normal';
+
+export interface ScheduleDisplay {
+  text: string;
+  status: ScheduleStatus;
+}
+
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_MS = 86400000;
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+function dayDiff(dateStr: string, today: Date): number | null {
+  const d = parseDate(dateStr);
+  if (!d) return null;
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return Math.round((target.getTime() - today.getTime()) / DAY_MS);
+}
+
+/**
+ * 智能展示文案 + 提醒状态：
+ * - 今天 → "Today"（有时间只显示时间 "14:30"）
+ * - 明天 → "Tomorrow"（+时间）
+ * - 昨天 → "Yesterday"
+ * - 未来 7 天内 → 周几 "Fri"（+时间）
+ * - 其他 → 原日期
+ * 状态：today=今天 / overdue=过期 / upcoming=未来7天内 / normal=其他
+ */
+export function getScheduleDisplay(
+  schedule: Schedule,
+  now: Date = new Date()
+): ScheduleDisplay {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayStr = formatDate(today);
+
+  // 周类型：每周重复，保持原文案
+  if (schedule.type === ScheduleType.WEEKLY) {
+    return { text: schedule.getDisplayText(), status: 'normal' };
+  }
+
+  let dateStr: string | null = null;
+  let timeStr: string | null = null;
+  let fallback = '';
+
+  const pickDateTime = (raw: string | undefined): void => {
+    if (!raw) return;
+    const d = parseDateTime(raw);
+    if (d) {
+      dateStr = formatDate(d);
+      timeStr = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    } else {
+      fallback = raw;
+    }
+  };
+
+  if (schedule.type === ScheduleType.QUICK) {
+    const qt = schedule.quickTime;
+    if (qt?.date) {
+      dateStr = qt.date;
+    } else if (qt?.time) {
+      pickDateTime(qt.time);
+    }
+  } else if (schedule.type === ScheduleType.TIME) {
+    pickDateTime(schedule.quickTime?.time);
+  } else if (schedule.type === ScheduleType.RANGE) {
+    const st = schedule.rangeTime?.startDateTime;
+    const et = schedule.rangeTime?.endDateTime;
+    if (st) {
+      const d = parseDateTime(st);
+      if (d) {
+        dateStr = formatDate(d);
+        timeStr = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+      }
+    }
+    if (et) {
+      const ed = parseDateTime(et);
+      if (ed && timeStr) {
+        timeStr = `${timeStr}-${pad2(ed.getHours())}:${pad2(ed.getMinutes())}`;
+      }
+    }
+  }
+
+  if (!dateStr) return { text: fallback || schedule.getDisplayText(), status: 'normal' };
+
+  const diff = dayDiff(dateStr, today);
+  let status: ScheduleStatus = 'normal';
+  if (diff !== null && diff < 0) status = 'overdue';
+  else if (diff === 0) status = 'today';
+  else if (diff !== null && diff > 0 && diff <= 7) status = 'upcoming';
+
+  let text: string;
+  if (diff === 0) {
+    // 今天：有时间只显示时间；否则 Today
+    text = timeStr || 'Today';
+  } else if (diff === 1) {
+    text = timeStr ? `Tomorrow ${timeStr}` : 'Tomorrow';
+  } else if (diff === -1) {
+    text = 'Yesterday';
+  } else if (diff !== null && diff > 1 && diff <= 7) {
+    const wd = parseDate(dateStr);
+    const name = wd ? DAY_NAMES[wd.getDay()] : dateStr;
+    text = timeStr ? `${name} ${timeStr}` : name;
+  } else {
+    text = dateStr; // 远期：保持原始日期
+  }
+  return { text, status };
+}

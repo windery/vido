@@ -41,8 +41,8 @@
             <span v-if="task.tags && task.tags.length" class="meta-tags">
                 <span v-for="tag in task.tags" :key="tag" class="meta-tag">#{{ tag }}</span>
             </span>
-            <span v-if="task.schedule" class="meta-schedule">
-                @{{ getScheduleDisplayText(task.schedule) }}
+            <span v-if="task.schedule" class="meta-schedule" :class="'sch-' + getScheduleDisplay(task.schedule).status">
+                @{{ getScheduleDisplay(task.schedule).text }}
                 <span v-if="isScheduleExpired(task.schedule)" class="expired-indicator">{{ t('task.expired') }}</span>
             </span>
         </div>
@@ -111,7 +111,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watchEffect, computed } from 'vue';
 import { Task, TaskState, TaskPriority } from '../domain/task';
-import { getScheduleDisplayText, isScheduleExpired, parseScheduleFromString } from '../utils/schedule-helper';
+import { getScheduleDisplay, getScheduleDisplayText, isScheduleExpired, parseScheduleFromString } from '../utils/schedule-helper';
 import TaskContent from './TaskContent.vue';
 import { useTaskState } from '../composables/use-task-state';
 import { t } from '../i18n';
@@ -541,6 +541,22 @@ watchEffect(() => {
     align-items: center;
     gap: 4px;
     color: var(--schedule);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* 日程提醒状态色（ANSI 红黄绿语义）：
+   today=今天（磷光绿，提醒醒目）/ overdue=过期（红）/
+   upcoming=未来7天内（琥珀黄）/ normal=远期（灰） */
+.meta-schedule.sch-today {
+    color: var(--accent-bright);
+    font-weight: 600;
+}
+.meta-schedule.sch-overdue {
+    color: #f85149;
+}
+.meta-schedule.sch-upcoming {
+    color: #d29922;
 }
 
 .config-input-row {
