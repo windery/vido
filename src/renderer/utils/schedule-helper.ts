@@ -1,4 +1,4 @@
-import { Schedule, ScheduleType, Weekday } from '../domain/schedule';
+import { Schedule, ScheduleRepeat, ScheduleType, Weekday } from '../domain/schedule';
 import { logger } from './logger';
 import {
   getCurrentDate,
@@ -88,7 +88,47 @@ const WEEKDAY_KEYWORDS: Record<string, Weekday> = {
   'sunday': Weekday.SUNDAY, 'sun': Weekday.SUNDAY,
 };
 
-export function parseScheduleFromString(timeStr: string): Schedule | null {
+const REPEAT_KEYWORDS: Array<{ word: string; repeat: ScheduleRepeat }> = [
+  { word: 'daily', repeat: 'daily' },
+  { word: 'weekly', repeat: 'weekly' },
+  { word: 'monthly', repeat: 'monthly' },
+  { word: 'yearly', repeat: 'yearly' },
+  { word: '每天', repeat: 'daily' },
+  { word: '每星期', repeat: 'weekly' },
+  { word: '每周', repeat: 'weekly' },
+  { word: '每月', repeat: 'monthly' },
+  { word: '每年', repeat: 'yearly' },
+];
+
+/** 从输入尾部剥离 repeat 关键词（"2026-05-08 daily" → 日期 + daily） */
+export function parseRepeatKeyword(timeStr: string): { body: string; repeat: ScheduleRepeat | undefined } {
+  const trimmed = timeStr.trim().toLowerCase();
+  for (const { word, repeat } of REPEAT_KEYWORDS) {
+    if (trimmed === word) return { body: '', repeat };
+    if (trimmed.endsWith(` ${word}`)) {
+      return { body: trimmed.slice(0, -(word.length + 1)).trim(), repeat };
+    }
+  }
+  return { body: trimmed, repeat: undefined };
+}
+
+/** 给 Schedule 应用 repeat；无日期时用今天兜底 */
+function applyRepeat(schedule: Schedule, repeat: ScheduleRepeat): Schedule {
+  const body = schedule.getShortText();
+  let s = schedule;
+  // 无日期（只有时间/范围）时附加今天日期，保证 repeat 有锚点
+  if (schedule.type !== ScheduleType.WEEKLY && !body) {
+    s = createSpecificDateTimeSchedule(`${getCurrentDate()} 10:00:00`);
+  }
+  return new Schedule(s.type, {
+    quickTime: s.quickTime,
+    weeklyTime: s.weeklyTime,
+    rangeTime: s.rangeTime,
+    repeat,
+  });
+}
+
+function parseScheduleBody(timeStr: string): Schedule | null {
   const trimmed = timeStr.trim().toLowerCase();
 
   if (trimmed === '今天' || trimmed === 'today') {
@@ -181,7 +221,24 @@ export function parseScheduleFromString(timeStr: string): Schedule | null {
     }
   }
 
+  // 各分支返回前统一应用 repeat：改造为在具体分支内处理
   return null;
+}
+
+/**
+ * 解析日程字符串，支持尾随 repeat 关键词：
+ * - "2026-05-08 daily" → 该日期 + 每天重复
+ * - "daily"（单独）→ 今天 + 每天重复
+ * - "weekly"/"monthly"/"yearly" 及中文 每天/每星期/每月/每年 同理
+ */
+export function parseScheduleFromString(timeStr: string): Schedule | null {
+  const { body, repeat } = parseRepeatKeyword(timeStr);
+  if (repeat && body === '') {
+    return applyRepeat(createTodaySchedule(), repeat);
+  }
+  const base = parseScheduleBody(body);
+  if (!base) return null;
+  return repeat ? applyRepeat(base, repeat) : base;
 }
 
 export function isScheduleExpired(schedule: Schedule): boolean {

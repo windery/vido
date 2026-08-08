@@ -4,6 +4,15 @@ import {
   formatDateTime,
 } from '../utils/date-formatter';
 
+export type ScheduleRepeat = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export const REPEAT_LABEL: Record<ScheduleRepeat, string> = {
+  daily: 'every day',
+  weekly: 'every week',
+  monthly: 'every month',
+  yearly: 'every year',
+};
+
 export enum ScheduleType {
   QUICK = 'quick',
   TIME = 'time',
@@ -41,6 +50,8 @@ export class Schedule {
   quickTime?: ScheduleQuickTime;
   weeklyTime?: ScheduleWeeklyTime;
   rangeTime?: ScheduleRangeTime;
+  /** 重复：daily 每天 / weekly 每星期 / monthly 每月 / yearly 每年 */
+  repeat?: ScheduleRepeat;
 
   constructor(
     type: ScheduleType,
@@ -48,12 +59,14 @@ export class Schedule {
       quickTime?: ScheduleQuickTime;
       weeklyTime?: ScheduleWeeklyTime;
       rangeTime?: ScheduleRangeTime;
+      repeat?: ScheduleRepeat;
     }
   ) {
     this.type = type;
     this.quickTime = opts?.quickTime;
     this.weeklyTime = opts?.weeklyTime;
     this.rangeTime = opts?.rangeTime;
+    this.repeat = opts?.repeat;
   }
 
   getDisplayText(): string {

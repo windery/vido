@@ -43,6 +43,7 @@
             </span>
             <span v-if="task.schedule" class="meta-schedule" :class="'sch-' + getScheduleDisplay(task.schedule).status">
                 {{ getScheduleDisplay(task.schedule).text }}
+                <span v-if="task.schedule.repeat" class="meta-repeat">·{{ REPEAT_LABEL[task.schedule.repeat] }}</span>
                 <span v-if="isScheduleExpired(task.schedule)" class="expired-indicator">{{ t('task.expired') }}</span>
             </span>
         </div>
@@ -111,6 +112,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watchEffect, computed } from 'vue';
 import { Task, TaskState, TaskPriority } from '../domain/task';
+import { REPEAT_LABEL } from '../domain/schedule';
 import { getScheduleDisplay, getScheduleDisplayText, isScheduleExpired, parseScheduleFromString } from '../utils/schedule-helper';
 import TaskContent from './TaskContent.vue';
 import { useTaskState } from '../composables/use-task-state';
@@ -556,6 +558,12 @@ watchEffect(() => {
 }
 .meta-schedule.sch-upcoming {
     color: #c9b576;
+}
+
+/* 重复标记：比日程文字更淡的辅助信息 */
+.meta-repeat {
+    color: var(--text-3);
+    font-size: 11px;
 }
 
 .config-input-row {

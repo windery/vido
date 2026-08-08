@@ -15,6 +15,12 @@
 import { Store } from '../state/store';
 import { TaskPriority } from '../task';
 import { parseScheduleFromString } from '../../utils/schedule-helper';
+import type { ScheduleRepeat } from '../schedule';
+
+/** e/c 前缀的 repeat 键位：d/w/m/y → daily/weekly/monthly/yearly */
+const REPEAT_MAP: Record<string, ScheduleRepeat> = {
+  d: 'daily', w: 'weekly', m: 'monthly', y: 'yearly',
+};
 
 /** edit 态由配置输入框独占，ConfigKeyHandler 与命令层均不处理 */
 export function isConfigEditState(cs: string | undefined): boolean {
@@ -26,6 +32,9 @@ const JUMP_MAP: Record<string, string> = { s: 'schedule-select', p: 'priority-se
 export class ConfigKeyHandler {
   private cPending = false;
   private cTimeout: ReturnType<typeof setTimeout> | null = null;
+  /** repeat 设置前缀（ed/ew/em/ey）：e 后跟 d/w/m/y */
+  private ePending = false;
+  private eTimeout: ReturnType<typeof setTimeout> | null = null;
   /** 标签删除待确认态：d 开启 → 数字累加 1 基序号 → Enter 删除 / Esc 取消 */
   private dPending = false;
   private dBuffer = '';
@@ -72,7 +81,7 @@ export class ConfigKeyHandler {
       this.cancelTagDelete(taskDataManager);
     }
 
-    // c 前缀序列：cs/cp/ct 跳转、cc 清除；非目标键则取消前缀后按正常流程处理
+    // c 前缀序列：cs/cp/ct 跳转、cc 清除整个、cd/cw/cm/cy 清除对应 repeat
     if (this.cPending) {
       this.cancelCPending();
       if (key === 'c') {
@@ -80,9 +89,29 @@ export class ConfigKeyHandler {
         this.clearCurrent(taskDataManager, task.id, cs);
         return true;
       }
+      if (REPEAT_MAP[key]) {
+        // 仅清除与当前 repeat 匹配的（cd 清 daily、cw 清 weekly…）
+        event.preventDefault();
+        const task = state.tasks.find((t: any) => t.configState);
+        const cur = task?.schedule?.repeat;
+        if (cur === REPEAT_MAP[key]) {
+          taskDataManager.setScheduleRepeat(task.id, undefined);
+        }
+        return true;
+      }
       if (JUMP_MAP[key]) {
         event.preventDefault();
         taskDataManager.setConfigState(task.id, JUMP_MAP[key]);
+        return true;
+      }
+    }
+
+    // e 前缀序列：ed/ew/em/ey 设置每天/每星期/每月/每年重复
+    if (this.ePending) {
+      this.cancelEPending();
+      if (REPEAT_MAP[key]) {
+        event.preventDefault();
+        taskDataManager.setScheduleRepeat(task.id, REPEAT_MAP[key]);
         return true;
       }
     }
@@ -105,6 +134,15 @@ export class ConfigKeyHandler {
         this.cTimeout = setTimeout(() => {
           this.cPending = false;
           this.cTimeout = null;
+        }, 600);
+        return true;
+
+      case 'e':
+        event.preventDefault();
+        this.ePending = true;
+        this.eTimeout = setTimeout(() => {
+          this.ePending = false;
+          this.eTimeout = null;
         }, 600);
         return true;
 
@@ -137,6 +175,14 @@ export class ConfigKeyHandler {
     }
   }
 
+  private cancelEPending(): void {
+    this.ePending = false;
+    if (this.eTimeout) {
+      clearTimeout(this.eTimeout);
+      this.eTimeout = null;
+    }
+  }
+
   private clearCurrent(tdm: Store, taskId: number, cs: string): void {
     if (cs === 'schedule-select') tdm.updateTaskProperty(taskId, 'schedule', undefined);
     else if (cs === 'priority-select') tdm.updateTaskProperty(taskId, 'priority', undefined);
@@ -152,7 +198,8 @@ export class ConfigKeyHandler {
   }
 
   private handleSchedule(e: KeyboardEvent, key: string, tdm: Store, taskId: number): void {
-    const map: Record<string, string> = { '1': 'today', '2': 'tomorrow', '3': 'next_week' };
+    const REPEAT_MAP: Record<string, string> = { d: 'daily', w: 'weekly', m: 'monthly', y: 'yearly' };
+const map: Record<string, string> = { '1': 'today', '2': 'tomorrow', '3': 'next_week' };
     if (map[key]) {
       e.preventDefault();
       const s = parseScheduleFromString(map[key]);

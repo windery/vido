@@ -11,6 +11,8 @@ import { EditorMode } from '../editor';
 import { StateMachine, deriveTaskState } from '../state-machine';
 import { logger } from '../../utils/logger';
 import { migrateSchedule } from '../../utils/schedule-helper';
+import { Schedule, ScheduleRepeat, ScheduleType } from '../schedule';
+import { getCurrentDate } from '../../utils/date-formatter';
 import { t } from '../../i18n';
 
 export interface AppState {
@@ -330,6 +332,34 @@ export class Store {
   updateTaskProperty(id: number, key: string, val: any): void {
     this.mutate(() => this.manager.updateTaskProperty(id, key, val));
     logger.info('Store', 'update task', { id, field: key, value: val });
+  }
+
+  /** 设置/清除日程重复（ed/ew/em/ey、cd/cw/cm/cy）；无日程时先建今天日程 */
+  setScheduleRepeat(taskId: number, repeat: ScheduleRepeat | undefined): void {
+    this.mutate(() => {
+      const task = this.manager.list.items.find((t) => t.id === taskId);
+      const s = task?.schedule;
+      if (!s) {
+        if (!repeat) return; // 无日程且清 repeat：无操作
+        this.manager.updateTaskProperty(
+          taskId,
+          'schedule',
+          new Schedule(ScheduleType.QUICK, { quickTime: { date: getCurrentDate() }, repeat })
+        );
+        return;
+      }
+      this.manager.updateTaskProperty(
+        taskId,
+        'schedule',
+        new Schedule(s.type, {
+          quickTime: s.quickTime,
+          weeklyTime: s.weeklyTime,
+          rangeTime: s.rangeTime,
+          repeat,
+        })
+      );
+    });
+    logger.info('Store', 'set schedule repeat', { taskId, repeat });
   }
   startTitleEditing(): void { this.manager.startTitleEditing(); this.changed(); }
   startContentNavigation(): void { this.setTaskStatus(TaskState.CONTENT_NAVIGATION); this.changed(); }

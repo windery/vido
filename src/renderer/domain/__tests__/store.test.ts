@@ -5,7 +5,8 @@ import { TaskList } from '../entities/task-list';
 import { TaskListManager } from '../manager/task-list-manager';
 import { EditorMode } from '../editor';
 import { logger } from '../../utils/logger';
-import { createTodaySchedule } from '../../utils/schedule-helper';
+import { createTodaySchedule, createSpecificDateTimeSchedule } from '../../utils/schedule-helper';
+import { getCurrentDate } from '../../utils/date-formatter';
 
 describe('Store — 加载后默认选中', () => {
   it('init 加载后无选中任务时自动选中第一个', async () => {
@@ -1050,5 +1051,48 @@ describe('Store — 取消缩进不破坏兄弟归属（严重 bug 回归）', (
     expect(items[2].indent).toBe(0);
     expect(items[3].indent).toBe(0);
     expect(items[4].indent).toBe(0); // 下一组顶级任务不受影响（本来就 0）
+  });
+});
+
+describe('Store — schedule repeat（ed/ew/em/ey、cd/cw/cm/cy）', () => {
+  function makeStore(): Store {
+    const store = new Store();
+    const t = new Task(1);
+    t.title = 'T';
+    t.selected = true;
+    store.manager = new TaskListManager(new TaskList([t]), 2);
+    return store;
+  }
+  const cur = (s: Store) => s.manager.list.selected!;
+
+  it('无日程时 ed：创建今天日程 + daily repeat', () => {
+    const s = makeStore();
+    s.setScheduleRepeat(1, 'daily');
+    expect(cur(s).schedule?.repeat).toBe('daily');
+    expect(cur(s).schedule?.getShortText()).toContain(getCurrentDate());
+  });
+
+  it('已有日程时 ew：保留日期类型，repeat 更新为 weekly', () => {
+    const s = makeStore();
+    s.updateTaskProperty(1, 'schedule', createSpecificDateTimeSchedule('2026-05-08 10:00:00'));
+    s.setScheduleRepeat(1, 'weekly');
+    expect(cur(s).schedule?.repeat).toBe('weekly');
+    expect(cur(s).schedule?.getDisplayText()).toContain('2026-05-08'); // 日期保留
+  });
+
+  it('cd 清除 daily（匹配才清）', () => {
+    const s = makeStore();
+    s.setScheduleRepeat(1, 'daily');
+    s.setScheduleRepeat(1, undefined);
+    expect(cur(s).schedule?.repeat).toBeUndefined();
+    expect(cur(s).schedule).toBeDefined(); // 日程本身保留
+  });
+
+  it('repeat 可撤销（u）', () => {
+    const s = makeStore();
+    s.setScheduleRepeat(1, 'yearly');
+    expect(cur(s).schedule?.repeat).toBe('yearly');
+    s.undo();
+    expect(cur(s).schedule).toBeUndefined();
   });
 });

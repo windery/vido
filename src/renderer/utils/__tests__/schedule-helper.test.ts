@@ -270,3 +270,31 @@ describe('getScheduleDisplay — 智能展示文案 + 提醒状态', () => {
     expect(rr.status).toBe('today');
   });
 });
+
+describe('parseScheduleFromString — repeat 关键词', () => {
+  it('尾随 daily：日期 + 每天重复', () => {
+    const s = parseScheduleFromString('2026-05-08 daily')!;
+    expect(s.repeat).toBe('daily');
+    expect(s.getShortText()).toContain('2026-05-08');
+  });
+
+  it('单独 daily：今天 + 每天重复', () => {
+    const s = parseScheduleFromString('daily')!;
+    expect(s.repeat).toBe('daily');
+  });
+
+  it('weekly / monthly / yearly', () => {
+    expect(parseScheduleFromString('2026-05-08 weekly')!.repeat).toBe('weekly');
+    expect(parseScheduleFromString('2026-05-08 monthly')!.repeat).toBe('monthly');
+    expect(parseScheduleFromString('2026-05-08 yearly')!.repeat).toBe('yearly');
+  });
+
+  it('中文关键词：每天/每星期/每月/每年', () => {
+    expect(parseScheduleFromString('每天')!.repeat).toBe('daily');
+    expect(parseScheduleFromString('每星期')!.repeat).toBe('weekly');
+  });
+
+  it('无 repeat 关键词：repeat 为空', () => {
+    expect(parseScheduleFromString('2026-05-08')!.repeat).toBeUndefined();
+  });
+});

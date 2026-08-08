@@ -194,6 +194,8 @@ export const en = {
           { key: 'H / L', desc: 'Navigate between sections (same task, sideways)' },
           { key: '1 / 2 / 3', desc: 'Quick select (priority/schedule)' },
           { key: 'cc', desc: 'Clear (schedule/priority/tags)' },
+          { key: 'ed / ew / em / ey', desc: 'Repeat: every day/week/month/year (schedule)' },
+          { key: 'cd / cw / cm / cy', desc: 'Clear matching repeat (schedule)' },
           { key: 'd + index + ⏎', desc: 'Delete the tag with that number (shown before each tag)' },
           { key: 'Enter', desc: 'Edit selected section' },
           { key: 'ESC', desc: 'Exit editing or close config' },
