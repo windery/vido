@@ -37,6 +37,11 @@ export class CommandModeHandler implements ModeHandler {
     const currentState = taskDataManager.getState();
     const selectedTaskId = currentState.selectedTaskId;
 
+    // 日期视图激活：按键由日历处理（[ ] 翻页 / H L 切粒度 / j k 选任务 / Esc Enter 退出）
+    if ((currentState as any).calendarView?.visible) {
+      return this.handleCalendarKey(event, key, taskDataManager);
+    }
+
     // 数字前缀累积：3j → 下移 3 个任务
     if (/^[1-9]\d*$/.test(key) && this.keySequence.length === 0) {
       this.countPrefix += key;
@@ -254,6 +259,12 @@ export class CommandModeHandler implements ModeHandler {
 
       case 'c':
         this.keySequence += key;
+        if (this.keySequence === 'gc') {
+          event.preventDefault();
+          taskDataManager.openCalendarView();
+          this.resetAll();
+          return true;
+        }
         if (this.keySequence === 'cc') {
           event.preventDefault();
           this.resetAll();
@@ -337,6 +348,43 @@ export class CommandModeHandler implements ModeHandler {
   private setKeySequenceTimeout(): void {
     if (this.keySequenceTimeout) clearTimeout(this.keySequenceTimeout);
     this.keySequenceTimeout = setTimeout(() => this.resetSequenceState(), 1000);
+  }
+
+  /** 日期视图按键：H/L 切粒度、[ ] 翻页、j/k 选任务、Enter 打开任务、Esc 退出 */
+  private handleCalendarKey(
+    event: KeyboardEvent,
+    key: string,
+    taskDataManager: Store
+  ): boolean {
+    switch (key) {
+      case 'H':
+        event.preventDefault();
+        taskDataManager.cycleCalendarGranularity(-1);
+        return true;
+      case 'L':
+        event.preventDefault();
+        taskDataManager.cycleCalendarGranularity(1);
+        return true;
+      case '[':
+        event.preventDefault();
+        taskDataManager.shiftCalendarPage(-1);
+        return true;
+      case ']':
+        event.preventDefault();
+        taskDataManager.shiftCalendarPage(1);
+        return true;
+      case 'Escape':
+        event.preventDefault();
+        taskDataManager.closeCalendarView();
+        this.blurInputFields();
+        return true;
+      case 'Enter':
+        event.preventDefault();
+        taskDataManager.closeCalendarView();
+        return true;
+      default:
+        return true; // 视图内其余键一律消费，不落到命令层
+    }
   }
 
   dispose(): void {

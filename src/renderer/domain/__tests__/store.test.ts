@@ -6,7 +6,7 @@ import { TaskListManager } from '../manager/task-list-manager';
 import { EditorMode } from '../editor';
 import { logger } from '../../utils/logger';
 import { createTodaySchedule, createSpecificDateTimeSchedule } from '../../utils/schedule-helper';
-import { getCurrentDate } from '../../utils/date-formatter';
+import { getCurrentDate, formatDate } from '../../utils/date-formatter';
 
 describe('Store — 加载后默认选中', () => {
   it('init 加载后无选中任务时自动选中第一个', async () => {
@@ -1094,5 +1094,66 @@ describe('Store — schedule repeat（ed/ew/em/ey、cd/cw/cm/cy）', () => {
     expect(cur(s).schedule?.repeat).toBe('yearly');
     s.undo();
     expect(cur(s).schedule).toBeUndefined();
+  });
+});
+
+describe('Store — 日期视图（g c / H L / [ ]）', () => {
+  function makeStore(): Store {
+    const store = new Store();
+    const t = new Task(1);
+    t.title = 'T';
+    t.selected = true;
+    store.manager = new TaskListManager(new TaskList([t]), 2);
+    return store;
+  }
+  const cv = (s: Store) => s.state.calendarView;
+
+  it('openCalendarView：默认周粒度 + 今天锚点', () => {
+    const s = makeStore();
+    s.openCalendarView();
+    expect(cv(s).visible).toBe(true);
+    expect(cv(s).granularity).toBe('week');
+    expect(cv(s).anchor).toBe(getCurrentDate());
+  });
+
+  it('openCalendarView：选中任务有日程时锚点用其日期', () => {
+    const s = makeStore();
+    s.updateTaskProperty(1, 'schedule', createSpecificDateTimeSchedule('2026-05-08 10:00:00'));
+    s.openCalendarView();
+    expect(cv(s).anchor).toBe('2026-05-08');
+  });
+
+  it('H/L 循环切换粒度：day ↔ week ↔ month', () => {
+    const s = makeStore();
+    s.openCalendarView();
+    s.cycleCalendarGranularity(1); // week → month
+    expect(cv(s).granularity).toBe('month');
+    s.cycleCalendarGranularity(1); // month → day
+    expect(cv(s).granularity).toBe('day');
+    s.cycleCalendarGranularity(-1); // day → month（回绕）
+    expect(cv(s).granularity).toBe('month');
+  });
+
+  it('[ ] 翻页：day ±1 天 / week ±7 天 / month ±1 月', () => {
+    const s = makeStore();
+    s.openCalendarView(); // week, anchor=today
+    s.shiftCalendarPage(1);
+    // 今天 +7 天
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    const expectDate = formatDate(d);
+    expect(cv(s).anchor).toBe(expectDate);
+    s.state.calendarView.granularity = 'day';
+    s.shiftCalendarPage(-1);
+    const d2 = new Date();
+    d2.setDate(d2.getDate() + 6); // 7-1
+    expect(cv(s).anchor).toBe(formatDate(d2));
+  });
+
+  it('closeCalendarView 退出', () => {
+    const s = makeStore();
+    s.openCalendarView();
+    s.closeCalendarView();
+    expect(cv(s).visible).toBe(false);
   });
 });

@@ -9,8 +9,12 @@
                 <!-- 当前定位组（主任务 + 其子任务）的超细绿线框 -->
                 <div v-if="boxStyle" class="group-box"
                     :style="{ top: boxStyle.top + 'px', height: boxStyle.height + 'px', left: boxStyle.left + 'px', width: boxStyle.width + 'px' }"></div>
+                <!-- 日期视图（g c 进入） -->
+                <CalendarView v-if="calendarVisible" :tasks="filteredTasks"
+                    :granularity="calendarGranularity" :anchor="calendarAnchor" />
+
                 <!-- Empty Buffer -->
-                <EmptyBuffer v-if="filteredTasks.length === 0" :is-searching="isSearching" />
+                <EmptyBuffer v-else-if="filteredTasks.length === 0" :is-searching="isSearching" />
 
                 <!-- Task List -->
                 <div v-else class="buffer-content">
@@ -33,10 +37,12 @@ import { useTaskState } from '../composables/use-task-state';
 import { getKeyboardManager } from '../domain/keyboard/keyboard-manager';
 import { computeGroupBox } from '../utils/group-box';
 import { logger } from '../utils/logger';
+import { store } from '../domain/state/store';
 
 // Components
 import VimHeader from './VimHeader.vue';
 import EmptyBuffer from './EmptyBuffer.vue';
+import CalendarView from './CalendarView.vue';
 import TaskItem from './TaskItem.vue';
 
 // 使用统一状态管理架构
@@ -52,6 +58,11 @@ const {
 const completedTasksCount = computed(() => {
     return filteredTasks.value.filter((task: Task) => task.completed).length;
 });
+
+// 日期视图状态（store.state.calendarView）
+const calendarVisible = computed(() => store.state.calendarView.visible);
+const calendarGranularity = computed(() => store.state.calendarView.granularity);
+const calendarAnchor = computed(() => store.state.calendarView.anchor);
 
 // ============ 当前定位组框（主任务 + 其子任务） ============
 // 组 = 选中任务所在的主任务及其连续子任务（indent>0 直到下一个顶级）。

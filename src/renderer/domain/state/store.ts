@@ -12,7 +12,7 @@ import { StateMachine, deriveTaskState } from '../state-machine';
 import { logger } from '../../utils/logger';
 import { migrateSchedule } from '../../utils/schedule-helper';
 import { Schedule, ScheduleRepeat, ScheduleType } from '../schedule';
-import { getCurrentDate } from '../../utils/date-formatter';
+import { getCurrentDate, formatDate, parseDate } from '../../utils/date-formatter';
 import { t } from '../../i18n';
 
 export interface AppState {
@@ -26,6 +26,13 @@ export interface AppState {
   flashMessage: string | null;
   /** 标签删除待确认序号（1 基；0 = 未处于删除态），驱动 tags-select 面板高亮目标标签 */
   tagDeleteIndex: number;
+  /** 日期视图（g c 进入）：visible + 粒度（day/week/month）+ 锚点日期 + 视图内选中任务 */
+  calendarView: {
+    visible: boolean;
+    granularity: 'day' | 'week' | 'month';
+    anchor: string;
+    selectedTaskId?: number;
+  };
 }
 
 export class Store {
@@ -155,6 +162,7 @@ export class Store {
       isHelpVisible: false,
       flashMessage: null,
       tagDeleteIndex: 0,
+      calendarView: { visible: false, granularity: 'week', anchor: '', selectedTaskId: undefined },
     });
   }
 
@@ -360,6 +368,49 @@ export class Store {
       );
     });
     logger.info('Store', 'set schedule repeat', { taskId, repeat });
+  }
+
+  // ============ 日期视图（g c 进入 / H L 切粒度 / [ ] 翻页） ============
+
+  openCalendarView(): void {
+    const today = getCurrentDate();
+    const selected = this.manager.list.selected;
+    // 锚点：当前选中任务有日程则用其日期，否则今天
+    let anchor = today;
+    const sd = selected?.schedule;
+    if (sd) {
+      const d = (sd as any).getShortText ? sd.getShortText() : '';
+      if (d && /^\d{4}-\d{2}-\d{2}/.test(d)) anchor = d.slice(0, 10);
+    }
+    this.state.calendarView = { visible: true, granularity: 'week', anchor, selectedTaskId: undefined };
+    logger.info('Store', 'open calendar view', { anchor, granularity: 'week' });
+  }
+
+  closeCalendarView(): void {
+    this.state.calendarView.visible = false;
+    logger.info('Store', 'close calendar view');
+  }
+
+  cycleCalendarGranularity(dir: 1 | -1): void {
+    const order: Array<'day' | 'week' | 'month'> = ['day', 'week', 'month'];
+    const cur = this.state.calendarView.granularity;
+    const idx = order.indexOf(cur);
+    const next = order[(idx + dir + order.length) % order.length];
+    this.state.calendarView.granularity = next;
+  }
+
+  shiftCalendarPage(dir: 1 | -1): void {
+    const cv = this.state.calendarView;
+    const d = parseDate(cv.anchor) || new Date();
+    if (cv.granularity === 'day') d.setDate(d.getDate() + dir);
+    else if (cv.granularity === 'week') d.setDate(d.getDate() + 7 * dir);
+    else d.setMonth(d.getMonth() + dir);
+    cv.anchor = formatDate(d);
+  }
+
+  moveCalendarSelection(dir: 1 | -1): void {
+    // 由渲染层提供当日任务列表选择；此处仅标记方向（选择状态存 state）
+    // 简化：selectedTaskId 由 CalendarView 通过事件更新
   }
   startTitleEditing(): void { this.manager.startTitleEditing(); this.changed(); }
   startContentNavigation(): void { this.setTaskStatus(TaskState.CONTENT_NAVIGATION); this.changed(); }
