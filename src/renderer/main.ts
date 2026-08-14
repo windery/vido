@@ -5,8 +5,9 @@ import './style.css';
 
 const app = createApp(App);
 
-// 在Pinia设置完成后再初始化
-import('./initialize').then(() => {
+// 先加载磁盘偏好（主题）再挂载，避免主题闪变
+import('./initialize').then(async ({ initialize }) => {
+  await initialize();
   app.mount('#app').$nextTick(() => {
     postMessage({ payload: 'removeLoading' }, '*');
 

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   prefs,
   setTheme,
@@ -31,10 +31,16 @@ describe('prefs', () => {
     expect(document.documentElement.classList.contains('dark')).toBe(true);
   });
 
-  it('persists theme to localStorage', () => {
+  it('persists theme to disk (prefs.json)', async () => {
+    const invoke = (window as any).electronAPI.invoke as ReturnType<typeof vi.fn>;
+    const saved: Array<{ filename: string; data: any }> = [];
+    invoke.mockImplementation(async (channel: string, filename: string, data?: any) => {
+      if (channel === 'save-json-file') saved.push({ filename, data });
+      return { success: true };
+    });
     setTheme('light');
-    const saved = JSON.parse(localStorage.getItem('vido.prefs.v1') as string);
-    expect(saved).toEqual({ theme: 'light' });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(saved).toContainEqual({ filename: 'prefs.json', data: { theme: 'light' } });
   });
 
   it('toggleTheme switches values', () => {

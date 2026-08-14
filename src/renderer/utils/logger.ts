@@ -1,4 +1,5 @@
-// 日志系统 - 将调试信息记录到 ~/.vido/log 目录的物理文件中
+// 日志系统 - 将调试信息经 IPC 记录到主进程日志文件
+// （dev: ~/.vido-dev/log，prod: ~/.vido/log，见 src/main/paths.ts）
 // 格式规范：`[ts] [LEVEL] [Module] message | key=value`，见 docs/superpowers/specs/2026-08-01-logging-design.md
 
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';

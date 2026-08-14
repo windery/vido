@@ -5,6 +5,7 @@ import path from 'node:path';
 import { initializeFileOperations } from './file-operations';
 import { logger, writeLogToFile, getLogFilePath, LogEntry } from './logger';
 import { startTestServer } from './test-server';
+import { isDev, getVidoRootDir } from './paths';
 
 // const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -161,7 +162,9 @@ app
     setupAppMenu();
     // 创建窗口
     createWindow();
-    // 启动提示：日志文件位置，便于 agent 定位排查
+    // 启动提示：运行环境 + 数据根目录（dev 用 ~/.vido-dev，与真实数据隔离）
+    logger.info('MainProcess', 'Environment', { dev: isDev(), root: getVidoRootDir() });
+    // 日志文件位置，便于 agent 定位排查
     logger.info('MainProcess', 'Log file', { path: getLogFilePath() });
   })
   .catch((err) =>

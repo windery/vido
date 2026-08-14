@@ -1,10 +1,10 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import path from 'node:path';
-import os from 'node:os';
 import fs from 'node:fs';
 import { BrowserWindow } from 'electron';
 import { logger } from './logger';
+import { getVidoLogDir } from './paths';
 
 // 测试服务器实例
 let testServer: express.Application | null = null;
@@ -46,7 +46,7 @@ export function startTestServer(win: BrowserWindow | null) {
     // 获取日志接口
     testServer.get('/api/logs', (req: Request, res: Response) => {
       try {
-        const logDir = path.join(os.homedir(), '.vido', 'log');
+        const logDir = getVidoLogDir();
         const now = new Date();
         const dateString = now.toISOString().split('T')[0];
         const logFile = path.join(logDir, `vido-${dateString}.log`);
@@ -85,7 +85,7 @@ export function startTestServer(win: BrowserWindow | null) {
     // 获取日志统计接口
     testServer.get('/api/stats', (req: Request, res: Response) => {
       try {
-        const logDir = path.join(os.homedir(), '.vido', 'log');
+        const logDir = getVidoLogDir();
         const now = new Date();
         const dateString = now.toISOString().split('T')[0];
         const logFile = path.join(logDir, `vido-${dateString}.log`);

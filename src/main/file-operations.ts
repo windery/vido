@@ -5,20 +5,12 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
 import { ipcMain } from 'electron';
 import { logger } from './logger';
+import { getVidoDataDir } from './paths';
 
 /**
- * 获取 .vido/data 目录路径
- */
-function getVidoDataDir(): string {
-  const homeDir = os.homedir();
-  return path.join(homeDir, '.vido', 'data');
-}
-
-/**
- * 确保 .vido/data 目录存在
+ * 确保 <root>/data 目录存在（dev: ~/.vido-dev/data，prod: ~/.vido/data）
  */
 function ensureVidoDataDir(): void {
   const dataDir = getVidoDataDir();
@@ -26,12 +18,12 @@ function ensureVidoDataDir(): void {
   try {
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
-      logger.info('FileOperations', `Created .vido/data directory: ${dataDir}`);
+      logger.info('FileOperations', `Created data directory: ${dataDir}`);
     }
   } catch (error) {
     logger.error(
       'FileOperations',
-      'Failed to create .vido/data directory',
+      'Failed to create data directory',
       error
     );
     throw error;

@@ -5,7 +5,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import * as os from 'node:os';
+import { getVidoLogDir } from './paths';
 
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
 
@@ -43,10 +43,10 @@ export function formatLogEntry(level: LogLevel, module: string, message: string,
   return line;
 }
 
-/** 当日日志文件路径：~/.vido/log/vido-YYYY-MM-DD.log */
+/** 当日日志文件路径：<root>/log/vido-YYYY-MM-DD.log（dev: ~/.vido-dev/log，prod: ~/.vido/log） */
 export function getLogFilePath(): string {
   const dateString = new Date().toISOString().split('T')[0];
-  return path.join(os.homedir(), '.vido', 'log', `vido-${dateString}.log`);
+  return path.join(getVidoLogDir(), `vido-${dateString}.log`);
 }
 
 /** 写入日志文件。接受结构化 entry 或（兼容）已格式化字符串 */
@@ -58,7 +58,7 @@ export function writeLogToFile(entry: LogEntry | string): void {
     }
     if (!shouldLog(entry.level)) return;
 
-    const logDir = path.join(os.homedir(), '.vido', 'log');
+    const logDir = getVidoLogDir();
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true });
     }

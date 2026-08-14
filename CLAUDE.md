@@ -230,6 +230,8 @@ composables/
 
 **Imports:** `import { store } from '../domain/state/store'` for domain access. `import { useTaskState } from '../composables/use-task-state'` for Vue components.
 
+**持久化（桌面应用原则：数据与配置一律落盘）**: 任务数据 `tasks.json` 与偏好 `prefs.json`（主题等）都经 IPC 落盘到 `<root>/data/`；dev 环境根目录为 `~/.vido-dev`、生产为 `~/.vido`（环境隔离，唯一来源 `src/main/paths.ts`）。渲染进程不得直接用 localStorage 存偏好——旧版 `vido.prefs.v1` 值在首次启动时自动迁移到磁盘。
+
 ## Testing System
 
 ### API-Driven Testing (Primary Method)
@@ -237,7 +239,7 @@ composables/
 **System Architecture**:
 - `src/utils/test-client.ts` - Frontend receives/simulates keyboard events
 - API server receives HTTP commands, forwards to frontend
-- All interactions logged to `~/.vido/log/vido-YYYY-MM-DD.log`
+- All interactions logged to `~/.vido-dev/log/vido-YYYY-MM-DD.log`（测试/开发环境；生产为 `~/.vido/log/`，见 `src/main/paths.ts` 环境隔离）
 - Behavior verified through log analysis
 
 **Starting Test Environment**:
@@ -265,7 +267,7 @@ curl -X POST http://localhost:3002/api/sequence \
 
 **Claude Code Testing Process (MANDATORY)**:
 1. **Trigger**: Send API commands for keyboard operations
-2. **Check Logs**: `tail -30 ~/.vido/log/vido-$(date +%Y-%m-%d).log`
+2. **Check Logs**: `tail -30 ~/.vido-dev/log/vido-$(date +%Y-%m-%d).log`
 3. **Analyze**: Verify keyboard manager, events, state transitions
 4. **Fix**: Address issues based on log analysis
 
@@ -372,14 +374,14 @@ curl -s --noproxy '*' -X POST http://localhost:3002/api/sequence \
   -d '{"keys": ["i", "l", "a", "x"]}'
 
 # 4. Verify via logs (add logger calls first if missing)
-tail -50 ~/.vido/log/vido-$(date +%Y-%m-%d).log | grep "TagName"
+tail -50 ~/.vido-dev/log/vido-$(date +%Y-%m-%d).log | grep "TagName"
 ```
 
 **注意**: 编辑 `src/main/**` 会触发 vite-plugin-electron 重启 Electron。后台测试要重启时，用上面的 `pkill` 清掉旧实例再起，避免残留窗口抢焦点。
 
 #### Log Analysis Priority
 
-1. **Read logs FIRST** — `tail -100 ~/.vido/log/vido-$(date +%Y-%m-%d).log`
+1. **Read logs FIRST** — `tail -100 ~/.vido-dev/log/vido-$(date +%Y-%m-%d).log`
 2. **If insufficient, ADD logs with key state values**, rebuild, then use test API to reproduce
 3. **Analyze logs to pinpoint the exact line/value**, then fix
 4. **After fixing, use test API to verify**, then check logs to confirm
@@ -388,18 +390,18 @@ Every **data mutation** (create/delete/toggle/update/paste/sort/undo/redo/search
 
 ### Log Analysis
 
-**Location**: `~/.vido/log/vido-YYYY-MM-DD.log`
+**Location**: dev/测试 `~/.vido-dev/log/vido-YYYY-MM-DD.log`；生产 `~/.vido/log/vido-YYYY-MM-DD.log`（环境隔离，见 `src/main/paths.ts`）
 
 **Analysis Commands**:
 ```bash
 # Real-time logs
-tail -f ~/.vido/log/vido-$(date +%Y-%m-%d).log
+tail -f ~/.vido-dev/log/vido-$(date +%Y-%m-%d).log
 
 # Recent entries
-tail -50 ~/.vido/log/vido-$(date +%Y-%m-%d).log
+tail -50 ~/.vido-dev/log/vido-$(date +%Y-%m-%d).log
 
 # Search events
-grep -E "(KeyboardManager|State transition)" ~/.vido/log/vido-$(date +%Y-%m-%d).log
+grep -E "(KeyboardManager|State transition)" ~/.vido-dev/log/vido-$(date +%Y-%m-%d).log
 ```
 
 **Log Contents**:
@@ -444,7 +446,7 @@ grep -E "(KeyboardManager|State transition)" ~/.vido/log/vido-$(date +%Y-%m-%d).
 
 ### Development Requirements
 - **DDD boundaries** - Each file belongs to ONE bounded context (task / editor / UI)
-- **Log-first debugging** - Always check `~/.vido/log/` before reading code
+- **Log-first debugging** - Always check `~/.vido-dev/log/`（dev/测试）before reading code；生产为 `~/.vido/log/`
 - **Automated testing** - Use `curl` to port 3002 for key simulation, then verify logs
 - **Keyboard-first** - All interactions keyboard accessible, no mouse
 - **Immutable data** - Domain operations return new objects, never mutate in place
