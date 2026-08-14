@@ -1254,47 +1254,55 @@ describe('Store — 日期视图（g c / H L / [ ]）', () => {
     expect(cv(s).granularity).toBe('month');
   });
 
-  it('[ ] 翻页：day ±1 天 / week ±7 天 / month ±1 月（同一天号，焦点跟随）', () => {
+  it('[ ] 翻页：day ±1 天 / week ±7 天 / month ±1 月（只改显示，高亮保持之前选择的日期不动）', () => {
     const s = makeStore();
     s.openCalendarView(); // month, anchor=today
     s.state.calendarView.anchor = '2026-05-08';
     s.state.calendarView.selectedDate = '2026-05-08';
     s.shiftCalendarPage(1);
-    expect(cv(s).anchor).toBe('2026-06-08');
-    expect(cv(s).selectedDate).toBe('2026-06-08');
+    expect(cv(s).anchor).toBe('2026-06-08'); // 显示翻到 6 月
+    expect(cv(s).selectedDate).toBe('2026-05-08'); // 高亮不动
     s.shiftCalendarPage(-1);
     expect(cv(s).anchor).toBe('2026-05-08');
+    expect(cv(s).selectedDate).toBe('2026-05-08');
 
     s.state.calendarView.granularity = 'week';
     s.shiftCalendarPage(1);
     expect(cv(s).anchor).toBe('2026-05-15');
-    expect(cv(s).selectedDate).toBe('2026-05-15');
+    expect(cv(s).selectedDate).toBe('2026-05-08'); // 高亮不动
 
     s.state.calendarView.granularity = 'day';
+    s.state.calendarView.anchor = '2026-05-15';
+    s.state.calendarView.selectedDate = '2026-05-15';
     s.shiftCalendarPage(-1);
     expect(cv(s).anchor).toBe('2026-05-14');
+    expect(cv(s).selectedDate).toBe('2026-05-14'); // day 视图选中即当日，跟随
   });
 
-  it('翻页以焦点日为基准：导航到别的日子后翻页保持同一天号', () => {
+  it('翻页后高亮保持之前选择的日期；jkhl 移动才从显示月份起航', () => {
     const s = makeStore();
     s.openCalendarView();
     s.state.calendarView.anchor = '2026-05-08';
     s.state.calendarView.selectedDate = '2026-05-20'; // 用户 jklh/数字导航到 20 日
-    s.shiftCalendarPage(1);
-    expect(cv(s).anchor).toBe('2026-06-20'); // 跟随焦点日，不被锚点日（8 日）劫持
-    expect(cv(s).selectedDate).toBe('2026-06-20');
+    s.shiftCalendarPage(1); // 显示翻到 6 月
+    expect(cv(s).anchor).toBe('2026-06-08');
+    expect(cv(s).selectedDate).toBe('2026-05-20'); // 高亮仍是之前选择的 20 日
+    // 此时按方向键：选中不在显示月内 → 从锚点起航，落到新月份
+    s.moveCalendarDirection('right');
+    expect(cv(s).selectedDate).toBe('2026-06-09');
   });
 
-  it('月末翻页收敛到目标月最后一天，绝不溢出到下下个月', () => {
+  it('月末翻页：显示月份同一天号收敛到月末（08-31 → 09-30），绝不溢出到下下个月', () => {
     const s = makeStore();
     s.openCalendarView();
     s.state.calendarView.anchor = '2026-08-31';
     s.state.calendarView.selectedDate = '2026-08-31';
     s.shiftCalendarPage(1); // 9 月只有 30 天
     expect(cv(s).anchor).toBe('2026-09-30');
-    expect(cv(s).selectedDate).toBe('2026-09-30');
+    expect(cv(s).selectedDate).toBe('2026-08-31'); // 高亮不动
     s.shiftCalendarPage(-1); // 回 8 月：30 日有效
     expect(cv(s).anchor).toBe('2026-08-30');
+    expect(cv(s).selectedDate).toBe('2026-08-31');
   });
 
   it('closeCalendarView 退出', () => {
@@ -1490,15 +1498,16 @@ describe('Store — 日历视图网格交互（j/k 移日焦点 · Enter 开详�
     expect(cv(s).visible).toBe(false);
   });
 
-  it('翻页/切粒度退出详情并校正选中项', () => {
+  it('翻页退出详情但保持选中（jkhl 才移动焦点）；切粒度校正选中', () => {
     const s = makeCalStore();
     s.openCalendarView();
     s.openCalendarDayDetail();
-    s.shiftCalendarPage(1); // month +1：A/B 不可见
+    s.shiftCalendarPage(1); // month +1：只改显示，详情退出，选中保持 05-08/A
     expect(cv(s).dayDetail).toBe(false);
-    expect(cv(s).selectedTaskId).toBeUndefined();
+    expect(cv(s).selectedDate).toBe('2026-05-08');
+    expect(cv(s).selectedTaskId).toBe(1);
     s.openCalendarDayDetail();
-    s.cycleCalendarGranularity(-1); // month → week（anchor 下月，无任务）
+    s.cycleCalendarGranularity(-1); // month → week（anchor 下月，无任务 → 选中清空）
     expect(cv(s).dayDetail).toBe(false);
     expect(cv(s).selectedTaskId).toBeUndefined();
   });

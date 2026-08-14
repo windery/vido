@@ -523,26 +523,27 @@ export class Store {
 
   shiftCalendarPage(dir: 1 | -1): void {
     const cv = this.state.calendarView;
-    // 翻页以**当前焦点日**为基准（未导航时焦点=锚点，行为不变）：
-    // month 保持同一天号、目标月天数不足时收敛到月末（08-31 → 09-30，绝不溢出到 10 月）；
-    // week/day 按周/天平移。焦点跟随翻页，不被锚点日劫持。
-    const base = parseDate(cv.selectedDate ?? cv.anchor) ?? parseDate(cv.anchor) ?? new Date();
-    const target = new Date(base.getTime());
+    // 翻页**只改显示**（锚点翻月/周，同一天号、目标月天数不足收敛月末）：
+    // month/week 的选中（高亮）保持之前选择的月份和日期**不动**，
+    // 用户按 jkhl/数字才移动焦点（选中不在显示范围内时，移动从锚点起航）。
+    const d = parseDate(cv.anchor) || new Date();
     if (cv.granularity === 'day') {
-      target.setDate(target.getDate() + dir);
+      d.setDate(d.getDate() + dir);
     } else if (cv.granularity === 'week') {
-      target.setDate(target.getDate() + 7 * dir);
+      d.setDate(d.getDate() + 7 * dir);
     } else {
-      const y = base.getFullYear();
-      const m = base.getMonth() + dir;
+      const y = d.getFullYear();
+      const m = d.getMonth() + dir;
       const daysInTarget = new Date(y, m + 1, 0).getDate();
-      // setFullYear 三参按分量构造，无 setMonth 溢出进位（08-31 +1 月 → 09-30 而非 10 月）
-      target.setFullYear(y, m, Math.min(base.getDate(), daysInTarget));
+      d.setFullYear(y, m, Math.min(d.getDate(), daysInTarget));
     }
-    cv.anchor = formatDate(target);
+    cv.anchor = formatDate(d);
     cv.dayDetail = false; // 翻页回到网格
-    cv.selectedDate = cv.anchor;
-    cv.selectedTaskId = this.calendarTasksOn(cv.anchor)[0]?.id;
+    if (cv.granularity === 'day') {
+      // day 视图选中即当日，随翻页移动
+      cv.selectedDate = cv.anchor;
+      cv.selectedTaskId = this.calendarTasksOn(cv.anchor)[0]?.id;
+    }
     this.changed();
   }
 
