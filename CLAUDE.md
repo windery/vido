@@ -25,15 +25,15 @@ priority:    priority-select  (只有 select，1/2/3 直接选，选后留在 pr
 tags:        tags-select ──Enter──→ tags-edit ──Enter/Esc──→ tags-select
 
 H/L 在 select 状态间横向切换（同一任务的配置项）:  schedule-select ←→ priority-select ←→ tags-select
-j/k 进入 nav 态（焦点锁定当前任务，绝不切换任务）：在选项间移动高亮、不直接生效；Enter 选中高亮项后退出 nav 回 select；Esc 退出 nav 回 select（再 Esc 关面板）
+j/k/0/$ 进入 nav 态（焦点锁定当前任务，绝不切换任务）：j/0 → 第一项、k/$ → 最后一项（固定起点）；nav 内 j/k 逐项移动、0/$ 直达首/尾、Enter 选中高亮项（唯一生效路径）后退出 nav 回 select；Esc 退出 nav 回 select（再 Esc 关面板）
 Esc 关闭配置（edit 态先取消回 select，再 Esc 关闭）
 ```
 
-**面板内前缀键（c = 配置导航 / d = 删除，两个命名空间严格分离，杜绝 cc 开/清歧义）**：
+**面板内前缀键（c = 配置导航 / d = 删除仅限标签——两个命名空间严格分离，杜绝 cc 开/清歧义）**：
 - `c` 导航前缀（600ms 窗口）：`cc` 收起面板（与 normal 模式 `cc` 组成对称开关，**绝不清除**）、`cs/cp/ct` 直达 日程/优先级/标签、`cd/cw/cm/cy` 清除对应 repeat
-- `d` 删除前缀：`dd` 清除当前项（日程/优先级/全部标签，schedule/priority 需 600ms 内连按、tags 需 600ms 内连按——慢速 d…d 不触发防误触）
+- `d` 删除前缀（**仅 tags-select**）：`d + 序号 + Enter` 删除对应编号标签、600ms 内连按 `dd` 清空全部标签（慢速 d…d 不触发防误触）。schedule/priority 的 d 一律消费不动作——清除走 nav 的 Clear 项 + Enter
 - `e` 重复前缀：`ed/ew/em/ey` 设置每天/每周/每月/每年重复
-- `j/k` 进入 **nav 态**（**绝不切任务**）：只在选项间移动高亮、**不直接生效**；`Enter` 选中高亮项（唯一生效路径，schedule 选项含 清除/自定义、priority 含 清除、tags 选项为各标签+Add+Clear）→ 退出 nav 回 select；`Esc` 退出 nav 回 select；不按 j/k 时保留原快捷流（1/2/3 直接选、Enter 打开输入）
+- `j/k/0/$` 进入 **nav 态**（**绝不切任务**）：候选固定排序（schedule：今天→明天→下周→自定义→清除；priority：!!!→!!→!→清除；tags：各标签→Add→Clear），**j/0 → 第一项、k/$ → 最后一项**；nav 内 j/k 逐项移动、0/$ 直达首/尾、`Enter` 选中高亮项（唯一生效路径）→ 退出 nav 回 select；`Esc` 退出 nav 回 select；不按 j/k 时保留原快捷流（1/2/3 直接选、Enter 打开输入）
 - `H/L` 横向切 section（同一任务）；其余未知键一律消费
 
 **tags-select 标签删除**（`d` 前缀操作符，仅 tags-select）：`d` 开启删除待确认 → 数字累加为 1 基序号（标签前显示编号，越界/空则不高亮）→ 目标标签高亮（琥珀虚线框 + `✕` 标记）→ `Enter` 确认删除该标签、`Esc`/非数字键取消（取消后按正常流程继续，如 `H/L` 切 section 放行命令层）；600ms 内连按 `dd` 清空全部标签。删除态离开 tags-select 或切换任务时自动清理。其余 section 的 `d` 一律消费，不落到命令层触发全局删除。
@@ -191,7 +191,7 @@ This application embodies **programmer values**: rigorous, concise, efficient. T
 - **Immediate feedback (vim-instant)**: cursor movement, navigation, and scrolling are instant with zero animation; all other feedback transitions ≤ 150ms (prefer ≤ 100ms); no decorative delays, ever — vim responds in the same frame you press a key, this app must too
 - **Progressive disclosure**: Common options visible; advanced behind input/custom
 - **4.5:1 contrast ratio** minimum for all text
-- **Clear action**: `dd` 在配置面板内清除当前项（`d` 是 vim 删除前缀：`dd` 清当前项、tags 里 `d+序号+Enter` 删单个标签）；面板内 `cc` 只收起面板（与 normal 模式 `cc` 组成开关），**开/清键位绝不复用**。Never use numeric keys for destructive actions.
+- **Clear action**: 清除走 nav 态（j/k 导航到 Clear 项 → Enter 选中，schedule/priority 用 `$` 直达）；`d` 删除仅限 tags（`d+序号+Enter` 删单个、`dd` 清空全部）；面板内 `cc` 只收起面板（与 normal 模式 `cc` 组成开关），**开/清键位绝不复用**。Never use numeric keys for destructive actions.
 
 **Visual Design (CRITICAL)**:
 - **Premium, minimal, unified** — every element must feel like part of one cohesive design system. No "stuck on" looking panels.

@@ -6,22 +6,20 @@
  *   select 态（schedule-select / priority-select / tags-select）→ 由本处理器独占
  *   edit 态（schedule-edit / tags-edit）→ 由配置输入框独占（其 keydown 已 .stop 拦截 Enter/Escape 并转回同类型 select 态）
  *
- * 面板内键位（c = 配置导航，d = 删除——两个命名空间严格分离，杜绝 cc 开/清歧义）：
+ * 面板内键位（c = 配置导航，d = 删除仅限标签——命名空间严格分离，杜绝 cc 开/清歧义）：
  *   c 是导航前缀 —— cc 收起面板（与 normal 模式 cc 组成开关）、cs/cp/ct 直达 日程/优先级/标签、cd/cw/cm/cy 清除对应 repeat，600ms 超时或无匹配则取消
- *   d 是删除前缀 —— dd 清除当前项（日程/优先级/全部标签，600ms 内连按，防误触）；
- *     仅 tags-select 另有 d + 序号 + Enter 删除对应编号标签（输入时高亮目标，Esc/非数字键取消）
+ *   d 是删除前缀（**仅 tags-select**）—— d + 序号 + Enter 删除对应编号标签（输入时高亮目标，Esc/非数字键取消）；
+ *     600ms 内连按 dd 清空全部标签。schedule/priority 的 d 一律消费不动作（清除走 nav 的 Clear 项 + Enter）
  *   e 是重复前缀 —— ed/ew/em/ey 设置每天/每周/每月/每年重复
- *   j/k 进入 nav 态（焦点锁定当前任务，绝不切换任务）：在选项间移动高亮、不直接生效；
- *     Enter 选中高亮项（唯一生效路径）→ 退回 select；Esc 退出 nav 回 select（再 Esc 关面板）。
- *     不按 j/k 时保留原快捷流：1/2/3 直接选、Enter 打开输入（schedule/tags）
+ *   j/k/0/$ 进入 nav 态（焦点锁定当前任务，绝不切换任务）：j → 第一个候选项、k → 最后一个、
+ *     0 → 第一个、$ → 最后一个；nav 内 j/k 逐项移动、0/$ 直达首/尾、Enter 选中高亮项（唯一生效路径）→ 退回 select；
+ *     Esc 退出 nav 回 select（再 Esc 关面板）。不按 j/k 时保留原快捷流：1/2/3 直接选、Enter 打开输入（schedule/tags）
  *   H/L 放行命令层横向切换 section；其余未知键一律消费，防止落到命令层触发 paste/delete/undo 等全局副作用
  */
 
 import { Store } from '../state/store';
 import { TaskPriority } from '../task';
 import { parseScheduleFromString } from '../../utils/schedule-helper';
-import { scheduleDate } from '../../utils/calendar';
-import { getCurrentDate, parseDate, formatDate } from '../../utils/date-formatter';
 import type { ScheduleRepeat } from '../schedule';
 
 /** e/c 前缀的 repeat 键位：d/w/m/y → daily/weekly/monthly/yearly */
@@ -47,11 +45,6 @@ export class ConfigKeyHandler {
   private dBuffer = '';
   private dTaskId = 0;
   private dPendingAt = 0;
-  /** dd 清除前缀（schedule/priority select）：d 后 600ms 内再按 d 清除当前项 */
-  private dClearPending = false;
-  private dClearSection = '';
-  private dClearTaskId = 0;
-  private dClearTimeout: ReturnType<typeof setTimeout> | null = null;
 
   handleKey(
     event: KeyboardEvent,
@@ -71,18 +64,19 @@ export class ConfigKeyHandler {
     if (this.dPending && (cs !== 'tags-select' || this.dTaskId !== task.id)) {
       this.cancelTagDelete(taskDataManager);
     }
-    // 残留的 dd 清除前缀（切换 section 或任务）清理，避免误清新项的配置
-    if (this.dClearPending && (this.dClearSection !== cs || this.dClearTaskId !== task.id)) {
-      this.cancelDClear();
-    }
 
-    // nav 态（j/k 进入，焦点锁定当前任务的配置项，绝不切换任务）：
-    // j/k 移动高亮，Enter 选中高亮项（唯一生效路径），Esc 只退出 nav 回 select，
+    // nav 态（j/k/0/$ 进入，焦点锁定当前任务的配置项，绝不切换任务）：
+    // j/k 逐项移动、0/$ 直达首/尾，Enter 选中高亮项（唯一生效路径），Esc 只退出 nav 回 select，
     // H/L 放行切 section，其余键取消 nav 后按正常流程继续
     if ((state as any).configNavIndex > 0) {
       if (key === 'j' || key === 'k') {
         event.preventDefault();
         this.moveNav(taskDataManager, task, cs, key === 'j' ? 1 : -1);
+        return true;
+      }
+      if (key === '0' || key === '$') {
+        event.preventDefault();
+        this.jumpNav(taskDataManager, task, cs, key === '0' ? 'first' : 'last');
         return true;
       }
       if (key === 'Enter') {
@@ -131,26 +125,11 @@ export class ConfigKeyHandler {
       this.cancelTagDelete(taskDataManager);
     }
 
-    // dd 清除前缀（schedule / priority select）：d 后 600ms 内再按 d 清除当前配置项
-    if (this.dClearPending) {
-      this.cancelDClear();
-      if (key === 'd') {
-        event.preventDefault();
-        taskDataManager.updateTaskProperty(
-          task.id,
-          cs === 'schedule-select' ? 'schedule' : 'priority',
-          undefined
-        );
-        return true;
-      }
-      // 非 d 键：取消前缀后按正常流程继续（如 1/2/3 快捷选择仍生效）
-    }
-
     // c 前缀序列：cc 收起面板（开关）、cs/cp/ct 跳转、cd/cw/cm/cy 清除对应 repeat
     if (this.cPending) {
       this.cancelCPending();
       if (key === 'c') {
-        // cc 与 normal 模式的 cc 组成对称开关：收起面板，绝不清除（清除归 d 前缀）
+        // cc 与 normal 模式的 cc 组成对称开关：收起面板，绝不清除（清除走 nav 的 Clear 项）
         event.preventDefault();
         taskDataManager.setConfigState(task.id, undefined);
         return true;
@@ -185,24 +164,17 @@ export class ConfigKeyHandler {
     switch (key) {
       case 'd':
         if (cs === 'tags-select') {
-          // d 开启删除待确认：d+序号+Enter 删单个标签；600ms 内再按 d（dd）清空全部标签
+          // d 开启删除待确认（删除仅限标签）：d+序号+Enter 删单个标签；600ms 内再按 d（dd）清空全部标签
           event.preventDefault();
           this.dPending = true;
           this.dTaskId = task.id;
           this.dBuffer = '';
           this.dPendingAt = Date.now();
           this.syncTagDeleteIndex(taskDataManager, task);
-        } else {
-          // schedule/priority：d 是清除前缀（dd 清除当前项），不再落到命令层触发全局删除
-          event.preventDefault();
-          this.dClearPending = true;
-          this.dClearSection = cs;
-          this.dClearTaskId = task.id;
-          this.dClearTimeout = setTimeout(() => {
-            this.dClearPending = false;
-            this.dClearTimeout = null;
-          }, 600);
+          return true;
         }
+        // schedule/priority：d 一律消费不动作（清除走 nav 的 Clear 项 + Enter），不落到命令层触发全局删除
+        event.preventDefault();
         return true;
 
       case 'c':
@@ -226,7 +198,6 @@ export class ConfigKeyHandler {
       case 'Escape':
         event.preventDefault();
         this.cancelTagDelete(taskDataManager);
-        this.cancelDClear();
         taskDataManager.setConfigState(task.id, undefined);
         return true;
 
@@ -244,12 +215,27 @@ export class ConfigKeyHandler {
         return true; // priority 只有 select 态，Enter 无操作
 
       default:
-        // H/L 放行命令层横向切换 section；j/k 进入 nav 态（高亮导航，Enter 才选中生效）；
+        // H/L 放行命令层横向切换 section；j/k/0/$ 进入 nav 态（j/0 → 第一项、k/$ → 最后一项，Enter 才选中生效）；
         // 其余未知键一律消费，避免落到命令层产生全局副作用
         if (key === 'H' || key === 'L') return false;
-        if (key === 'j' || key === 'k') {
+        if (key === 'j') {
           event.preventDefault();
-          this.enterNav(taskDataManager, task, cs, key === 'j' ? 1 : -1);
+          this.jumpNav(taskDataManager, task, cs, 'first');
+          return true;
+        }
+        if (key === 'k') {
+          event.preventDefault();
+          this.jumpNav(taskDataManager, task, cs, 'last');
+          return true;
+        }
+        if (key === '0') {
+          event.preventDefault();
+          this.jumpNav(taskDataManager, task, cs, 'first');
+          return true;
+        }
+        if (key === '$') {
+          event.preventDefault();
+          this.jumpNav(taskDataManager, task, cs, 'last');
           return true;
         }
         if (cs === 'schedule-select') this.handleSchedule(event, key, taskDataManager, task.id);
@@ -264,16 +250,6 @@ export class ConfigKeyHandler {
     if (this.eTimeout) {
       clearTimeout(this.eTimeout);
       this.eTimeout = null;
-    }
-  }
-
-  private cancelDClear(): void {
-    this.dClearPending = false;
-    this.dClearSection = '';
-    this.dClearTaskId = 0;
-    if (this.dClearTimeout) {
-      clearTimeout(this.dClearTimeout);
-      this.dClearTimeout = null;
     }
   }
 
@@ -304,9 +280,9 @@ export class ConfigKeyHandler {
     }
   }
 
-  /** schedule-select 的 nav 选项（与面板 pill 顺序一致） */
-  private static readonly SCHEDULE_OPTIONS = ['today', 'tomorrow', 'next_week', 'clear', 'custom'] as const;
-  /** priority-select 的 nav 选项（与面板 pill 顺序一致） */
+  /** schedule-select 的 nav 选项（固定排序：时间序 + 自定义，清除放最后——与面板 pill 顺序一致） */
+  private static readonly SCHEDULE_OPTIONS = ['today', 'tomorrow', 'next_week', 'custom', 'clear'] as const;
+  /** priority-select 的 nav 选项（固定排序：优先级降序 + 清除放最后——与面板 pill 顺序一致） */
   private static readonly PRIORITY_OPTIONS = ['high', 'medium', 'low', 'clear'] as const;
 
   /** nav 选项总数（tags = 标签数 + add + clear） */
@@ -316,29 +292,10 @@ export class ConfigKeyHandler {
     return ConfigKeyHandler.PRIORITY_OPTIONS.length;
   }
 
-  /** 当前值对应的 nav 序号（1 基；无值/自定义日期 → 第一项） */
-  private currentNavIndex(task: any, cs: string): number {
-    if (cs === 'schedule-select') {
-      const kind = this.currentScheduleKind(task);
-      const map: Record<string, number> = { today: 1, tomorrow: 2, next_week: 3 };
-      return kind && map[kind] !== undefined ? map[kind] : 1;
-    }
-    if (cs === 'priority-select') {
-      const map: Record<string, number> = {
-        [TaskPriority.HIGH]: 1,
-        [TaskPriority.MEDIUM]: 2,
-        [TaskPriority.LOW]: 3,
-      };
-      return task.priority && map[task.priority] !== undefined ? map[task.priority] : 1;
-    }
-    return 1;
-  }
-
-  /** j/k 进入 nav 态：以当前值位置为基准移动一步并高亮（只导航，不生效） */
-  private enterNav(tdm: Store, task: any, cs: string, dir: 1 | -1): void {
+  /** j/0 → 第一项、k/$ → 最后一项（固定起点，与当前值无关）；nav 内 0/$ 直达首/尾 */
+  private jumpNav(tdm: Store, task: any, cs: string, where: 'first' | 'last'): void {
     const total = this.navTotal(task, cs);
-    const base = this.currentNavIndex(task, cs);
-    tdm.setConfigNavIndex(((base - 1 + dir) % total + total) % total + 1);
+    tdm.setConfigNavIndex(where === 'first' ? 1 : total);
   }
 
   /** nav 态内 j/k 移动高亮（循环） */
@@ -379,25 +336,6 @@ export class ConfigKeyHandler {
       }
     }
     tdm.setConfigNavIndex(0);
-  }
-
-  /** 当前日程属于哪个快捷档：today / tomorrow / next_week / custom；无日程返回 undefined */
-  private currentScheduleKind(task: any): string | undefined {
-    const d = scheduleDate(task);
-    if (!d) return undefined;
-    const today = getCurrentDate();
-    if (d === today) return 'today';
-    const tomorrow = parseDate(today)!;
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    if (d === formatDate(tomorrow)) return 'tomorrow';
-    // 下周一（与 parseScheduleFromString('next_week') 语义一致）
-    const now = parseDate(today)!;
-    const day = now.getDay();
-    const daysUntilNextMonday = (8 - (day === 0 ? 7 : day)) % 7 || 7;
-    const nextMonday = new Date(now);
-    nextMonday.setDate(now.getDate() + daysUntilNextMonday);
-    if (d === formatDate(nextMonday)) return 'next_week';
-    return 'custom';
   }
 
   /** 根据已输数字串计算 1 基序号，写入响应式状态驱动面板高亮；越界/空则不亮 */
