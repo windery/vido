@@ -35,6 +35,7 @@
                     :style="i === 0 ? { gridColumnStart: firstCellColumn } : undefined"
                     :class="{
                         'is-today': c.date === todayStr,
+                        'is-week': weekDates.includes(c.date),
                         'is-out': !weekDates.includes(c.date),
                         'is-focused': c.date === selectedDate,
                     }">
@@ -243,9 +244,14 @@ watch(
     opacity: 0.35;
 }
 
-/* week 视图：切换范围（当前周）之外的日期置灰 */
+/* week 视图：当前周更突出——淡磷光绿底 + 亮边框；范围外日期明显更淡，区分一眼可辨 */
+.cal-cell.is-week {
+    background: rgba(89, 217, 138, 0.08);
+    border-color: rgba(89, 217, 138, 0.4);
+}
+
 .cal-cell.is-out {
-    opacity: 0.45;
+    opacity: 0.3;
 }
 
 .cal-cell-head {

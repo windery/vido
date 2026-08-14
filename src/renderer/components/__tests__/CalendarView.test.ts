@@ -39,7 +39,8 @@ describe('CalendarView — 仅当月天数网格（上/下月不占格）', () =
     });
     const cells = wrapper.findAll('.cal-cell');
     expect(cells.length).toBe(31);
-    // 活跃周 = 05-03..05-09（7 天全在当月）→ 置灰 24 格
+    // 活跃周 = 05-03..05-09（7 天全在当月）→ 当前周 7 格突出（is-week），其余 24 格置灰
+    expect(cells.filter((c) => c.classes().includes('is-week')).length).toBe(7);
     expect(cells.filter((c) => c.classes().includes('is-out')).length).toBe(24);
     expect(cells.filter((c) => c.classes().includes('is-dim')).length).toBe(0);
   });
