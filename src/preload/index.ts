@@ -32,6 +32,13 @@ contextBridge.exposeInMainWorld('vidoLogger', {
   },
 });
 
+// --------- System Clipboard API ---------
+// p/P 粘贴系统剪贴板（外部复制内容）：走主进程 clipboard，规避渲染进程权限限制。
+contextBridge.exposeInMainWorld('vidoClipboard', {
+  readText: (): Promise<string> => ipcRenderer.invoke('clipboard-read-text'),
+  writeText: (text: string): Promise<boolean> => ipcRenderer.invoke('clipboard-write-text', text),
+});
+
 // --------- Test API for keyboard simulation ---------
 contextBridge.exposeInMainWorld('testAPI', {
   onKeyboardEvent: (callback: (data: { key: string }) => void) => {

@@ -10,7 +10,8 @@ import {
   insertNewLineBelow, insertLineAbove, deleteLineAtCursor, moveCursorUp, moveCursorDown, moveCursorLeft, moveCursorRight,
   deleteCharAtCursor, deleteCharBeforeCursor, deleteWordForward, deleteWordBackward, deleteWordEnd,
   deleteToLineEnd, deleteToLineStart, deleteToFirstLine, deleteToLastLine, mergeLineBelow,
-  replaceCharAtCursor, swapCaseAtCursor, copyTextAtCursor, pasteTextAtCursor,
+  replaceCharAtCursor, swapCaseAtCursor, copyTextAtCursor, pasteTextAtCursor, pasteExternalText,
+  getBlockSelection, deleteBlock,
   indentTask, unindentTask,
   moveCursorToLineStart, moveCursorToLineEnd, moveCursorToFirstLine, moveCursorToLastLine,
   moveCursorWordForward, moveCursorWordBackward, moveCursorWordEnd,
@@ -143,6 +144,12 @@ export class TaskListManager {
   swapCaseAtCursor(): void { this.list = swapCaseAtCursor(this.list); }
   copyText(kind: 'line' | 'word' | 'toEnd'): string { return copyTextAtCursor(this.list, kind); }
   pasteText(text: string, isLine: boolean, before: boolean): void { this.list = pasteTextAtCursor(this.list, text, isLine, before); }
+  /** p/P 粘贴外部文本（系统剪贴板）：字符式多行切行插入 */
+  pasteExternal(text: string, before: boolean): void { this.list = pasteExternalText(this.list, text, before); }
+  /** 可视块选区（锚点→光标矩形）；无选区返回 null */
+  blockSelection(anchorLine: number, anchorCol: number) { return getBlockSelection(this.list, anchorLine, anchorCol); }
+  /** 可视块删除，光标落块左上角 */
+  deleteBlock(anchorLine: number, anchorCol: number): void { this.list = deleteBlock(this.list, anchorLine, anchorCol); }
   indentTask(id: number): void { this.list = indentTask(this.list, id); }
   unindentTask(id: number): void { this.list = unindentTask(this.list, id); }
 

@@ -1,8 +1,19 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ContentNavigationModeHandler } from '../keyboard/content-navigation-mode-handler';
+import { readSystemClipboard } from '../../utils/clipboard';
+
+// jsdom 无 navigator.clipboard：默认 null → p/P 回退内部 yank 缓冲
+vi.mock('../../utils/clipboard', () => ({
+  readSystemClipboard: vi.fn(() => null),
+  writeSystemClipboard: vi.fn(),
+}));
 
 function makeEvent(key: string): KeyboardEvent {
   return new KeyboardEvent('keydown', { key, bubbles: true });
+}
+
+function makeCtrlEvent(key: string): KeyboardEvent {
+  return new KeyboardEvent('keydown', { key, ctrlKey: true, bubbles: true });
 }
 
 describe('ContentNavigationModeHandler', () => {
@@ -59,6 +70,15 @@ describe('ContentNavigationModeHandler', () => {
         cursorCol = col;
       }),
       insertNewLineBelow: vi.fn(),
+      startVisualBlock: vi.fn(),
+      endVisualBlock: vi.fn(),
+      deleteVisualBlock: vi.fn(),
+      copyVisualBlock: vi.fn(),
+      changeVisualBlock: vi.fn(),
+      pasteAfter: vi.fn(),
+      pasteBefore: vi.fn(),
+      pasteTextRaw: vi.fn(),
+      undo: vi.fn(),
     };
   });
 
@@ -238,6 +258,100 @@ describe('ContentNavigationModeHandler', () => {
     it('does not transition out of navigation', () => {
       handler.handleKey(makeEvent('Enter'), 'Enter', mockTDM, false);
       expect(mockTDM.transition).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Ctrl+V 可视块模式', () => {
+    function makeBlockTDM(): any {
+      return {
+        ...mockTDM,
+        getState: () => ({
+          editorMode: 4,
+          selectedTaskId: 1,
+          tasks: [selectedTask],
+          visualBlock: { active: true, anchorLine: 0, anchorCol: 0 },
+        }),
+      };
+    }
+
+    it('Ctrl+V 进入块模式；普通 v 退出导航', () => {
+      handler.handleKey(makeCtrlEvent('v'), 'v', mockTDM, false);
+      expect(mockTDM.startVisualBlock).toHaveBeenCalledTimes(1);
+
+      handler.handleKey(makeEvent('v'), 'v', mockTDM, false);
+      expect(mockTDM.transition).toHaveBeenCalledWith('Escape');
+    });
+
+    it('块模式内 Esc 只退出块，不退出导航', () => {
+      handler.handleKey(makeEvent('Escape'), 'Escape', makeBlockTDM(), false);
+      expect(mockTDM.endVisualBlock).toHaveBeenCalled();
+      expect(mockTDM.transition).not.toHaveBeenCalled();
+    });
+
+    it('块模式内 x/d 删除块、y 复制块', () => {
+      handler.handleKey(makeEvent('x'), 'x', makeBlockTDM(), false);
+      expect(mockTDM.deleteVisualBlock).toHaveBeenCalledTimes(1);
+
+      handler.handleKey(makeEvent('d'), 'd', makeBlockTDM(), false);
+      expect(mockTDM.deleteVisualBlock).toHaveBeenCalledTimes(2);
+
+      handler.handleKey(makeEvent('y'), 'y', makeBlockTDM(), false);
+      expect(mockTDM.copyVisualBlock).toHaveBeenCalledTimes(1);
+    });
+
+    it('块模式内 c 删除块后进入插入', () => {
+      handler.handleKey(makeEvent('c'), 'c', makeBlockTDM(), false);
+      expect(mockTDM.changeVisualBlock).toHaveBeenCalled();
+      expect(mockTDM.transition).toHaveBeenCalledWith('i');
+    });
+
+    it('块模式内移动键扩展选区（放行主 switch，不删块）', () => {
+      handler.handleKey(makeEvent('j'), 'j', makeBlockTDM(), false);
+      expect(mockTDM.moveCursorDown).toHaveBeenCalled();
+      expect(mockTDM.deleteVisualBlock).not.toHaveBeenCalled();
+    });
+
+    it('块模式内未绑定键：退出块后按普通键继续', () => {
+      handler.handleKey(makeEvent('u'), 'u', makeBlockTDM(), false);
+      expect(mockTDM.endVisualBlock).toHaveBeenCalled();
+      expect(mockTDM.undo).toHaveBeenCalled(); // 退出块后 u 正常撤销
+    });
+
+    it('块模式内 ? 打开内容键位帮助', () => {
+      handler.handleKey(makeEvent('?'), '?', makeBlockTDM(), false);
+      expect(mockTDM.toggleHelp).toHaveBeenCalledWith('content');
+    });
+  });
+
+  describe('p / P — 系统剪贴板优先粘贴', () => {
+    it('无系统剪贴板能力：回退内部 yank 缓冲', () => {
+      handler.handleKey(makeEvent('p'), 'p', mockTDM, false);
+      expect(mockTDM.pasteAfter).toHaveBeenCalledTimes(1);
+
+      handler.handleKey(makeEvent('P'), 'P', mockTDM, false);
+      expect(mockTDM.pasteBefore).toHaveBeenCalledTimes(1);
+    });
+
+    it('系统剪贴板有文本：p 粘贴该文本', async () => {
+      (readSystemClipboard as any).mockReturnValueOnce(Promise.resolve('外部复制文本'));
+      handler.handleKey(makeEvent('p'), 'p', mockTDM, false);
+      await new Promise((r) => setTimeout(r, 0));
+      expect(mockTDM.pasteTextRaw).toHaveBeenCalledWith('外部复制文本', false);
+      expect(mockTDM.pasteAfter).not.toHaveBeenCalled();
+    });
+
+    it('系统剪贴板为空：回退内部 yank 缓冲', async () => {
+      (readSystemClipboard as any).mockReturnValueOnce(Promise.resolve(''));
+      handler.handleKey(makeEvent('P'), 'P', mockTDM, false);
+      await new Promise((r) => setTimeout(r, 0));
+      expect(mockTDM.pasteBefore).toHaveBeenCalledTimes(1);
+    });
+
+    it('系统剪贴板读取失败：回退内部 yank 缓冲', async () => {
+      (readSystemClipboard as any).mockReturnValueOnce(Promise.reject(new Error('denied')));
+      handler.handleKey(makeEvent('p'), 'p', mockTDM, false);
+      await new Promise((r) => setTimeout(r, 0));
+      expect(mockTDM.pasteAfter).toHaveBeenCalledTimes(1);
     });
   });
 });

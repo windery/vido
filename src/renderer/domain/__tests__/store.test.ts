@@ -903,6 +903,126 @@ describe('Store — content-nav vim 编辑操作', () => {
   });
 });
 
+describe('Store — Ctrl+V 可视块模式', () => {
+  function makeNavStore(content: string): Store {
+    const store = new Store();
+    const t = new Task(1);
+    t.title = 'A';
+    t.selected = true;
+    t.status = TaskState.SELECTED;
+    t.content = content;
+    store.manager = new TaskListManager(new TaskList([t]), 2);
+    store.transition('i'); // → CONTENT_NAVIGATION
+    return store;
+  }
+  const cur = (s: Store) => s.manager.list.selected!;
+
+  it('进入块模式：锚点=当前光标', () => {
+    const s = makeNavStore('ab\ncd');
+    s.moveCursorRight(); // col=1
+    s.startVisualBlock();
+    expect(s.state.visualBlock.active).toBe(true);
+    expect(s.state.visualBlock.anchorLine).toBe(0);
+    expect(s.state.visualBlock.anchorCol).toBe(1);
+  });
+
+  it('x 删除矩形块：内容删除、yank 入缓冲、光标落左上角、退出块模式', () => {
+    const s = makeNavStore('abcd\nefgh\nijkl');
+    s.moveCursorRight(); // (0,1)
+    s.startVisualBlock(); // 锚点 (0,1)
+    s.moveCursorDown(); // (1,1)
+    s.moveCursorDown(); // (2,1)
+    s.moveCursorRight(); // (2,2) → 块 = 行 0..2 × 列 1..2
+    s.deleteVisualBlock();
+    expect(cur(s).content).toBe('ad\neh\nil');
+    expect(s.state.visualBlock.active).toBe(false);
+    expect(cur(s).cursorLine).toBe(0);
+    expect(cur(s).cursorColumn).toBe(1);
+
+    // 删除的块 'bc\nfg\njk' 入内部缓冲，p 可粘贴
+    s.pasteAfter();
+    expect(cur(s).content).toBe('ad\nbc\nfg\njk\neh\nil');
+  });
+
+  it('y 复制块不删除，退出块模式', () => {
+    const s = makeNavStore('abcd\nefgh');
+    s.moveCursorRight(); // (0,1)
+    s.startVisualBlock(); // 锚点 (0,1)
+    s.moveCursorDown(); // (1,1)
+    s.moveCursorRight(); // (1,2) → 块 = 行 0..1 × 列 1..2
+    s.copyVisualBlock();
+    expect(cur(s).content).toBe('abcd\nefgh');
+    expect(s.state.visualBlock.active).toBe(false);
+
+    s.moveCursorToLastLine();
+    s.pasteAfter();
+    expect(cur(s).content).toBe('abcd\nefgh\nbc\nfg');
+  });
+
+  it('短行不足块起列：该行不删字符', () => {
+    const s = makeNavStore('abcd\nx');
+    s.startVisualBlock(); // 锚点 (0,0)
+    s.moveCursorDown(); // (1,0)
+    s.moveCursorRight(); // (1,1) → 块 = 行 0..1 × 列 0..1
+    s.deleteVisualBlock();
+    expect(cur(s).content).toBe('cd\n');
+  });
+
+  it('Esc（transition）退出导航时清理块选区', () => {
+    const s = makeNavStore('ab');
+    s.startVisualBlock();
+    expect(s.state.visualBlock.active).toBe(true);
+    s.transition('Escape');
+    expect(s.state.visualBlock.active).toBe(false);
+  });
+});
+
+describe('Store — p/P 系统文本粘贴（字符式）', () => {
+  function makeNavStore(content: string): Store {
+    const store = new Store();
+    const t = new Task(1);
+    t.title = 'A';
+    t.selected = true;
+    t.status = TaskState.SELECTED;
+    t.content = content;
+    store.manager = new TaskListManager(new TaskList([t]), 2);
+    store.transition('i'); // → CONTENT_NAVIGATION
+    return store;
+  }
+  const cur = (s: Store) => s.manager.list.selected!;
+
+  it('单行文本：光标处插入，p 光标落粘贴末尾', () => {
+    const s = makeNavStore('ab cd');
+    s.moveCursorWordForward(); // col=3（'c' 前）
+    s.pasteTextRaw('XX', false);
+    expect(cur(s).content).toBe('ab XXcd');
+    expect(cur(s).cursorColumn).toBe(5); // 粘贴内容末尾
+  });
+
+  it('P 光标落粘贴内容开头', () => {
+    const s = makeNavStore('ab cd');
+    s.moveCursorWordForward(); // col=3
+    s.pasteTextRaw('XY', true);
+    expect(cur(s).content).toBe('ab XYcd');
+    expect(cur(s).cursorColumn).toBe(3); // 粘贴内容开头
+  });
+
+  it('多行文本：当前行切行插入，p 光标落末段末尾', () => {
+    const s = makeNavStore('ab cd');
+    s.moveCursorWordForward(); // col=3
+    s.pasteTextRaw('L1\nL2', false);
+    expect(cur(s).content).toBe('ab L1\nL2cd');
+    expect(cur(s).cursorLine).toBe(1);
+    expect(cur(s).cursorColumn).toBe(2);
+  });
+
+  it('空文本不改变内容', () => {
+    const s = makeNavStore('ab');
+    s.pasteTextRaw('', false);
+    expect(cur(s).content).toBe('ab');
+  });
+});
+
 describe('Store — content-nav undo 保持导航态（块光标不消失）', () => {
   function makeNavStore(content: string): Store {
     const store = new Store();

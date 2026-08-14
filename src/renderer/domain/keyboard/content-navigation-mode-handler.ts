@@ -3,12 +3,15 @@
  * vim 风格光标移动：hjkl、w/b/e 词导航、0/$ 行首尾、gg/G 首尾行
  * vim 风格编辑：x/X/dw/db/de/d$/d0/dd/dgg/dG、cw/cc/c$、yy/yw/y$、p/P、
  * r{char}、~、J、u/Ctrl+R、A/I/O、i/a/o
+ * Ctrl+V 可视块模式：锚点↔光标矩形选区，x/d 删除、y 复制、c 删除后插入、Esc 退出
+ * p/P：系统剪贴板优先（外部复制内容），无则回退内部 yank 缓冲
  */
 
 import { ModeHandler } from './base-handler';
 import { Store } from '../state/store';
 import { nextTick } from 'vue';
 import { logger } from '../../utils/logger';
+import { readSystemClipboard } from '../../utils/clipboard';
 
 type Op = 'd' | 'c' | 'y';
 
@@ -40,6 +43,12 @@ export class ContentNavigationModeHandler implements ModeHandler {
       const handled = this.handleOperatorMotion(event, key, taskDataManager);
       if (handled) return true;
       this.pendingOp = null; // 非法 motion，取消操作符，继续按普通键处理
+    }
+
+    // 可视块模式：x/d/y/c/Esc 作用于块，移动键扩展选区（放行主 switch），其余键先退出块模式再按普通键处理
+    if (taskDataManager.getState().visualBlock?.active) {
+      const handled = this.handleBlockKey(event, key, taskDataManager);
+      if (handled) return true;
     }
 
     switch (key) {
@@ -229,12 +238,25 @@ export class ContentNavigationModeHandler implements ModeHandler {
 
       case 'p':
         event.preventDefault();
-        taskDataManager.pasteAfter();
+        this.pasteKey(taskDataManager, false);
         return true;
 
       case 'P':
         event.preventDefault();
-        taskDataManager.pasteBefore();
+        this.pasteKey(taskDataManager, true);
+        return true;
+
+      // Ctrl+V：进入可视块模式（锚点=当前光标，j/k/h/l/w/0/$/gg/G 扩展矩形选区）
+      case 'v':
+        if (event.ctrlKey) {
+          event.preventDefault();
+          taskDataManager.startVisualBlock();
+          return true;
+        }
+        // 普通 v 未绑定：按未知键处理（退出导航回 command）
+        event.preventDefault();
+        taskDataManager.transition('Escape');
+        this.blurInputFields();
         return true;
 
       // 操作符前缀（vim operator + motion）
@@ -293,6 +315,70 @@ export class ContentNavigationModeHandler implements ModeHandler {
       }
     }
     return true;
+  }
+
+  /** 可视块模式按键：x/d 删除块、y 复制块、c 删除后插入、Esc 仅退出块；移动键返回 false 放行主 switch 扩展选区 */
+  private handleBlockKey(event: KeyboardEvent, key: string, tdm: Store): boolean {
+    switch (key) {
+      case 'Escape':
+        event.preventDefault();
+        tdm.endVisualBlock();
+        return true;
+
+      case 'x':
+      case 'd':
+        event.preventDefault();
+        tdm.deleteVisualBlock();
+        return true;
+
+      case 'y':
+        event.preventDefault();
+        tdm.copyVisualBlock();
+        return true;
+
+      case 'c':
+        event.preventDefault();
+        tdm.changeVisualBlock();
+        tdm.transition('i');
+        this.enableContentEditing(tdm);
+        return true;
+
+      case '?':
+        event.preventDefault();
+        tdm.toggleHelp('content');
+        return true;
+
+      // 移动键：扩展选区（走主 switch 的移动逻辑）
+      case 'j': case 'k': case 'h': case 'l': case 'Enter':
+      case 'ArrowUp': case 'ArrowDown': case 'ArrowLeft': case 'ArrowRight':
+      case 'w': case 'b': case 'e': case '0': case '$': case 'G': case 'g':
+        return false;
+
+      default:
+        // 未绑定键：退出块模式后按普通键继续（不吞键）
+        tdm.endVisualBlock();
+        return false;
+    }
+  }
+
+  /** p/P：优先粘贴系统剪贴板（外部复制内容）；无系统剪贴板/读取失败/为空时回退内部 yank 缓冲 */
+  private pasteKey(tdm: Store, before: boolean): void {
+    const sys = readSystemClipboard();
+    if (sys === null) {
+      this.pasteInternal(tdm, before);
+      return;
+    }
+    void sys
+      .then((text) => {
+        if (text) tdm.pasteTextRaw(text, before);
+        else this.pasteInternal(tdm, before);
+      })
+      .catch(() => this.pasteInternal(tdm, before));
+  }
+
+  private pasteInternal(tdm: Store, before: boolean): void {
+    if (before) tdm.pasteBefore();
+    else tdm.pasteAfter();
   }
 
   private applyDelete(tdm: Store, action: string): void {

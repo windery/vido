@@ -547,6 +547,87 @@ export function pasteTextAtCursor(list: TaskList, text: string, isLine: boolean,
   return updateCursor(setLines(list, task, lines), task.id, line, insertAt + text.length);
 }
 
+/**
+ * vim p / P 粘贴外部文本（系统剪贴板/其他来源）：字符式（charwise）粘贴——
+ * 多行文本在当前光标处切行插入（第一段接光标前、最后一段接光标后、中间段独立成行）；
+ * p 光标落粘贴内容末尾、P 落粘贴内容开头。
+ */
+export function pasteExternalText(list: TaskList, text: string, before: boolean): TaskList {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION || !text) return list;
+  const lines = linesOf(task);
+  const line = task.cursorLine || 0;
+  const col = task.cursorColumn || 0;
+  const cur = lines[line] ?? '';
+  const head = cur.slice(0, col);
+  const tail = cur.slice(col);
+  const parts = text.split('\n');
+  const newLines = parts.map((p, i) => {
+    if (parts.length === 1) return head + p + tail;
+    if (i === 0) return head + p;
+    if (i === parts.length - 1) return p + tail;
+    return p;
+  });
+  lines.splice(line, 1, ...newLines);
+  const updated = setLines(list, task, lines);
+  if (before) {
+    // P：光标在粘贴内容开头（head 之后）
+    return updateCursor(updated, task.id, line, head.length);
+  }
+  // p：光标在粘贴内容末尾（tail 之前）
+  const endLine = line + parts.length - 1;
+  const endCol = parts.length === 1 ? head.length + parts[0].length : parts[parts.length - 1].length;
+  return updateCursor(updated, task.id, endLine, endCol);
+}
+
+// ==================== Ctrl+V 可视块模式 ====================
+
+export interface BlockSelection {
+  text: string;
+  startLine: number;
+  endLine: number;
+  startCol: number;
+  endCol: number; // 含
+}
+
+/** 可视块选区：锚点（Ctrl+V 按下时光标）与当前光标围成的矩形；行序/列序自动取 min/max */
+export function getBlockSelection(
+  list: TaskList,
+  anchorLine: number,
+  anchorCol: number
+): BlockSelection | null {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return null;
+  const lines = linesOf(task);
+  const curLine = task.cursorLine || 0;
+  const curCol = task.cursorColumn || 0;
+  const startLine = Math.min(anchorLine, curLine);
+  const endLine = Math.min(Math.max(anchorLine, curLine), lines.length - 1);
+  const startCol = Math.min(anchorCol, curCol);
+  const endCol = Math.max(anchorCol, curCol);
+  const parts: string[] = [];
+  for (let i = startLine; i <= endLine; i++) {
+    const t = lines[i] ?? '';
+    parts.push(t.slice(startCol, Math.min(endCol + 1, t.length)));
+  }
+  return { text: parts.join('\n'), startLine, endLine, startCol, endCol };
+}
+
+/** vim 可视块 x/d：删除矩形块；短行不足块起列时该行不删字符；光标落块左上角 */
+export function deleteBlock(list: TaskList, anchorLine: number, anchorCol: number): TaskList {
+  const sel = getBlockSelection(list, anchorLine, anchorCol);
+  const task = list.selected;
+  if (!sel || !task) return list;
+  const lines = linesOf(task);
+  for (let i = sel.startLine; i <= sel.endLine && i < lines.length; i++) {
+    const t = lines[i] ?? '';
+    if (sel.startCol < t.length) {
+      lines[i] = t.slice(0, sel.startCol) + t.slice(Math.min(sel.endCol + 1, t.length));
+    }
+  }
+  return updateCursor(setLines(list, task, lines), task.id, sel.startLine, sel.startCol);
+}
+
 /** vim O：上方插入空行，光标落新行行首 */
 export function insertLineAbove(list: TaskList): TaskList {
   const task = list.selected;

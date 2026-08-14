@@ -115,13 +115,6 @@ export class ConfigKeyHandler {
         this.cancelTagDelete(taskDataManager);
         return true;
       }
-      // dd（600ms 内连按）：清空全部标签——与 dd 清除语义统一；慢速 d…d 不触发（防误触）
-      if (key === 'd' && this.dBuffer === '' && Date.now() - this.dPendingAt < 600) {
-        event.preventDefault();
-        this.cancelTagDelete(taskDataManager);
-        taskDataManager.updateTaskProperty(task.id, 'tags', []);
-        return true;
-      }
       this.cancelTagDelete(taskDataManager);
     }
 
@@ -162,6 +155,25 @@ export class ConfigKeyHandler {
     }
 
     switch (key) {
+      case 'x':
+        // x = 清除当前配置项：tags 高亮在某个标签上时只删该标签，否则清空全部；schedule/priority 直接清除
+        event.preventDefault();
+        {
+          const nav = (state as any).configNavIndex;
+          if (cs === 'tags-select' && nav > 0 && nav <= (task.tags?.length || 0)) {
+            const tags = task.tags || [];
+            taskDataManager.updateTaskProperty(task.id, 'tags', tags.filter((_: string, i: number) => i !== nav - 1));
+          } else if (cs === 'tags-select') {
+            taskDataManager.updateTaskProperty(task.id, 'tags', []);
+          } else if (cs === 'schedule-select') {
+            taskDataManager.updateTaskProperty(task.id, 'schedule', undefined);
+          } else if (cs === 'priority-select') {
+            taskDataManager.updateTaskProperty(task.id, 'priority', undefined);
+          }
+        }
+        taskDataManager.setConfigNavIndex(0);
+        return true;
+
       case 'd':
         if (cs === 'tags-select') {
           // d 开启删除待确认（删除仅限标签）：d+序号+Enter 删单个标签；600ms 内再按 d（dd）清空全部标签
@@ -293,14 +305,14 @@ export class ConfigKeyHandler {
     }
   }
 
-  /** schedule-select 的 nav 选项（固定排序：时间序 + 自定义，清除放最后——与面板 pill 顺序一致） */
-  private static readonly SCHEDULE_OPTIONS = ['today', 'tomorrow', 'next_week', 'custom', 'clear'] as const;
-  /** priority-select 的 nav 选项（固定排序：优先级降序 + 清除放最后——与面板 pill 顺序一致） */
-  private static readonly PRIORITY_OPTIONS = ['high', 'medium', 'low', 'clear'] as const;
+  /** schedule-select 的 nav 选项（固定排序：时间序 + 自定义；清除走 x 键，不作为导航项） */
+  private static readonly SCHEDULE_OPTIONS = ['today', 'tomorrow', 'next_week', 'custom'] as const;
+  /** priority-select 的 nav 选项（固定排序：优先级降序；清除走 x 键） */
+  private static readonly PRIORITY_OPTIONS = ['high', 'medium', 'low'] as const;
 
   /** nav 选项总数（tags = 标签数 + add + clear） */
   private navTotal(task: any, cs: string): number {
-    if (cs === 'tags-select') return (task.tags?.length || 0) + 2;
+    if (cs === 'tags-select') return (task.tags?.length || 0) + 1; // 各标签 + Add
     if (cs === 'schedule-select') return ConfigKeyHandler.SCHEDULE_OPTIONS.length;
     return ConfigKeyHandler.PRIORITY_OPTIONS.length;
   }
@@ -322,30 +334,23 @@ export class ConfigKeyHandler {
   private activateNav(tdm: Store, task: any, cs: string, index: number): void {
     if (cs === 'schedule-select') {
       const opt = ConfigKeyHandler.SCHEDULE_OPTIONS[index - 1];
-      if (opt === 'clear') tdm.updateTaskProperty(task.id, 'schedule', undefined);
-      else if (opt === 'custom') tdm.setConfigState(task.id, 'schedule-edit');
+      if (opt === 'custom') tdm.setConfigState(task.id, 'schedule-edit');
       else {
         const s = parseScheduleFromString(opt);
         if (s) tdm.updateTaskProperty(task.id, 'schedule', s);
       }
     } else if (cs === 'priority-select') {
       const opt = ConfigKeyHandler.PRIORITY_OPTIONS[index - 1];
-      if (opt === 'clear') tdm.updateTaskProperty(task.id, 'priority', undefined);
-      else {
-        const map: Record<string, TaskPriority> = { high: TaskPriority.HIGH, medium: TaskPriority.MEDIUM, low: TaskPriority.LOW };
-        if (map[opt]) tdm.updateTaskProperty(task.id, 'priority', map[opt]);
-      }
+      const map: Record<string, TaskPriority> = { high: TaskPriority.HIGH, medium: TaskPriority.MEDIUM, low: TaskPriority.LOW };
+      if (map[opt]) tdm.updateTaskProperty(task.id, 'priority', map[opt]);
     } else if (cs === 'tags-select') {
       const tags = task.tags || [];
       if (index <= tags.length) {
         // 高亮在某个标签上：Enter 删除该标签
         tdm.updateTaskProperty(task.id, 'tags', tags.filter((_: string, i: number) => i !== index - 1));
-      } else if (index === tags.length + 1) {
+      } else {
         // 高亮在 Add：Enter 打开标签输入（与默认 Enter 一致）
         tdm.setConfigState(task.id, 'tags-edit');
-      } else {
-        // 高亮在 Clear：Enter 清空全部标签
-        tdm.updateTaskProperty(task.id, 'tags', []);
       }
     }
     tdm.setConfigNavIndex(0);

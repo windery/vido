@@ -12,6 +12,16 @@
                     :class="['content-editor', { 'content-nav': isNav() }]"
                     :placeholder="t('content.placeholder')">
       </textarea>
+                <!-- 可视块选区覆盖层：块内字符高亮（半透明绿底），锚点↔光标矩形随移动实时重算 -->
+                <div v-if="blockRows.length" class="block-mirror" aria-hidden="true"
+                    :style="{ transform: `translateY(${-scrollTop}px)` }">
+                    <span class="mirror-text">
+                        <template v-for="(row, i) in blockRows" :key="i">
+                            <template v-if="i > 0">&#10;</template>
+                            <span v-if="row.pre" class="bm-trans">{{ row.pre }}</span><span v-if="row.sel" class="bm-sel">{{ row.sel }}</span><span class="bm-trans">{{ row.post }}</span>
+                        </template>
+                    </span>
+                </div>
                 <div v-if="isNav()" class="caret-mirror" aria-hidden="true"
                     :style="{ transform: `translateY(${-scrollTop}px)` }">
                     <span class="mirror-text">{{ caretPrefix }}</span><span class="block-caret">{{ caretChar }}</span>
@@ -30,6 +40,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, computed, watchEffect } from 'vue';
 import { Task, TaskState } from '../domain/task';
+import { store } from '../domain/state/store';
 import { renderMarkdown } from '../utils/markdown';
 import { t } from '../i18n';
 
@@ -79,6 +90,33 @@ const caretChar = computed(() => {
     const lines = content.split('\n');
     const cur = lines[line] ?? '';
     return cur[col] || ' ';
+});
+
+// 可视块选区逐行拆分（锚点 ↔ 当前光标矩形）：覆盖层需渲染 0..endLine 全部行
+// （块之前的行透明占位保证垂直对齐），仅块内列区间高亮。
+interface BlockRow { pre: string; sel: string; post: string; }
+const blockRows = computed<BlockRow[]>(() => {
+    const vb = store.state.visualBlock;
+    if (!vb.active || !isNav()) return [];
+    const lines = (props.task.content || '').split('\n');
+    const curLine = props.task.cursorLine ?? 0;
+    const curCol = props.task.cursorColumn ?? 0;
+    const startLine = Math.min(vb.anchorLine, curLine);
+    const endLine = Math.min(Math.max(vb.anchorLine, curLine), lines.length - 1);
+    const startCol = Math.min(vb.anchorCol, curCol);
+    const endCol = Math.max(vb.anchorCol, curCol);
+    const rows: BlockRow[] = [];
+    for (let i = 0; i <= endLine; i++) {
+        const text = lines[i] ?? '';
+        if (i < startLine) {
+            rows.push({ pre: text, sel: '', post: '' });
+            continue;
+        }
+        const s = Math.min(startCol, text.length);
+        const e = Math.min(endCol + 1, text.length);
+        rows.push({ pre: text.slice(0, s), sel: text.slice(s, e), post: text.slice(e) });
+    }
+    return rows;
 });
 
 // 进入导航/编辑态时同步高度与镜像层滚动偏移：
@@ -227,7 +265,34 @@ onMounted(() => {
     word-break: break-word;
     overflow-wrap: break-word;
     color: transparent;
+    z-index: 2;
+}
+
+/* 可视块选区镜像层：块内字符半透明磷光绿底高亮（textarea 文本透出），置于块光标层之下 */
+.block-mirror {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    color: transparent;
     z-index: 1;
+}
+
+.bm-trans {
+    color: transparent;
+}
+
+.bm-sel {
+    background: var(--accent-soft);
+    box-shadow: 0 0 0 1px var(--accent-dim);
+    color: transparent;
+    border-radius: 1px;
 }
 
 .mirror-text {

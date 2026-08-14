@@ -3,6 +3,7 @@ import { nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import TaskContent from '../TaskContent.vue';
 import { Task, TaskState } from '../../domain/task';
+import { store } from '../../domain/state/store';
 
 function makeTask(overrides: Partial<Task> = {}): Task {
   const t = new Task(1);
@@ -68,6 +69,27 @@ describe('TaskContent — vim 块光标镜像层', () => {
     const wrapper = mountContent(t);
     expect(wrapper.find('.caret-mirror').exists()).toBe(false);
     expect(wrapper.find('.content-editor').exists()).toBe(true);
+  });
+});
+
+describe('TaskContent — Ctrl+V 可视块选区覆盖层', () => {
+  it('块模式激活：块内字符渲染 bm-sel 高亮，块前行透明占位', () => {
+    store.state.visualBlock = { active: true, anchorLine: 0, anchorCol: 0 };
+    try {
+      // 锚点 (0,0)、光标 (1,2) → 块 = 行 0..1 × 列 0..2
+      const wrapper = mountContent(makeTask({ cursorLine: 1, cursorColumn: 2 }));
+      expect(wrapper.find('.block-mirror').exists()).toBe(true);
+      const sels = wrapper.findAll('.bm-sel').map((s) => s.text());
+      expect(sels).toEqual(['lin', 'lin']); // 'line1'/'line2' 前 3 字符
+    } finally {
+      store.state.visualBlock = { active: false, anchorLine: 0, anchorCol: 0 };
+    }
+  });
+
+  it('块模式未激活：不渲染覆盖层', () => {
+    store.state.visualBlock = { active: false, anchorLine: 0, anchorCol: 0 };
+    const wrapper = mountContent(makeTask({ cursorLine: 1, cursorColumn: 2 }));
+    expect(wrapper.find('.block-mirror').exists()).toBe(false);
   });
 });
 

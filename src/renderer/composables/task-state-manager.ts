@@ -35,6 +35,7 @@ function buildState(): any {
     flashMessage: store.state.flashMessage,
     tagDeleteIndex: store.state.tagDeleteIndex,
     configNavIndex: store.state.configNavIndex,
+    visualBlock: store.state.visualBlock,
     dirty: store.state.dirty,
     calendarView: store.state.calendarView,
     tasks: store.manager.list.items,

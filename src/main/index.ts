@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, Menu, clipboard } from 'electron';
 // import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -225,6 +225,27 @@ ipcMain.handle('write-log', async (_event, logEntry: LogEntry) => {
   } catch (error) {
     logger.error('MainProcess', 'Failed to write log via IPC', error);
     return { success: false, error: (error as Error).message };
+  }
+});
+
+// --------- System Clipboard Bridge ---------
+// 渲染进程 p/P 粘贴外部复制内容：主进程 clipboard API 无权限/焦点限制，
+// 比 navigator.clipboard.readText()（Chromium 权限模型）可靠得多。
+ipcMain.handle('clipboard-read-text', () => {
+  try {
+    return clipboard.readText();
+  } catch (error) {
+    logger.error('MainProcess', 'Failed to read clipboard', error);
+    return '';
+  }
+});
+ipcMain.handle('clipboard-write-text', (_event, text: string) => {
+  try {
+    clipboard.writeText(String(text ?? ''));
+    return true;
+  } catch (error) {
+    logger.error('MainProcess', 'Failed to write clipboard', error);
+    return false;
   }
 });
 

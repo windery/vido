@@ -77,7 +77,6 @@
               <span class="config-pill" :class="{ 'nav-active': navOn('schedule-select', 2) }"><kbd>2</kbd> {{ t('config.tomorrow') }}</span>
               <span class="config-pill" :class="{ 'nav-active': navOn('schedule-select', 3) }"><kbd>3</kbd> {{ t('config.nextWeek') }}</span>
               <span class="config-pill config-pill-enter" :class="{ 'nav-active': navOn('schedule-select', 4) }"><kbd>⏎</kbd> {{ t('config.custom') }}</span>
-              <span class="config-pill" :class="{ 'nav-active': navOn('schedule-select', 5) }"><kbd>$</kbd> {{ t('config.clear') }}</span>
             </div>
           </template>
           <!-- Priority -->
@@ -86,7 +85,6 @@
               <span class="config-pill priority-p1" :class="{ 'nav-active': navOn('priority-select', 1) }"><kbd>1</kbd> !!! {{ t('config.high') }}</span>
               <span class="config-pill priority-p2" :class="{ 'nav-active': navOn('priority-select', 2) }"><kbd>2</kbd> !! {{ t('config.medium') }}</span>
               <span class="config-pill priority-p3" :class="{ 'nav-active': navOn('priority-select', 3) }"><kbd>3</kbd> ! {{ t('config.low') }}</span>
-              <span class="config-pill" :class="{ 'nav-active': navOn('priority-select', 4) }"><kbd>$</kbd> {{ t('config.clear') }}</span>
             </div>
           </template>
           <!-- Tags -->
@@ -109,7 +107,6 @@
             </div>
             <div v-else class="config-pills" style="margin-top:6px">
               <span class="config-pill config-pill-enter" :class="{ 'nav-active': navOn('tags-select', (task.tags?.length || 0) + 1) }"><kbd>⏎</kbd> {{ t('config.add') }}</span>
-              <span class="config-pill" :class="{ 'nav-active': navOn('tags-select', (task.tags?.length || 0) + 2) }"><kbd>dd</kbd> {{ t('config.clear') }}</span>
             </div>
           </template>
         </div>
