@@ -62,13 +62,14 @@
               <span class="config-input-icon">@</span>
               <input ref="scheduleInputRef" v-model="scheduleInputValue" class="config-input" spellcheck="false"
                 :placeholder="t('config.schedulePlaceholder')"
+                @compositionstart="configComposing = true" @compositionend="configComposing = false"
                 @keydown.enter.stop="saveScheduleInput" @keydown.escape.stop="cancelScheduleInput" />
             </div>
             <div v-else class="config-pills">
               <span class="config-pill"><kbd>1</kbd> {{ t('config.today') }}</span>
               <span class="config-pill"><kbd>2</kbd> {{ t('config.tomorrow') }}</span>
               <span class="config-pill"><kbd>3</kbd> {{ t('config.nextWeek') }}</span>
-              <span class="config-pill"><kbd>cc</kbd> {{ t('config.clear') }}</span>
+              <span class="config-pill"><kbd>dd</kbd> {{ t('config.clear') }}</span>
               <span class="config-pill config-pill-enter"><kbd>⏎</kbd> {{ t('config.custom') }}</span>
             </div>
           </template>
@@ -78,7 +79,7 @@
               <span class="config-pill priority-p1"><kbd>1</kbd> !!! {{ t('config.high') }}</span>
               <span class="config-pill priority-p2"><kbd>2</kbd> !! {{ t('config.medium') }}</span>
               <span class="config-pill priority-p3"><kbd>3</kbd> ! {{ t('config.low') }}</span>
-              <span class="config-pill"><kbd>cc</kbd> {{ t('config.clear') }}</span>
+              <span class="config-pill"><kbd>dd</kbd> {{ t('config.clear') }}</span>
             </div>
           </template>
           <!-- Tags -->
@@ -97,11 +98,12 @@
               <span class="config-input-icon">#</span>
               <input ref="tagInputRef" v-model="tagInputValue" class="config-input" spellcheck="false"
                 :placeholder="t('config.tagPlaceholder')"
+                @compositionstart="configComposing = true" @compositionend="configComposing = false"
                 @keydown.enter.stop="saveTagInput" @keydown.escape.stop="cancelTagInput" />
             </div>
             <div v-else class="config-pills" style="margin-top:6px">
               <span class="config-pill config-pill-enter"><kbd>⏎</kbd> {{ t('config.add') }}</span>
-              <span class="config-pill"><kbd>cc</kbd> {{ t('config.clear') }}</span>
+              <span class="config-pill"><kbd>dd</kbd> {{ t('config.clear') }}</span>
             </div>
           </template>
           <div class="config-footer" v-html="t('config.footer')"></div>
@@ -113,7 +115,7 @@
 import { ref, nextTick, watchEffect, computed } from 'vue';
 import { Task, TaskState, TaskPriority } from '../domain/task';
 import { REPEAT_LABEL } from '../domain/schedule';
-import { getScheduleDisplay, getScheduleDisplayText, isScheduleExpired, parseScheduleFromString } from '../utils/schedule-helper';
+import { getScheduleDisplay, isScheduleExpired, parseScheduleFromString } from '../utils/schedule-helper';
 import TaskContent from './TaskContent.vue';
 import { useTaskState } from '../composables/use-task-state';
 import { t } from '../i18n';
@@ -145,6 +147,8 @@ const titleEditRef = ref<HTMLInputElement | null>(null);
 
 // 输入法组合状态追踪
 const isComposing = ref(false);
+/** 配置输入框（schedule/tags）的 IME 组合态：组合期间 Enter 是选字确认，不得触发保存 */
+const configComposing = ref(false);
 
 const handleTitleInput = (event: Event) => {
     const target = event.target as HTMLInputElement;
@@ -217,6 +221,8 @@ watchEffect(() => {
 });
 
 const saveScheduleInput = () => {
+  // 输入法选字确认的 Enter 不保存
+  if (configComposing.value) return;
   const val = scheduleInputValue.value.trim();
   if (val) {
     const s = parseScheduleFromString(val);
@@ -244,6 +250,8 @@ watchEffect(() => {
 });
 
 const saveTagInput = () => {
+  // 输入法选字确认的 Enter 不保存
+  if (configComposing.value) return;
   const val = tagInputValue.value.trim();
   if (val) {
     const tdm = useTaskState().taskDataManager;

@@ -41,9 +41,14 @@ export class KeyboardManager {
     this.configKeyHandler = new ConfigKeyHandler();
   }
 
-  /** 注入滚动回调，建立 domain → UI 的桥梁 */
-  setScrollCallback(cb: () => void): void {
+  /** 注入滚动回调（mode: nearest/center/top/bottom），建立 domain → UI 的桥梁 */
+  setScrollCallback(cb: (mode?: string) => void): void {
     this.commandModeHandler.setScrollCallback(cb);
+  }
+
+  /** 注入翻页回调（Ctrl-D/U/F/B），建立 domain → UI 的桥梁 */
+  setPageScrollCallback(cb: (dir: number, factor: number) => void): void {
+    this.commandModeHandler.setPageScrollCallback(cb);
   }
 
   handleKeyEvent(event: KeyboardEvent): void {

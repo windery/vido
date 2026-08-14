@@ -29,7 +29,12 @@ j/k 保持任务级上下移动（配置展开时也不切 section）
 Esc 关闭配置（edit 态先取消回 select，再 Esc 关闭）
 ```
 
-**tags-select 标签删除**（`d` 前缀操作符，仅 tags-select）：`d` 开启删除待确认 → 数字累加为 1 基序号（标签前显示编号，越界/空则不高亮）→ 目标标签高亮（琥珀虚线框 + `✕` 标记）→ `Enter` 确认删除该标签、`Esc`/非数字键取消（取消后按正常流程继续，如 `H/L` 切 section 放行命令层）。删除态离开 tags-select 或切换任务时自动清理。其余 section 的 `d` 一律消费，不落到命令层触发全局删除。
+**面板内前缀键（c = 配置导航 / d = 删除，两个命名空间严格分离，杜绝 cc 开/清歧义）**：
+- `c` 导航前缀（600ms 窗口）：`cc` 收起面板（与 normal 模式 `cc` 组成对称开关，**绝不清除**）、`cs/cp/ct` 直达 日程/优先级/标签、`cd/cw/cm/cy` 清除对应 repeat
+- `d` 删除前缀：`dd` 清除当前项（日程/优先级/全部标签，schedule/priority 需 600ms 内连按、tags 需 600ms 内连按——慢速 d…d 不触发防误触）
+- `e` 重复前缀：`ed/ew/em/ey` 设置每天/每周/每月/每年重复
+
+**tags-select 标签删除**（`d` 前缀操作符，仅 tags-select）：`d` 开启删除待确认 → 数字累加为 1 基序号（标签前显示编号，越界/空则不高亮）→ 目标标签高亮（琥珀虚线框 + `✕` 标记）→ `Enter` 确认删除该标签、`Esc`/非数字键取消（取消后按正常流程继续，如 `H/L` 切 section 放行命令层）；600ms 内连按 `dd` 清空全部标签。删除态离开 tags-select 或切换任务时自动清理。其余 section 的 `d` 一律消费，不落到命令层触发全局删除。
 
 **Rules:**
 1. select → Enter → edit（打开输入框）
@@ -184,7 +189,7 @@ This application embodies **programmer values**: rigorous, concise, efficient. T
 - **Immediate feedback (vim-instant)**: cursor movement, navigation, and scrolling are instant with zero animation; all other feedback transitions ≤ 150ms (prefer ≤ 100ms); no decorative delays, ever — vim responds in the same frame you press a key, this app must too
 - **Progressive disclosure**: Common options visible; advanced behind input/custom
 - **4.5:1 contrast ratio** minimum for all text
-- **Clear action**: `cc` (在配置面板内 `c` 是 vim 前缀操作符：`cc` 清除、`cs/cp/ct` 跳转 section). Never use numeric keys for destructive actions.
+- **Clear action**: `dd` 在配置面板内清除当前项（`d` 是 vim 删除前缀：`dd` 清当前项、tags 里 `d+序号+Enter` 删单个标签）；面板内 `cc` 只收起面板（与 normal 模式 `cc` 组成开关），**开/清键位绝不复用**。Never use numeric keys for destructive actions.
 
 **Visual Design (CRITICAL)**:
 - **Premium, minimal, unified** — every element must feel like part of one cohesive design system. No "stuck on" looking panels.

@@ -101,29 +101,73 @@ describe('ConfigKeyHandler state machine', () => {
     expect(tdm.setConfigState).toHaveBeenCalledWith(1, 'priority-select');
   });
 
-  it('cc in schedule-select clears schedule and stays', () => {
+  it('cc in panel closes config (toggle) and never clears', () => {
     const tdm = createTDM(makeTask('schedule-select'));
     handler.handleKey(makeEvent('c'), 'c', tdm);
     const ok = handler.handleKey(makeEvent('c'), 'c', tdm);
     expect(ok).toBe(true);
-    expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'schedule', undefined);
-    expect(tdm.setConfigState).not.toHaveBeenCalled();
+    expect(tdm.setConfigState).toHaveBeenCalledWith(1, undefined);
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
   });
 
-  it('cc in priority-select clears priority', () => {
+  it('dd in schedule-select clears schedule', () => {
+    const tdm = createTDM(makeTask('schedule-select'));
+    handler.handleKey(makeEvent('d'), 'd', tdm);
+    const ok = handler.handleKey(makeEvent('d'), 'd', tdm);
+    expect(ok).toBe(true);
+    expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'schedule', undefined);
+  });
+
+  it('dd in priority-select clears priority', () => {
     const tdm = createTDM(makeTask('priority-select'));
-    handler.handleKey(makeEvent('c'), 'c', tdm);
-    const ok = handler.handleKey(makeEvent('c'), 'c', tdm);
+    handler.handleKey(makeEvent('d'), 'd', tdm);
+    const ok = handler.handleKey(makeEvent('d'), 'd', tdm);
     expect(ok).toBe(true);
     expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'priority', undefined);
   });
 
-  it('cc in tags-select clears tags', () => {
-    const tdm = createTDM(makeTask('tags-select'));
-    handler.handleKey(makeEvent('c'), 'c', tdm);
-    const ok = handler.handleKey(makeEvent('c'), 'c', tdm);
+  it('dd in tags-select clears all tags', () => {
+    const tdm = createTDM(makeTagTask(['work', 'home']));
+    handler.handleKey(makeEvent('d'), 'd', tdm);
+    const ok = handler.handleKey(makeEvent('d'), 'd', tdm);
     expect(ok).toBe(true);
     expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'tags', []);
+  });
+
+  it('slow d…d in schedule-select does NOT clear (600ms 防误触窗口)', () => {
+    vi.useFakeTimers();
+    const tdm = createTDM(makeTask('schedule-select'));
+    handler.handleKey(makeEvent('d'), 'd', tdm);
+    vi.advanceTimersByTime(700);
+    const ok = handler.handleKey(makeEvent('d'), 'd', tdm);
+    expect(ok).toBe(true);
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it('slow d…d in tags-select does NOT clear all tags (600ms 防误触窗口)', () => {
+    vi.useFakeTimers();
+    const tdm = createTDM(makeTagTask(['a', 'b']));
+    handler.handleKey(makeEvent('d'), 'd', tdm);
+    vi.advanceTimersByTime(700);
+    const ok = handler.handleKey(makeEvent('d'), 'd', tdm);
+    expect(ok).toBe(true);
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it('d then other key cancels clear prefix and continues (1 quick-selects priority)', () => {
+    const tdm = createTDM(makeTask('priority-select'));
+    handler.handleKey(makeEvent('d'), 'd', tdm);
+    handler.handleKey(makeEvent('1'), '1', tdm);
+    expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'priority', TaskPriority.HIGH);
+  });
+
+  it('single d in schedule-select is consumed without action (不落到命令层删任务)', () => {
+    const tdm = createTDM(makeTask('schedule-select'));
+    const ok = handler.handleKey(makeEvent('d'), 'd', tdm);
+    expect(ok).toBe(true);
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
   });
 
   it('cs/cp/ct jump between sections (not clear, not paste)', () => {

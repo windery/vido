@@ -107,6 +107,12 @@ export class ContentNavigationModeHandler implements ModeHandler {
         taskDataManager.moveCursorUp();
         return true;
 
+      // vim 语义：Enter（normal 态）下移一行，不再误退出导航
+      case 'Enter':
+        event.preventDefault();
+        taskDataManager.moveCursorDown();
+        return true;
+
       case 'h':
         event.preventDefault();
         taskDataManager.moveCursorLeft();

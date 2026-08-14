@@ -4,7 +4,7 @@
         <div class="calendar-header">
             <span class="cal-badge">{{ granularity.toUpperCase() }}</span>
             <span class="cal-range">{{ rangeLabel }}</span>
-            <span class="cal-hint">[ ] page &nbsp;·&nbsp; H/L view &nbsp;·&nbsp; Esc exit</span>
+            <span class="cal-hint">[ ] page &nbsp;·&nbsp; H/L view &nbsp;·&nbsp; j/k select &nbsp;·&nbsp; Enter open &nbsp;·&nbsp; Esc exit</span>
         </div>
 
         <!-- 按日期分组的任务 -->
@@ -16,7 +16,8 @@
                     <span v-if="day.date === todayStr" class="cal-today-flag">TODAY</span>
                 </div>
                 <div class="cal-day-tasks">
-                    <div v-for="t in day.tasks" :key="t.id" class="cal-task" :class="{ done: t.completed }">
+                    <div v-for="t in day.tasks" :key="t.id" class="cal-task"
+                        :class="{ done: t.completed, selected: day.date === selectedDate && t.id === selectedTaskId }">
                         <span class="cal-task-dot">{{ t.completed ? '✓' : '○' }}</span>
                         <span class="cal-task-title">{{ t.title }}</span>
                     </div>
@@ -30,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch, nextTick } from 'vue';
 import type { Task } from '../domain/task';
 import { collectTasksInRange, getCalendarRange, weekdayName } from '../utils/calendar';
 import { formatDate } from '../utils/date-formatter';
@@ -39,6 +40,8 @@ const props = defineProps<{
     tasks: Task[];
     granularity: 'day' | 'week' | 'month';
     anchor: string;
+    selectedDate?: string;
+    selectedTaskId?: number;
 }>();
 
 const todayStr = formatDate(new Date());
@@ -46,6 +49,17 @@ const todayStr = formatDate(new Date());
 const rangeLabel = computed(() => getCalendarRange(props.granularity, props.anchor).label);
 
 const days = computed(() => collectTasksInRange(props.tasks, props.granularity, props.anchor));
+
+// 选中变化时把目标行滚入视口（vim-instant：同一帧、最小滚动）
+watch(
+    () => `${props.selectedDate}:${props.selectedTaskId}`,
+    () => {
+        nextTick(() => {
+            const el = document.querySelector('.cal-task.selected');
+            el?.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+        });
+    }
+);
 </script>
 
 <style scoped>
@@ -138,6 +152,17 @@ const days = computed(() => collectTasksInRange(props.tasks, props.granularity, 
     padding: 2px 10px;
     font-size: 13px;
     line-height: 1.6;
+}
+
+/* 视图内选中行：与任务列表一致的绿渐变 + › 标记 */
+.cal-task.selected {
+    background: var(--active-grad);
+    color: var(--text-bright);
+    border-radius: 3px;
+}
+
+.cal-task.selected .cal-task-dot {
+    color: var(--accent-bright);
 }
 
 .cal-task.done {

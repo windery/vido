@@ -87,7 +87,7 @@ const caretChar = computed(() => {
 // normal（markdown 完整渲染）切到 nav/edit 时内容区明显变矮（跳动）。
 // content 依赖收集：dd/x/undo 等非 input 路径的内容变更也会触发重算。
 watchEffect(() => {
-    const content = props.task.content; // 响应式依赖：内容变更触发
+    void props.task.content; // 响应式依赖：内容变更触发重算
     if (isEditing()) {
         nextTick(() => {
             const ta = contentEditRefs.value.get(props.task.id);

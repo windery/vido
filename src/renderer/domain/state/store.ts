@@ -13,6 +13,7 @@ import { logger } from '../../utils/logger';
 import { migrateSchedule } from '../../utils/schedule-helper';
 import { Schedule, ScheduleRepeat, ScheduleType } from '../schedule';
 import { getCurrentDate, formatDate, parseDate } from '../../utils/date-formatter';
+import { collectTasksInRange } from '../../utils/calendar';
 import { t } from '../../i18n';
 
 export interface AppState {
@@ -24,13 +25,16 @@ export interface AppState {
   lastlineVisible: boolean;
   isHelpVisible: boolean;
   flashMessage: string | null;
+  /** 未保存变更（状态行 vido.todo [+] 指示器，vim 语义） */
+  dirty: boolean;
   /** 标签删除待确认序号（1 基；0 = 未处于删除态），驱动 tags-select 面板高亮目标标签 */
   tagDeleteIndex: number;
-  /** 日期视图（g c 进入）：visible + 粒度（day/week/month）+ 锚点日期 + 视图内选中任务 */
+  /** 日期视图（g c 进入）：visible + 粒度（day/week/month）+ 锚点日期 + 视图内选中项（日期+任务对，repeat 任务按出现定位） */
   calendarView: {
     visible: boolean;
     granularity: 'day' | 'week' | 'month';
     anchor: string;
+    selectedDate?: string;
     selectedTaskId?: number;
   };
 }
@@ -57,10 +61,15 @@ export class Store {
     if (this.saveTimer) clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(() => {
       this.saveTimer = null;
-      this.manager.save().catch((e) => {
-        logger.error('Store', 'auto save failed', { error: e });
-        this.setFlashMessage(t('flash.saveFailed'));
-      });
+      this.manager.save()
+        .then(() => {
+          this.state.dirty = false;
+          this.changed();
+        })
+        .catch((e) => {
+          logger.error('Store', 'auto save failed', { error: e });
+          this.setFlashMessage(t('flash.saveFailed'));
+        });
     }, 800);
   }
 
@@ -70,9 +79,9 @@ export class Store {
     return structuredClone(this.manager.list.items);
   }
 
-  private record(before: Task[]): void {
+  private record(before: Task[]): boolean {
     const after = this.snap();
-    if (JSON.stringify(before) === JSON.stringify(after)) return;
+    if (JSON.stringify(before) === JSON.stringify(after)) return false;
 
     const selected = this.manager.list.selected;
     const inTextEdit =
@@ -83,13 +92,14 @@ export class Store {
     // vim 语义：一次编辑会话内的连续输入合并为一条撤销记录（一次插入 = 一次 u）
     if (inTextEdit && last && last.taskId === selected.id && last.session === this.editSessionId) {
       last.after = after;
-      return;
+      return true;
     }
 
     this.history.splice(this.historyIndex + 1);
     this.history.push({ before, after, taskId: selected?.id, session: this.editSessionId });
     if (this.history.length > 100) this.history.shift();
     this.historyIndex = this.history.length - 1;
+    return true;
   }
 
   private restore(items: Task[]): void {
@@ -126,7 +136,7 @@ export class Store {
   private mutate(fn: () => void): void {
     const before = this.snap();
     fn();
-    this.record(before);
+    if (this.record(before)) this.state.dirty = true;
     this.changed();
     this.scheduleSave();
   }
@@ -136,6 +146,7 @@ export class Store {
     const entry = this.history[this.historyIndex];
     this.historyIndex--;
     this.restore(entry.before);
+    this.state.dirty = true;
     this.changed();
     this.scheduleSave();
     logger.info('Store', 'undo', { step: this.historyIndex, total: this.history.length, tasks: this.manager.list.items });
@@ -146,6 +157,7 @@ export class Store {
     const entry = this.history[this.historyIndex + 1];
     this.historyIndex++;
     this.restore(entry.after);
+    this.state.dirty = true;
     this.changed();
     this.scheduleSave();
     logger.info('Store', 'redo', { step: this.historyIndex, total: this.history.length, tasks: this.manager.list.items });
@@ -161,8 +173,9 @@ export class Store {
       lastlineVisible: false,
       isHelpVisible: false,
       flashMessage: null,
+      dirty: false,
       tagDeleteIndex: 0,
-      calendarView: { visible: false, granularity: 'week', anchor: '', selectedTaskId: undefined },
+      calendarView: { visible: false, granularity: 'week', anchor: '', selectedDate: undefined, selectedTaskId: undefined },
     });
   }
 
@@ -267,18 +280,39 @@ export class Store {
     this.changed();
   }
 
+  /** vim * / #：以选中任务标题为搜索词，跳到下一个/上一个匹配（无匹配时仅提示，不移动） */
+  searchWordUnderCursor(dir: 1 | -1): void {
+    const title = this.manager.list.selected?.title?.trim();
+    if (!title) return;
+    this.state.lastlineContent = '/' + title;
+    const visible = this.manager.list.items.filter((t) => taskMatchesSearch(t, title));
+    if (visible.length === 0) {
+      this.setFlashMessage(t('flash.noMatch'));
+      return;
+    }
+    const idx = visible.findIndex((t) => t.selected);
+    const nextIdx = (idx + dir + visible.length) % visible.length;
+    this.manager.selectTask(visible[nextIdx].id);
+    this.syncSelection();
+    this.changed();
+    logger.info('Store', 'search word', { term: title, matches: visible.length, selectedId: visible[nextIdx].id });
+  }
+
   // ======== 兼容旧 TaskDataManager API ========
 
   getState(): any {
     return {
       editorMode: this.state.editorMode,
       taskState: this.state.taskState,
-      selectedTaskId: this.state.selectedTaskId ?? this.manager.list.selected?.id,
+      // 以 manager 的选中任务为唯一事实来源（create/delete/paste/sort 后 state.selectedTaskId 可能滞后，
+      // 滞后值会导致 :schedule/cc/i 等键位作用到错误任务——严重 bug）
+      selectedTaskId: this.manager.list.selected?.id,
       cursorPosition: this.state.cursorPosition,
       isHelpVisible: this.state.isHelpVisible,
       lastlineContent: this.state.lastlineContent,
       lastlineVisible: this.state.lastlineVisible,
       flashMessage: this.state.flashMessage,
+      calendarView: this.state.calendarView,
       tasks: this.manager.list.items,
     };
   }
@@ -296,18 +330,25 @@ export class Store {
   get filteredTasks(): any[] { return this.manager.list.all; }
 
   // 转发 manager 方法（每个写操作后触发 changed）
-  selectTask(id: number): void { this.manager.selectTask(id); this.syncSelection(); this.changed(); }
+  selectTask(id: number): void { this.resetTagDelete(); this.manager.selectTask(id); this.syncSelection(); this.changed(); }
   /** 搜索激活时 j/k 只在匹配集内移动（所见即所动）；否则全量移动 */
   selectNext(): void {
+    this.resetTagDelete();
     if (this.isSearchActive()) { this.searchNext(1); return; }
     this.manager.selectNext(); this.syncSelection(); this.changed();
   }
   selectPrevious(): void {
+    this.resetTagDelete();
     if (this.isSearchActive()) { this.searchNext(-1); return; }
     this.manager.selectPrevious(); this.syncSelection(); this.changed();
   }
-  goToFirst(): void { this.manager.goToFirst(); this.syncSelection(); this.changed(); }
-  goToLast(): void { this.manager.goToLast(); this.syncSelection(); this.changed(); }
+  goToFirst(): void { this.resetTagDelete(); this.manager.goToFirst(); this.syncSelection(); this.changed(); }
+  goToLast(): void { this.resetTagDelete(); this.manager.goToLast(); this.syncSelection(); this.changed(); }
+
+  /** 标签删除待确认态是 tags-select 面板的瞬态 UI：任务移动/关闭面板时一律清理，防止序号高亮残留到其他任务 */
+  private resetTagDelete(): void {
+    if (this.state.tagDeleteIndex !== 0) this.state.tagDeleteIndex = 0;
+  }
 
   /** 搜索是否激活（lastlineContent 以 / 开头且有词） */
   private isSearchActive(): boolean {
@@ -317,6 +358,7 @@ export class Store {
   createNewTask(title?: string, after?: boolean): any {
     let result: any;
     this.mutate(() => { result = this.manager.createNewTask(title, after); });
+    this.syncSelection();
     logger.info('Store', 'create task', { id: result.id, title: result.title });
     return result;
   }
@@ -325,6 +367,7 @@ export class Store {
     const id = task?.id;
     const title = task?.title;
     this.mutate(() => this.manager.deleteSelectedTask());
+    this.syncSelection();
     logger.info('Store', 'delete task', { id, title });
   }
   toggleTaskCompletion(): void {
@@ -370,7 +413,41 @@ export class Store {
     logger.info('Store', 'set schedule repeat', { taskId, repeat });
   }
 
-  // ============ 日期视图（g c 进入 / H L 切粒度 / [ ] 翻页） ============
+  // ============ 日期视图（g c 进入 / H L 切粒度 / [ ] 翻页 / j k 选任务 / Enter 打开） ============
+
+  /** 日历视图内可见条目（按日期分组展开后拍平，含 repeat 出现；搜索激活时同样过滤） */
+  private calendarEntries(): Array<{ date: string; task: Task }> {
+    const term = this.getSearchTerm();
+    const base = term
+      ? this.manager.list.items.filter((t) => taskMatchesSearch(t, term))
+      : this.manager.list.items;
+    const days = collectTasksInRange(base, this.state.calendarView.granularity, this.state.calendarView.anchor);
+    const out: Array<{ date: string; task: Task }> = [];
+    for (const d of days) {
+      for (const t of d.tasks) out.push({ date: d.date, task: t });
+    }
+    return out;
+  }
+
+  /** 锚点/粒度变化后校正选中项：同任务优先跟随，否则落在范围内第一项 */
+  private syncCalendarSelection(): void {
+    const cv = this.state.calendarView;
+    const entries = this.calendarEntries();
+    if (entries.length === 0) {
+      cv.selectedDate = undefined;
+      cv.selectedTaskId = undefined;
+      return;
+    }
+    const cur = entries.find((e) => e.task.id === cv.selectedTaskId && e.date === cv.selectedDate);
+    if (cur) return;
+    const sameTask = entries.find((e) => e.task.id === cv.selectedTaskId);
+    if (sameTask) {
+      cv.selectedDate = sameTask.date;
+      return;
+    }
+    cv.selectedDate = entries[0].date;
+    cv.selectedTaskId = entries[0].task.id;
+  }
 
   openCalendarView(): void {
     const today = getCurrentDate();
@@ -382,7 +459,14 @@ export class Store {
       const d = (sd as any).getShortText ? sd.getShortText() : '';
       if (d && /^\d{4}-\d{2}-\d{2}/.test(d)) anchor = d.slice(0, 10);
     }
-    this.state.calendarView = { visible: true, granularity: 'week', anchor, selectedTaskId: undefined };
+    this.state.calendarView = { visible: true, granularity: 'week', anchor, selectedDate: undefined, selectedTaskId: undefined };
+    // 预选：当前选中任务在范围内的首次出现，否则范围内第一个条目（Enter 即可直接打开）
+    const entries = this.calendarEntries();
+    if (entries.length > 0) {
+      const pick = entries.find((e) => e.task.id === selected?.id) ?? entries[0];
+      this.state.calendarView.selectedDate = pick.date;
+      this.state.calendarView.selectedTaskId = pick.task.id;
+    }
     logger.info('Store', 'open calendar view', { anchor, granularity: 'week' });
   }
 
@@ -397,6 +481,8 @@ export class Store {
     const idx = order.indexOf(cur);
     const next = order[(idx + dir + order.length) % order.length];
     this.state.calendarView.granularity = next;
+    this.syncCalendarSelection();
+    this.changed();
   }
 
   shiftCalendarPage(dir: 1 | -1): void {
@@ -406,15 +492,48 @@ export class Store {
     else if (cv.granularity === 'week') d.setDate(d.getDate() + 7 * dir);
     else d.setMonth(d.getMonth() + dir);
     cv.anchor = formatDate(d);
+    this.syncCalendarSelection();
+    this.changed();
   }
 
+  /** j / k：在视图内条目间移动选择（所见即所选；未选中时从首/尾开始） */
   moveCalendarSelection(dir: 1 | -1): void {
-    // 由渲染层提供当日任务列表选择；此处仅标记方向（选择状态存 state）
-    // 简化：selectedTaskId 由 CalendarView 通过事件更新
+    const cv = this.state.calendarView;
+    const entries = this.calendarEntries();
+    if (entries.length === 0) {
+      cv.selectedDate = undefined;
+      cv.selectedTaskId = undefined;
+      this.changed();
+      return;
+    }
+    const idx = entries.findIndex((e) => e.task.id === cv.selectedTaskId && e.date === cv.selectedDate);
+    const nextIdx = idx < 0
+      ? (dir > 0 ? 0 : entries.length - 1)
+      : (idx + dir + entries.length) % entries.length;
+    cv.selectedDate = entries[nextIdx].date;
+    cv.selectedTaskId = entries[nextIdx].task.id;
+    this.changed();
+  }
+
+  /** Enter：退出日期视图并选中视图内当前任务（任务列表随之滚动到该任务） */
+  selectCalendarTask(): void {
+    const id = this.state.calendarView.selectedTaskId;
+    this.state.calendarView.visible = false;
+    if (id !== undefined) {
+      this.manager.selectTask(id);
+      this.syncSelection();
+    }
+    this.changed();
+    logger.info('Store', 'open task from calendar', { taskId: id });
   }
   startTitleEditing(): void { this.manager.startTitleEditing(); this.changed(); }
   startContentNavigation(): void { this.setTaskStatus(TaskState.CONTENT_NAVIGATION); this.changed(); }
-  setConfigState(id: number, s: string | undefined): void { this.manager.setConfigState(id, s); this.changed(); }
+  setConfigState(id: number, s: string | undefined): void {
+    // 关闭配置面板时清理残留的标签删除高亮
+    if (s === undefined) this.resetTagDelete();
+    this.manager.setConfigState(id, s);
+    this.changed();
+  }
   /** 标签删除待确认序号：0 表示无目标；由 ConfigKeyHandler 写入，驱动面板高亮 */
   setTagDeleteIndex(n: number): void { this.state.tagDeleteIndex = n; this.changed(); }
   updateTaskCursorPosition(id: number, l: number, c: number): void { this.manager.updateTaskCursor(id, l, c); this.changed(); }
@@ -493,12 +612,14 @@ export class Store {
   moveCursorWordEnd(): void { this.manager.moveCursorWordEnd(); this.changed(); }
   sortTasks(type: string): void {
     this.mutate(() => this.manager.sortTasks(type));
+    this.syncSelection();
     logger.info('Store', 'sort tasks', { type, count: this.manager.list.items.length });
   }
   copySelectedTask(): void { this.manager.copySelectedTask(); }
   pasteTask(): void {
     const fromId = this.manager.clipboard?.sourceId;
     this.mutate(() => this.manager.pasteTask());
+    this.syncSelection();
     const selected = this.manager.list.selected;
     logger.info('Store', 'paste task', { newId: selected?.id, fromId });
   }
@@ -529,11 +650,15 @@ export class Store {
     return { success: true };
   }
   toggleHelp(): void { this.state.isHelpVisible = !this.state.isHelpVisible; this.changed(); }
-  saveTasks(): void {
-    this.manager.save().catch((e) => {
+  async saveTasks(): Promise<void> {
+    try {
+      await this.manager.save();
+      this.state.dirty = false;
+      this.changed();
+    } catch (e) {
       logger.error('Store', 'save failed', { error: e });
       this.setFlashMessage(t('flash.saveFailed'));
-    });
+    }
   }
   updateLastlineContent(content: string): void { this.state.lastlineContent = content; this.changed(); }
   updateCursorPosition(line: number, col: number): void { this.state.cursorPosition = { line, column: col }; this.changed(); }

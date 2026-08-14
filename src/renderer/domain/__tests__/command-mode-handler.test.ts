@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { CommandModeHandler } from '../keyboard/command-mode-handler';
 import { Task, TaskState } from '../task';
 import { TaskList } from '../entities/task-list';
@@ -23,6 +23,7 @@ function createMockTDM(taskList: Task[]): any {
     getState: () => ({ editorMode: 0, selectedTaskId: list.selected?.id, tasks: list.items, lastlineContent: '', isHelpVisible: false }),
     selectNext: () => { list = list.selectNext(); },
     selectPrevious: () => { list = list.selectPrevious(); },
+    selectTask: (id: number) => { list = list.selectTask(id); },
     goToFirst: () => { list = list.goToFirst(); },
     goToLast: () => { list = list.goToLast(); },
     transition: vi.fn(() => ({ success: true })),
@@ -36,6 +37,7 @@ function createMockTDM(taskList: Task[]): any {
     copySelectedTask: vi.fn(),
     pasteTask: vi.fn(),
     setConfigState: vi.fn(),
+    searchWordUnderCursor: vi.fn(),
     _list: () => list,
   };
 }
@@ -153,5 +155,119 @@ describe('CommandModeHandler integration with TaskList', () => {
     handler.handleKey(makeEvent('H'), 'H', tdm, false);
     expect(tdm.setConfigState).not.toHaveBeenCalled();
     expect(tdm._list().selected?.id).toBe(1); // 不移动任务
+  });
+});
+
+describe('CommandModeHandler — vim 滚动与词搜索', () => {
+  let handler: CommandModeHandler;
+  let mockTDM: any;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    handler = new CommandModeHandler();
+    mockTDM = {
+      getState: vi.fn(() => ({ editorMode: 0, selectedTaskId: 1, lastlineContent: '', isHelpVisible: false })),
+      selectNext: vi.fn(), selectPrevious: vi.fn(), selectTask: vi.fn(),
+      goToFirst: vi.fn(), goToLast: vi.fn(),
+      transition: vi.fn(() => ({ success: true })),
+      undo: vi.fn(), redo: vi.fn(),
+      searchWordUnderCursor: vi.fn(),
+    };
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('zz / zt / zb 触发对应滚动模式', () => {
+    const cb = vi.fn();
+    handler.setScrollCallback(cb);
+    handler.handleKey(makeEvent('z'), 'z', mockTDM, false);
+    handler.handleKey(makeEvent('z'), 'z', mockTDM, false);
+    vi.advanceTimersByTime(15);
+    expect(cb).toHaveBeenCalledWith('center');
+    handler.handleKey(makeEvent('z'), 'z', mockTDM, false);
+    handler.handleKey(makeEvent('t'), 't', mockTDM, false);
+    vi.advanceTimersByTime(15);
+    expect(cb).toHaveBeenCalledWith('top');
+    handler.handleKey(makeEvent('z'), 'z', mockTDM, false);
+    handler.handleKey(makeEvent('b'), 'b', mockTDM, false);
+    vi.advanceTimersByTime(15);
+    expect(cb).toHaveBeenCalledWith('bottom');
+  });
+
+  it('Ctrl-D/U 半页、Ctrl-F/B 整页翻页', () => {
+    const cb = vi.fn();
+    handler.setPageScrollCallback(cb);
+    handler.handleKey(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }), 'd', mockTDM, false);
+    expect(cb).toHaveBeenCalledWith(1, 0.5);
+    handler.handleKey(new KeyboardEvent('keydown', { key: 'u', ctrlKey: true }), 'u', mockTDM, false);
+    expect(cb).toHaveBeenCalledWith(-1, 0.5);
+    handler.handleKey(new KeyboardEvent('keydown', { key: 'f', ctrlKey: true }), 'f', mockTDM, false);
+    expect(cb).toHaveBeenCalledWith(1, 1);
+    handler.handleKey(new KeyboardEvent('keydown', { key: 'b', ctrlKey: true }), 'b', mockTDM, false);
+    expect(cb).toHaveBeenCalledWith(-1, 1);
+  });
+
+  it('3G 选中第 3 个任务', () => {
+    const tasks = makeTasks(7);
+    tasks[0].selected = true; tasks[0].status = TaskState.SELECTED;
+    const tdm = createMockTDM(tasks);
+    const h = new CommandModeHandler();
+    h.handleKey(makeEvent('3'), '3', tdm, false);
+    h.handleKey(makeEvent('G'), 'G', tdm, false);
+    expect(tdm._list().selected?.id).toBe(3);
+  });
+
+  it('2gg 选中第 2 个任务', () => {
+    const tasks = makeTasks(5);
+    tasks[0].selected = true; tasks[0].status = TaskState.SELECTED;
+    const tdm = createMockTDM(tasks);
+    const h = new CommandModeHandler();
+    h.handleKey(makeEvent('2'), '2', tdm, false);
+    h.handleKey(makeEvent('g'), 'g', tdm, false);
+    h.handleKey(makeEvent('g'), 'g', tdm, false);
+    expect(tdm._list().selected?.id).toBe(2);
+  });
+
+  it('* / # 调用词搜索（下/上一个匹配）', () => {
+    handler.handleKey(makeEvent('*'), '*', mockTDM, false);
+    expect(mockTDM.searchWordUnderCursor).toHaveBeenCalledWith(1);
+    handler.handleKey(makeEvent('#'), '#', mockTDM, false);
+    expect(mockTDM.searchWordUnderCursor).toHaveBeenCalledWith(-1);
+  });
+});
+
+describe('CommandModeHandler — 日历视图按键', () => {
+  it('日历激活时 j/k 选任务、Enter 打开、Esc 退出、[ ] 翻页', () => {
+    const tasks = makeTasks(2);
+    const tdm: any = {
+      getState: vi.fn(() => ({
+        editorMode: 0,
+        selectedTaskId: 1,
+        lastlineContent: '',
+        isHelpVisible: false,
+        calendarView: { visible: true, granularity: 'week', anchor: '' },
+        tasks,
+      })),
+      moveCalendarSelection: vi.fn(),
+      cycleCalendarGranularity: vi.fn(),
+      shiftCalendarPage: vi.fn(),
+      closeCalendarView: vi.fn(),
+      selectCalendarTask: vi.fn(),
+    };
+    const h = new CommandModeHandler();
+    h.handleKey(makeEvent('j'), 'j', tdm, false);
+    expect(tdm.moveCalendarSelection).toHaveBeenCalledWith(1);
+    h.handleKey(makeEvent('k'), 'k', tdm, false);
+    expect(tdm.moveCalendarSelection).toHaveBeenCalledWith(-1);
+    h.handleKey(makeEvent('H'), 'H', tdm, false);
+    expect(tdm.cycleCalendarGranularity).toHaveBeenCalledWith(-1);
+    h.handleKey(makeEvent(']'), ']', tdm, false);
+    expect(tdm.shiftCalendarPage).toHaveBeenCalledWith(1);
+    h.handleKey(makeEvent('Enter'), 'Enter', tdm, false);
+    expect(tdm.selectCalendarTask).toHaveBeenCalled();
+    h.handleKey(makeEvent('Escape'), 'Escape', tdm, false);
+    expect(tdm.closeCalendarView).toHaveBeenCalled();
   });
 });

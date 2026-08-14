@@ -6,7 +6,7 @@
         {{ getModeText(editorMode) }}
       </span>
       <span class="file-info">
-        vido.todo [+]
+        vido.todo<span v-if="dirty" class="modified-mark"> [+]</span>
       </span>
     </div>
     <div class="status-center">
@@ -22,6 +22,9 @@
       </span>
       <span v-else-if="editorMode === EditorMode.CONTENT_NAVIGATION" class="help-text">
         {{ t('mode.contentNav') }}
+      </span>
+      <span v-else-if="calendarVisible" class="help-text">
+        {{ t('mode.calendar') }}
       </span>
       <span v-else-if="selectedTask?.configState" class="help-text">
         {{ configModeText }}
@@ -44,7 +47,7 @@ import { useTaskState } from '../composables/use-task-state';
 import { t } from '../i18n';
 
 // 使用新的统一状态管理架构
-const { editorMode, lastlineContent, selectedTask, tasks, filteredTasks, cursorPosition, flashMessage } = useTaskState();
+const { editorMode, lastlineContent, selectedTask, tasks, filteredTasks, cursorPosition, flashMessage, dirty, calendarVisible } = useTaskState();
 
 // 右下角统计：可见/全部任务数
 const taskCounter = computed(() => {
@@ -234,6 +237,12 @@ const getModeClass = (mode: EditorMode) => {
 .file-info {
   color: var(--text-dim);
   white-space: nowrap;
+}
+
+/* vim 语义：未保存修改时 [*] 亮绿，保存后消失 */
+.modified-mark {
+  color: var(--accent-bright);
+  font-weight: 700;
 }
 
 .help-text {

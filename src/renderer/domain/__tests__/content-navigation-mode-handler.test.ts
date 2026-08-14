@@ -215,4 +215,16 @@ describe('ContentNavigationModeHandler', () => {
       expect(mockTDM.transition).toHaveBeenCalledWith('Escape');
     });
   });
+
+  describe('Enter — vim normal 语义：下移一行，不退出导航', () => {
+    it('calls moveCursorDown', () => {
+      handler.handleKey(makeEvent('Enter'), 'Enter', mockTDM, false);
+      expect(mockTDM.moveCursorDown).toHaveBeenCalled();
+    });
+
+    it('does not transition out of navigation', () => {
+      handler.handleKey(makeEvent('Enter'), 'Enter', mockTDM, false);
+      expect(mockTDM.transition).not.toHaveBeenCalled();
+    });
+  });
 });

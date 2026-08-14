@@ -1107,7 +1107,6 @@ describe('Store — 日期视图（g c / H L / [ ]）', () => {
     return store;
   }
   const cv = (s: Store) => s.state.calendarView;
-
   it('openCalendarView：默认周粒度 + 今天锚点', () => {
     const s = makeStore();
     s.openCalendarView();
@@ -1155,5 +1154,219 @@ describe('Store — 日期视图（g c / H L / [ ]）', () => {
     s.openCalendarView();
     s.closeCalendarView();
     expect(cv(s).visible).toBe(false);
+  });
+});
+
+describe('Store — selectedTaskId 与选中任务一致（create/delete/paste/sort 回归）', () => {
+  function makeMultiStore(): Store {
+    const store = new Store();
+    const mk = (id: number, title: string) => {
+      const t = new Task(id);
+      t.title = title;
+      t.selected = false;
+      t.status = TaskState.VIEWING;
+      return t;
+    };
+    store.manager = new TaskListManager(new TaskList([mk(1, 'A'), mk(2, 'B'), mk(3, 'C')]), 4);
+    store.manager.selectTask(1);
+    store.syncSelection();
+    return store;
+  }
+
+  it('createNewTask 后 getState().selectedTaskId 指向新任务', () => {
+    const s = makeMultiStore();
+    const t = s.createNewTask('New');
+    expect(s.state.selectedTaskId).toBe(t.id);
+    expect(s.getState().selectedTaskId).toBe(t.id);
+  });
+
+  it('deleteSelectedTask 后 selectedTaskId 指向后继任务（不再指向已删 id）', () => {
+    const s = makeMultiStore();
+    s.deleteSelectedTask(); // 删 A → 选中 B
+    expect(s.getState().selectedTaskId).toBe(2);
+    expect(s.manager.list.items.some((t) => t.id === 1)).toBe(false);
+  });
+
+  it('sortTasks 后 selectedTaskId 跟随选中任务的新位置', () => {
+    const s = makeMultiStore();
+    s.sortTasks('title');
+    const selected = s.manager.list.selected!;
+    expect(s.getState().selectedTaskId).toBe(selected.id);
+  });
+});
+
+describe('Store — 日历视图任务选择（j/k/Enter + 翻页校正）', () => {
+  function makeCalStore(): Store {
+    const store = new Store();
+    const mk = (id: number, title: string, schedule?: any) => {
+      const t = new Task(id);
+      t.title = title;
+      t.schedule = schedule;
+      t.selected = false;
+      t.status = TaskState.VIEWING;
+      return t;
+    };
+    const s1 = createSpecificDateTimeSchedule('2026-05-08 10:00:00'); // 周五
+    const s2 = createSpecificDateTimeSchedule('2026-05-09 10:00:00'); // 周六
+    const tasks = [mk(1, 'A', s1), mk(2, 'B', s2), mk(3, 'C')];
+    tasks[0].selected = true;
+    tasks[0].status = TaskState.SELECTED;
+    store.manager = new TaskListManager(new TaskList(tasks), 4);
+    return store;
+  }
+  const cv = (s: Store) => s.state.calendarView;
+
+  it('getState 包含 calendarView（键盘路由依赖此字段）', () => {
+    const s = makeCalStore();
+    s.openCalendarView();
+    expect((s.getState() as any).calendarView?.visible).toBe(true);
+  });
+
+  it('open 预选当前任务在范围内的首次出现', () => {
+    const s = makeCalStore();
+    s.openCalendarView();
+    expect(cv(s).anchor).toBe('2026-05-08'); // 选中任务 A 的日程日期
+    expect(cv(s).selectedTaskId).toBe(1);
+    expect(cv(s).selectedDate).toBe('2026-05-08');
+  });
+
+  it('j/k 在视图条目间移动（日期+任务对，所见即所选）', () => {
+    const s = makeCalStore();
+    s.openCalendarView();
+    expect(cv(s).selectedTaskId).toBe(1);
+    s.moveCalendarSelection(1); // A → B
+    expect(cv(s).selectedTaskId).toBe(2);
+    expect(cv(s).selectedDate).toBe('2026-05-09');
+    s.moveCalendarSelection(1); // B → 回卷 A
+    expect(cv(s).selectedTaskId).toBe(1);
+    s.moveCalendarSelection(-1); // A → B
+    expect(cv(s).selectedTaskId).toBe(2);
+  });
+
+  it('Enter（selectCalendarTask）退出视图并选中该任务', () => {
+    const s = makeCalStore();
+    s.openCalendarView();
+    s.moveCalendarSelection(1); // 选中 B
+    s.selectCalendarTask();
+    expect(cv(s).visible).toBe(false);
+    expect(s.manager.list.selected?.id).toBe(2);
+  });
+
+  it('翻页后选中项校正：同任务跟随，不可见则清空', () => {
+    const s = makeCalStore();
+    s.openCalendarView(); // week: 05-03 ~ 05-09
+    s.moveCalendarSelection(1); // 选中 B@05-09
+    s.shiftCalendarPage(1); // 05-10 ~ 05-16：A/B 均不可见
+    expect(cv(s).selectedTaskId).toBeUndefined();
+  });
+
+  it('切粒度后选中项校正：同任务跟随到新粒度内的首次出现', () => {
+    const s = makeCalStore();
+    s.openCalendarView(); // week
+    s.moveCalendarSelection(1); // B
+    s.cycleCalendarGranularity(-1); // week → day（锚点仍 05-08，只有 A）
+    expect(cv(s).selectedTaskId).toBe(1); // B 不在 day 粒度内 → 落范围内首项
+  });
+
+  it('视图内无任务时 j/k 清空选中项且不崩溃', () => {
+    const s = makeCalStore();
+    s.openCalendarView();
+    for (let i = 0; i < 10; i++) s.shiftCalendarPage(1); // 翻到无任务页
+    s.moveCalendarSelection(1);
+    expect(cv(s).selectedTaskId).toBeUndefined();
+  });
+});
+
+describe('Store — dirty 状态指示（vido.todo [+]）', () => {
+  it('数据变更置 dirty，保存成功后清除', async () => {
+    const store = makeStore();
+    const saveSpy = vi.spyOn(store.manager, 'save').mockResolvedValue(undefined);
+    expect(store.state.dirty).toBe(false);
+    store.createNewTask('X');
+    expect(store.state.dirty).toBe(true);
+    await store.saveTasks();
+    expect(store.state.dirty).toBe(false);
+    saveSpy.mockRestore();
+  });
+
+  it('undo/redo 置 dirty；无历史时 undo 不置 dirty', () => {
+    const store = makeStore();
+    expect(store.state.dirty).toBe(false);
+    store.undo();
+    expect(store.state.dirty).toBe(false);
+    store.toggleTaskCompletion();
+    store.undo();
+    expect(store.state.dirty).toBe(true);
+  });
+
+  it('无实际变更的写操作不置 dirty（幂等缩进）', () => {
+    const store = makeStore();
+    const t = store.manager.list.selected!;
+    t.indent = 1;
+    store.indentSelectedTask(); // 已是 1，幂等 no-op
+    expect(store.state.dirty).toBe(false);
+  });
+});
+
+describe('Store — 标签删除高亮清理（tagDeleteIndex）', () => {
+  function makeMultiStore(): Store {
+    const store = new Store();
+    const mk = (id: number) => {
+      const t = new Task(id);
+      t.selected = false;
+      t.status = TaskState.VIEWING;
+      return t;
+    };
+    store.manager = new TaskListManager(new TaskList([mk(1), mk(2)]), 3);
+    store.manager.selectTask(1);
+    return store;
+  }
+
+  it('j/k 移动任务时清理残留高亮序号', () => {
+    const s = makeMultiStore();
+    s.setTagDeleteIndex(1);
+    s.selectNext();
+    expect(s.state.tagDeleteIndex).toBe(0);
+  });
+
+  it('关闭配置面板时清理残留高亮序号', () => {
+    const s = makeMultiStore();
+    s.setConfigState(1, 'tags-select');
+    s.setTagDeleteIndex(1);
+    s.setConfigState(1, undefined);
+    expect(s.state.tagDeleteIndex).toBe(0);
+  });
+});
+
+describe('Store — vim * / # 词搜索', () => {
+  function makeSearchStore(): Store {
+    const store = new Store();
+    const mk = (id: number, title: string) => {
+      const t = new Task(id);
+      t.title = title;
+      t.selected = false;
+      t.status = TaskState.VIEWING;
+      return t;
+    };
+    const tasks = [mk(1, 'Alpha'), mk(2, 'Beta'), mk(3, 'Alpha'), mk(4, 'Gamma')];
+    tasks[0].selected = true;
+    tasks[0].status = TaskState.SELECTED;
+    store.manager = new TaskListManager(new TaskList(tasks), 5);
+    return store;
+  }
+
+  it('* 以选中任务标题为词跳到下一个匹配，并写入搜索过滤', () => {
+    const s = makeSearchStore();
+    s.searchWordUnderCursor(1);
+    expect(s.state.lastlineContent).toBe('/Alpha');
+    expect(s.manager.list.selected?.id).toBe(3);
+    s.searchWordUnderCursor(1); // 回卷
+    expect(s.manager.list.selected?.id).toBe(1);
+  });
+
+  it('# 反向跳到上一个匹配', () => {
+    const s = makeSearchStore();
+    s.searchWordUnderCursor(-1);
+    expect(s.manager.list.selected?.id).toBe(3);
   });
 });

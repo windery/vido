@@ -6,9 +6,11 @@
  *   select 态（schedule-select / priority-select / tags-select）→ 由本处理器独占
  *   edit 态（schedule-edit / tags-edit）→ 由配置输入框独占（其 keydown 已 .stop 拦截 Enter/Escape 并转回同类型 select 态）
  *
- * 面板内键位（vim operator 前缀模型）：
- *   c 是前缀操作符 —— cc 清除当前项，cs/cp/ct 直达 日程/优先级/标签，600ms 超时或无匹配则取消
- *   d 是删除前缀（仅 tags-select）—— d + 序号 + Enter 删除对应编号标签，输入时高亮目标，Esc/非数字键取消
+ * 面板内键位（c = 配置导航，d = 删除——两个命名空间严格分离，杜绝 cc 开/清歧义）：
+ *   c 是导航前缀 —— cc 收起面板（与 normal 模式 cc 组成开关）、cs/cp/ct 直达 日程/优先级/标签、cd/cw/cm/cy 清除对应 repeat，600ms 超时或无匹配则取消
+ *   d 是删除前缀 —— dd 清除当前项（日程/优先级/全部标签，600ms 内连按，防误触）；
+ *     仅 tags-select 另有 d + 序号 + Enter 删除对应编号标签（输入时高亮目标，Esc/非数字键取消）
+ *   e 是重复前缀 —— ed/ew/em/ey 设置每天/每周/每月/每年重复
  *   j/k 放行命令层做任务级上下移动（配置展开也不改变 j/k 语义）；H/L 放行命令层横向切换 section；其余未知键一律消费，防止落到命令层触发 paste/delete/undo 等全局副作用
  */
 
@@ -35,10 +37,16 @@ export class ConfigKeyHandler {
   /** repeat 设置前缀（ed/ew/em/ey）：e 后跟 d/w/m/y */
   private ePending = false;
   private eTimeout: ReturnType<typeof setTimeout> | null = null;
-  /** 标签删除待确认态：d 开启 → 数字累加 1 基序号 → Enter 删除 / Esc 取消 */
+  /** 标签删除待确认态：d 开启 → 数字累加 1 基序号 → Enter 删除 / Esc 取消；600ms 内再按 d（dd）清空全部标签 */
   private dPending = false;
   private dBuffer = '';
   private dTaskId = 0;
+  private dPendingAt = 0;
+  /** dd 清除前缀（schedule/priority select）：d 后 600ms 内再按 d 清除当前项 */
+  private dClearPending = false;
+  private dClearSection = '';
+  private dClearTaskId = 0;
+  private dClearTimeout: ReturnType<typeof setTimeout> | null = null;
 
   handleKey(
     event: KeyboardEvent,
@@ -57,6 +65,10 @@ export class ConfigKeyHandler {
     // 残留的删除待确认态（离开 tags-select 或切换任务）清理，避免序号误累加
     if (this.dPending && (cs !== 'tags-select' || this.dTaskId !== task.id)) {
       this.cancelTagDelete(taskDataManager);
+    }
+    // 残留的 dd 清除前缀（切换 section 或任务）清理，避免误清新项的配置
+    if (this.dClearPending && (this.dClearSection !== cs || this.dClearTaskId !== task.id)) {
+      this.cancelDClear();
     }
 
     // d 待确认态（仅 tags-select 同一任务生效）：
@@ -78,15 +90,38 @@ export class ConfigKeyHandler {
         this.cancelTagDelete(taskDataManager);
         return true;
       }
+      // dd（600ms 内连按）：清空全部标签——与 dd 清除语义统一；慢速 d…d 不触发（防误触）
+      if (key === 'd' && this.dBuffer === '' && Date.now() - this.dPendingAt < 600) {
+        event.preventDefault();
+        this.cancelTagDelete(taskDataManager);
+        taskDataManager.updateTaskProperty(task.id, 'tags', []);
+        return true;
+      }
       this.cancelTagDelete(taskDataManager);
     }
 
-    // c 前缀序列：cs/cp/ct 跳转、cc 清除整个、cd/cw/cm/cy 清除对应 repeat
+    // dd 清除前缀（schedule / priority select）：d 后 600ms 内再按 d 清除当前配置项
+    if (this.dClearPending) {
+      this.cancelDClear();
+      if (key === 'd') {
+        event.preventDefault();
+        taskDataManager.updateTaskProperty(
+          task.id,
+          cs === 'schedule-select' ? 'schedule' : 'priority',
+          undefined
+        );
+        return true;
+      }
+      // 非 d 键：取消前缀后按正常流程继续（如 1/2/3 快捷选择仍生效）
+    }
+
+    // c 前缀序列：cc 收起面板（开关）、cs/cp/ct 跳转、cd/cw/cm/cy 清除对应 repeat
     if (this.cPending) {
       this.cancelCPending();
       if (key === 'c') {
+        // cc 与 normal 模式的 cc 组成对称开关：收起面板，绝不清除（清除归 d 前缀）
         event.preventDefault();
-        this.clearCurrent(taskDataManager, task.id, cs);
+        taskDataManager.setConfigState(task.id, undefined);
         return true;
       }
       if (REPEAT_MAP[key]) {
@@ -118,13 +153,24 @@ export class ConfigKeyHandler {
 
     switch (key) {
       case 'd':
-        // 仅 tags-select 开启删除待确认；其余 section 的 d 一律消费（不落到命令层触发全局删除）
         if (cs === 'tags-select') {
+          // d 开启删除待确认：d+序号+Enter 删单个标签；600ms 内再按 d（dd）清空全部标签
           event.preventDefault();
           this.dPending = true;
           this.dTaskId = task.id;
           this.dBuffer = '';
+          this.dPendingAt = Date.now();
           this.syncTagDeleteIndex(taskDataManager, task);
+        } else {
+          // schedule/priority：d 是清除前缀（dd 清除当前项），不再落到命令层触发全局删除
+          event.preventDefault();
+          this.dClearPending = true;
+          this.dClearSection = cs;
+          this.dClearTaskId = task.id;
+          this.dClearTimeout = setTimeout(() => {
+            this.dClearPending = false;
+            this.dClearTimeout = null;
+          }, 600);
         }
         return true;
 
@@ -149,6 +195,7 @@ export class ConfigKeyHandler {
       case 'Escape':
         event.preventDefault();
         this.cancelTagDelete(taskDataManager);
+        this.cancelDClear();
         taskDataManager.setConfigState(task.id, undefined);
         return true;
 
@@ -183,10 +230,14 @@ export class ConfigKeyHandler {
     }
   }
 
-  private clearCurrent(tdm: Store, taskId: number, cs: string): void {
-    if (cs === 'schedule-select') tdm.updateTaskProperty(taskId, 'schedule', undefined);
-    else if (cs === 'priority-select') tdm.updateTaskProperty(taskId, 'priority', undefined);
-    else if (cs === 'tags-select') tdm.updateTaskProperty(taskId, 'tags', []);
+  private cancelDClear(): void {
+    this.dClearPending = false;
+    this.dClearSection = '';
+    this.dClearTaskId = 0;
+    if (this.dClearTimeout) {
+      clearTimeout(this.dClearTimeout);
+      this.dClearTimeout = null;
+    }
   }
 
   private cancelCPending(): void {
@@ -198,8 +249,7 @@ export class ConfigKeyHandler {
   }
 
   private handleSchedule(e: KeyboardEvent, key: string, tdm: Store, taskId: number): void {
-    const REPEAT_MAP: Record<string, string> = { d: 'daily', w: 'weekly', m: 'monthly', y: 'yearly' };
-const map: Record<string, string> = { '1': 'today', '2': 'tomorrow', '3': 'next_week' };
+    const map: Record<string, string> = { '1': 'today', '2': 'tomorrow', '3': 'next_week' };
     if (map[key]) {
       e.preventDefault();
       const s = parseScheduleFromString(map[key]);
@@ -237,6 +287,7 @@ const map: Record<string, string> = { '1': 'today', '2': 'tomorrow', '3': 'next_
     this.dPending = false;
     this.dBuffer = '';
     this.dTaskId = 0;
+    this.dPendingAt = 0;
     tdm.setTagDeleteIndex(0);
   }
 }

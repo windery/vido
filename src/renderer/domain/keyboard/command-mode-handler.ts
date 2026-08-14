@@ -12,11 +12,17 @@ export class CommandModeHandler implements ModeHandler {
   private keySequence = '';
   private keySequenceTimeout: ReturnType<typeof setTimeout> | null = null;
   private countPrefix = '';
-  private scrollCallback: (() => void) | null = null;
+  private scrollCallback: ((mode?: string) => void) | null = null;
+  private pageScrollCallback: ((dir: number, factor: number) => void) | null = null;
 
-  /** 注入滚动回调，替代 window 全局访问 */
-  setScrollCallback(cb: () => void): void {
+  /** 注入滚动回调（mode: nearest/center/top/bottom），替代 window 全局访问 */
+  setScrollCallback(cb: (mode?: string) => void): void {
     this.scrollCallback = cb;
+  }
+
+  /** 注入翻页回调（dir: 1 下 / -1 上，factor: 0.5 半页 / 1 整页） */
+  setPageScrollCallback(cb: (dir: number, factor: number) => void): void {
+    this.pageScrollCallback = cb;
   }
 
   handleKey(
@@ -55,6 +61,16 @@ export class CommandModeHandler implements ModeHandler {
     if (event.ctrlKey && key.toLowerCase() === 'r') {
       event.preventDefault();
       taskDataManager.redo();
+      this.resetAll();
+      return true;
+    }
+
+    // Ctrl-D / Ctrl-U 半页、Ctrl-F / Ctrl-B 整页（vim 惯用滚动）
+    if (event.ctrlKey && ['d', 'u', 'f', 'b'].includes(key.toLowerCase())) {
+      event.preventDefault();
+      const dir = key.toLowerCase() === 'd' || key.toLowerCase() === 'f' ? 1 : -1;
+      const factor = key.toLowerCase() === 'd' || key.toLowerCase() === 'u' ? 0.5 : 1;
+      this.pageScrollCallback?.(dir, factor);
       this.resetAll();
       return true;
     }
@@ -185,7 +201,7 @@ export class CommandModeHandler implements ModeHandler {
 
       case 'G':
         event.preventDefault();
-        taskDataManager.goToLast();
+        this.gotoTask(taskDataManager, currentState, this.countPrefix ? parseInt(this.countPrefix, 10) : undefined, 'last');
         this.scrollToSelectedTask();
         this.resetAll();
         return true;
@@ -223,13 +239,35 @@ export class CommandModeHandler implements ModeHandler {
         this.keySequence += key;
         if (this.keySequence === 'gg') {
           event.preventDefault();
-          taskDataManager.goToFirst();
+          this.gotoTask(taskDataManager, currentState, this.countPrefix ? parseInt(this.countPrefix, 10) : undefined, 'first');
           this.scrollToSelectedTask();
           this.resetAll();
           return true;
         }
         this.setKeySequenceTimeout();
         event.preventDefault();
+        return true;
+
+      case 'z':
+        // zz 居中（zt/zb 的第二键走 default 分支拼接）
+        this.keySequence += key;
+        if (this.keySequence === 'zz') {
+          event.preventDefault();
+          this.scrollToSelectedTask('center');
+          this.resetAll();
+          return true;
+        }
+        this.setKeySequenceTimeout();
+        event.preventDefault();
+        return true;
+
+      case '*':
+      case '#':
+        // vim 语义：以选中任务标题为词，跳到下一个/上一个匹配
+        event.preventDefault();
+        taskDataManager.searchWordUnderCursor(key === '*' ? 1 : -1);
+        this.scrollToSelectedTask();
+        this.resetAll();
         return true;
 
       case 'd':
@@ -307,6 +345,13 @@ export class CommandModeHandler implements ModeHandler {
         return true;
 
       default:
+        // zt 置顶 / zb 置底：z 前缀 + 第二键（t/b 无独立绑定，走 default 拼接）
+        if (this.keySequence === 'z' && (key === 't' || key === 'b')) {
+          event.preventDefault();
+          this.scrollToSelectedTask(key === 't' ? 'top' : 'bottom');
+          this.resetAll();
+          return true;
+        }
         if (this.keySequence.length > 0) {
           this.resetSequenceState();
           return true;
@@ -319,6 +364,18 @@ export class CommandModeHandler implements ModeHandler {
     for (let i = 0; i < count; i++) {
       action();
     }
+  }
+
+  /** {n}G / {n}gg：跳到第 n 个任务；无 count 时 G→末、gg→首（vim 语义） */
+  private gotoTask(tdm: Store, currentState: any, n: number | undefined, fallback: 'first' | 'last'): void {
+    const items = (currentState as any).tasks as any[] | undefined;
+    if (n !== undefined && items && items.length > 0) {
+      const idx = Math.max(0, Math.min(n - 1, items.length - 1));
+      tdm.selectTask(items[idx].id);
+      return;
+    }
+    if (fallback === 'last') tdm.goToLast();
+    else tdm.goToFirst();
   }
 
   private navigateConfig(tdm: Store, taskId: number, current: string, dir: 'next' | 'prev'): void {
@@ -373,6 +430,14 @@ export class CommandModeHandler implements ModeHandler {
         event.preventDefault();
         taskDataManager.shiftCalendarPage(1);
         return true;
+      case 'j':
+        event.preventDefault();
+        taskDataManager.moveCalendarSelection(1);
+        return true;
+      case 'k':
+        event.preventDefault();
+        taskDataManager.moveCalendarSelection(-1);
+        return true;
       case 'Escape':
         event.preventDefault();
         taskDataManager.closeCalendarView();
@@ -380,7 +445,8 @@ export class CommandModeHandler implements ModeHandler {
         return true;
       case 'Enter':
         event.preventDefault();
-        taskDataManager.closeCalendarView();
+        taskDataManager.selectCalendarTask();
+        this.scrollToSelectedTask();
         return true;
       default:
         return true; // 视图内其余键一律消费，不落到命令层
@@ -391,11 +457,12 @@ export class CommandModeHandler implements ModeHandler {
     this.resetSequenceState();
     this.countPrefix = '';
     this.scrollCallback = null;
+    this.pageScrollCallback = null;
   }
 
-  private scrollToSelectedTask(): void {
+  private scrollToSelectedTask(mode?: string): void {
     if (this.scrollCallback) {
-      setTimeout(() => this.scrollCallback?.(), 10);
+      setTimeout(() => this.scrollCallback?.(mode), 10);
     }
   }
 

@@ -18,5 +18,7 @@ export function useTaskStateGetters() {
     isHelpVisible: computed(() => stateRef.value.isHelpVisible || false),
     flashMessage: computed(() => stateRef.value.flashMessage || null),
     tagDeleteIndex: computed(() => stateRef.value.tagDeleteIndex || 0),
+    dirty: computed(() => !!stateRef.value.dirty),
+    calendarVisible: computed(() => !!stateRef.value.calendarView?.visible),
   };
 }

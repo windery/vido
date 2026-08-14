@@ -340,7 +340,6 @@ export interface ScheduleDisplay {
   status: ScheduleStatus;
 }
 
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAY_MS = 86400000;
 
 function pad2(n: number): string {
@@ -368,7 +367,6 @@ export function getScheduleDisplay(
   now: Date = new Date()
 ): ScheduleDisplay {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayStr = formatDate(today);
 
   // 周类型：每周重复，保持原文案
   if (schedule.type === ScheduleType.WEEKLY) {

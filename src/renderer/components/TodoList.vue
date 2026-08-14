@@ -11,7 +11,8 @@
                     :style="{ top: boxStyle.top + 'px', height: boxStyle.height + 'px', left: boxStyle.left + 'px', width: boxStyle.width + 'px' }"></div>
                 <!-- 日期视图（g c 进入） -->
                 <CalendarView v-if="calendarVisible" :tasks="filteredTasks"
-                    :granularity="calendarGranularity" :anchor="calendarAnchor" />
+                    :granularity="calendarGranularity" :anchor="calendarAnchor"
+                    :selected-date="calendarSelectedDate" :selected-task-id="calendarSelectedTaskId" />
 
                 <!-- Empty Buffer -->
                 <EmptyBuffer v-else-if="filteredTasks.length === 0" :is-searching="isSearching" />
@@ -63,6 +64,8 @@ const completedTasksCount = computed(() => {
 const calendarVisible = computed(() => store.state.calendarView.visible);
 const calendarGranularity = computed(() => store.state.calendarView.granularity);
 const calendarAnchor = computed(() => store.state.calendarView.anchor);
+const calendarSelectedDate = computed(() => store.state.calendarView.selectedDate);
+const calendarSelectedTaskId = computed(() => store.state.calendarView.selectedTaskId);
 
 // ============ 当前定位组框（主任务 + 其子任务） ============
 // 组 = 选中任务所在的主任务及其连续子任务（indent>0 直到下一个顶级）。
@@ -234,22 +237,47 @@ const updateContentWithCursorLocal = (textarea: HTMLTextAreaElement, task: Task)
     textarea.setSelectionRange(offset + col, offset + col);
 };
 
-const scrollToTask = (taskId: number) => {
+const scrollToTask = (taskId: number, mode?: string) => {
     nextTick(() => {
         const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
         if (taskElement) {
-            // 内容区零动画瞬时展开/收起；用 block:'nearest' 只做最小滚动（行不可见时才滚），
-            // 且在同一帧完成，避免此前 setTimeout + block:'center' 造成的二次滚动闪跳。
-            taskElement.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+            // 内容区零动画瞬时展开/收起；用 block 模式控制定位：
+            // nearest 只做最小滚动（行不可见时才滚）、center/top/bottom 供 zz/zt/zb
+            const block = mode === 'center' ? 'center' : mode === 'top' ? 'start' : mode === 'bottom' ? 'end' : 'nearest';
+            taskElement.scrollIntoView({ behavior: 'auto', block });
         }
     });
 };
 
+/** Ctrl-D/U 半页、Ctrl-F/B 整页：滚动后选中滚入视口顶部的任务（vim Ctrl-D 语义） */
+const pageScroll = (dir: number, factor: number) => {
+    const container = contentRef.value;
+    if (!container) return;
+    const rows = Array.from(container.querySelectorAll('.task-line')) as HTMLElement[];
+    if (rows.length === 0) return;
+    const vh = container.clientHeight;
+    container.scrollTop = Math.max(
+        0,
+        Math.min(container.scrollHeight - vh, container.scrollTop + dir * vh * factor)
+    );
+    nextTick(() => {
+        const containerRect = container.getBoundingClientRect();
+        const target = rows.find((r) => {
+            const rect = r.getBoundingClientRect();
+            return rect.top >= containerRect.top + 4 && rect.bottom <= containerRect.bottom - 4;
+        });
+        const row = target ?? rows[dir > 0 ? rows.length - 1 : 0];
+        const idAttr = row.closest('[data-task-id]')?.getAttribute('data-task-id');
+        const id = idAttr ? Number(idAttr) : NaN;
+        if (Number.isFinite(id)) store.selectTask(id);
+    });
+};
+
 // 将滚动函数添加到全局，以便键盘导航也能使用
-(window as any).scrollToSelectedTask = () => {
+(window as any).scrollToSelectedTask = (mode?: string) => {
     const selected = selectedTask.value;
     if (selected?.id) {
-        scrollToTask(selected.id);
+        scrollToTask(selected.id, mode);
     }
 };
 
@@ -326,8 +354,11 @@ onMounted(() => {
 
     // 注入滚动回调到键盘管理器，HMR 重渲染时重新注册
     const km = getKeyboardManager();
-    km.setScrollCallback(() => {
-        (window as any).scrollToSelectedTask?.();
+    km.setScrollCallback((mode) => {
+        (window as any).scrollToSelectedTask?.(mode);
+    });
+    km.setPageScrollCallback((dir, factor) => {
+        pageScroll(dir, factor);
     });
 
     // 监听保存光标位置事件
