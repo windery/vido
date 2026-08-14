@@ -1,69 +1,206 @@
 # Vido
 
-A todolist App for vimers. 全 vim 键位操作，终端极客审美。
+> **给程序员的 Todo** —— 全 vim 键位操作，单色 CRT 磷光绿 × 等宽字体 × 块状光标的终端极客审美。
+> 手不离键盘，像编辑代码一样管理任务。
 
-## Develop
+```
+  1 !!! › 买牛奶                    #errand ⚑
+  2 !!  › 写周报             ◷ 2026-08-14
+  3 !   › 读《程序员修炼之道》  ▰▰▰▱ 3/4
+-- NORMAL -- (j k move · o new · i content · ? keys)
+```
+
+Vido 是一个桌面 Todo 应用（macOS / Windows / Linux），交互层完全遵循 vim 范式：模态编辑、键序列（`dd`、`yy`、`gg`）、数字前缀、零鼠标依赖。
+
+## 特性
+
+- **全键盘操作**：vim 模态（NORMAL / INSERT / VISUAL 块模式），所有功能都有键位，鼠标是装饰品
+- **任务级 vim 编辑**：任务列表即 buffer —— `j/k` 移动、`dd` 删除、`yy`/`p` 复制粘贴任务、`u`/`Ctrl-R` 撤销重做、`{n}G` 跳转、`zz` 居中
+- **内容区也是 vim**：任务内容支持完整的 vim 文本编辑（`dw`/`cw`/`y$`/`r`/`~`/`J`…）与 **Ctrl+V 可视块编辑**（矩形选区删除/复制）
+- **Markdown 内容**：内容以 Markdown 渲染（标题/代码块/列表/引用），编辑时回到纯文本
+- **日程系统**：快捷日程（今天/明天/下周）、自定义日期时间、每天/每周/每月/每年重复、过期提示
+- **日历视图**：`g c` 打开 —— 月/周/日三种粒度，`jkhl` 二维移动、数字直达日期、Enter 钻取当日任务
+- **优先级 / 旗标 / 标签 / 缩进**：ANSI 红黄绿 `!!!`/`!!`/`!` 标记、`⚑` 旗标、`#tag`、子任务缩进
+- **系统剪贴板无缝**：`p` 直接粘贴你从别处复制的内容；yank 的内容同步写回系统剪贴板
+- **本地优先**：数据落盘 JSON（自动保存），不上传、无账号、无云
+- **程序员审美**：磷光绿单色 + ANSI 色标 + ASCII `▰▱` 进度条 + 块光标，终端味拉满
+
+## 安装
+
+从 [GitHub Releases](https://github.com/windery/vido/releases) 下载对应平台的安装包（每个 `v*` 版本自动构建全平台）：
+
+| 平台 | 格式 |
+|---|---|
+| macOS（Intel / Apple Silicon / 通用） | dmg + zip |
+| Windows（x64 / arm64） | NSIS 安装包 + zip 免安装 |
+| Linux（x64 / arm64） | AppImage + deb |
+
+> **macOS 首次打开提示「无法验证开发者」**（下载包带隔离属性）：右键 Vido.app → 打开 → 再点「打开」；或 系统设置 → 隐私与安全性 → 仍要打开。若提示「已损坏」：终端执行 `xattr -cr /Applications/Vido.app`。
+
+> **国内网络**：开发构建时下载 Electron 慢，设置镜像 `export ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`。
+
+## 快速上手
+
+1. 启动 Vido → 按 `o` → 输入任务标题 → `Enter`
+2. `j` / `k` 上下选择任务，`Space` 标记完成，`f` 打旗标，`dd` 删除
+3. 选中任务按 `i` 进入内容编辑，像 vim 一样写 Markdown 笔记；`Esc` 返回
+4. 按 `cc` 打开配置面板给任务加日程 / 优先级 / 标签；`T` 切换明暗主题
+5. 卡住时随时按 `?` 看当前场景的完整键位表
+
+## 键位总览
+
+### 任务列表（NORMAL 模式）
+
+| 键 | 作用 |
+|---|---|
+| `j` / `k` | 下 / 上移动 |
+| `gg` / `G` | 第一个 / 最后一个任务 |
+| `{n}G` / `{n}gg` | 跳到第 n 个任务 |
+| `zz` / `zt` / `zb` | 滚动：选中项居中 / 顶部 / 底部 |
+| `Ctrl-D` / `Ctrl-U` | 下半屏 / 上半屏 |
+| `o` / `O` | 下方 / 上方新建任务 |
+| `Enter` | 编辑标题 |
+| `i` | 编辑内容（vim 文本模式） |
+| `Space` | 切换完成 |
+| `f` | 切换旗标 `⚑` |
+| `dd` | 删除任务 |
+| `yy` / `p` | 复制 / 粘贴任务 |
+| `u` / `Ctrl-R` | 撤销 / 重做 |
+| `Tab` / `Shift+Tab` | 缩进为子任务 / 取消缩进 |
+| `/` | 搜索（`n` / `N` 下一个 / 上一个） |
+| `*` / `#` | 以选中任务标题搜索 下一个 / 上一个 |
+| `g c` | 日历视图 |
+| `cc` | 配置面板（再按收起，开/清键位绝不复用） |
+| `cs` / `cp` / `ct` | 配置面板直达 日程 / 优先级 / 标签 |
+| `T` | 明暗主题 |
+| `?` | 帮助（按场景过滤；再按关闭） |
+
+### 内容编辑（vim 文本模式）
+
+| 键 | 作用 |
+|---|---|
+| `h` `j` `k` `l` | 光标移动 |
+| `w` / `b` / `e` | 词首 / 词首（回）/ 词尾 |
+| `0` / `$` | 行首 / 行尾 |
+| `gg` / `G` | 首行 / 末行 |
+| `i` / `a` / `A` / `I` | 插入：光标处 / 光标后 / 行尾 / 行首 |
+| `o` / `O` | 下方 / 上方新行 |
+| `x` / `X` | 删除光标处 / 前一个字符 |
+| `d` + motion | 删除：`dw db de d$ d0 dd dgg dG` |
+| `c` + motion | 修改（删除后进入插入）：`cw cb ce c$ cc` |
+| `y` + motion | 复制：`yw y$ yy` |
+| `p` / `P` | 粘贴（**优先系统剪贴板**，无则用 yank 缓冲） |
+| `Ctrl+V` | 可视块模式：移动键扩展矩形选区，`x`/`d` 删块、`y` 复制块、`c` 删块后插入、`Esc` 退出 |
+| `r{char}` | 替换光标处字符 |
+| `~` | 切换大小写 |
+| `J` | 合并下一行 |
+| `u` / `Ctrl-R` | 撤销 / 重做 |
+| `Esc` | 回到任务列表 |
+
+### 配置面板（`cc` 打开）
+
+| 键 | 作用 |
+|---|---|
+| `J` / `K` | 切换 日程 ↔ 优先级 ↔ 标签 section |
+| `cs` / `cp` / `ct` | 直达对应 section |
+| `j` / `k` / `0` / `$` | 导航高亮候选（`j/0` 第一项、`k/$` 最后一项），`Enter` 选中 |
+| 日程 `1` / `2` / `3` | 今天 / 明天 / 下周 |
+| 日程 `Enter` | 自定义输入：`2026-03-06`、`2026-03-06 14:30`、`202603061530`、`15:33`（Tab 补全） |
+| 优先级 `1` / `2` / `3` | `!!!` / `!!` / `!` |
+| 标签 `Enter` | 添加标签 |
+| 标签 `1-9` | 数字直达第 N 个标签（连按多位：`12` 直达第 12 个；不存在则取消高亮） |
+| `x` | 清除当前项（标签：删高亮标签 / 无高亮清空全部；日程/优先级：直接清除） |
+| `ed` / `ew` / `em` / `ey` | 重复：每天 / 每周 / 每月 / 每年 |
+| `cd` / `cw` / `cm` / `cy` | 清除对应重复 |
+| `Esc` | 退出导航 / 收起面板 |
+
+### 日历视图（`g c`，默认月视图）
+
+| 键 | 作用 |
+|---|---|
+| `h` / `l` | 左右 ±1 天 |
+| `j` / `k` | 上下 ±7 天（week 视图翻周） |
+| `1-31` | 数字直达当月某天（多位累加；无效则取消焦点） |
+| `Enter` | 网格：打开当日任务详情；详情：打开任务 |
+| `Esc` | 详情回网格 / 退出日历 |
+| `H` / `L` | 粒度：日 / 周 / 月 |
+| `[` / `]` | 上一页 / 下一页 |
+
+> 月网格只渲染当月实际天数（1 号对齐星期列，上/下月不占格）；翻页以焦点日为基准，同一天号移动、月末自动收敛。周视图展示整月、当前周之外置灰。
+
+### 命令与搜索（`:` 打开）
+
+| 命令 | 作用 |
+|---|---|
+| `:w` / `:wq` | 保存 / 保存并退出 |
+| `:q` | 退出 |
+| `:help` | 帮助 |
+| `:sort <title\|priority\|created\|updated\|completed>` | 排序 |
+| `:new [title]` | 新建任务 |
+| `:delete` | 删除当前任务 |
+| `:p <1\|2\|3\|clear>` | 设置 / 清除优先级 |
+| `:t <tag>` | 添加标签 |
+| `:schedule <…>` | 设置日程（today / tomorrow / 星期名 / `2026-03-06 14:30` / every monday…） |
+| `:time` | 查看当前日程 |
+| `:theme <dark\|light>` | 切换主题 |
+| `:clear` | 清除搜索 |
+| `:undo` / `:redo` | 撤销 / 重做 |
+| `↑` / `↓` | 命令历史；`Tab` 补全 |
+
+## 使用指南
+
+### 管理任务
+
+任务列表就是一个 vim buffer：`o` 在光标下方新建并直接输入标题（`Enter` 确认），`j/k` 上下移动，`Space` 完成（标题删除线 + 变暗），`f` 打旗标置顶关注度，`Tab` 把任务缩进成上一个任务的子任务。`dd`/`yy`/`p` 与 vim 一致地删除、复制、粘贴任务；`u` 撤销一切误操作。标题记不住时 `*` 一键以当前标题搜索。
+
+### 日程与重复
+
+选中任务按 `cc` → `cs`（或面板内 `J/K` 切换）打开日程 section：`1/2/3` 快捷今天/明天/下周；`Enter` 输入任意日期时间（纯数字格式，`2026-03-06`、`202603061530`、`15:33` 都行，Tab 自动补全）。`ed/ew/em/ey` 一键加每日/每周/每月/每年重复，`cd/cw/cm/cy` 对应清除。日程以 `◷` 显示在任务 meta 行，过期自动标红。
+
+### 日历视图怎么用
+
+`g c` 打开日历（默认月视图，锚点 = 选中任务的日程日期或今天）。`jkhl` 像移动光标一样在日期间上下左右移动，`1-31` 直接跳到某天，`Enter` 打开当天的任务列表、再 `Enter` 打开任务本体。`H/L` 在日/周/月粒度间切换，`[`/`]` 翻页。全程 `Esc` 逐层返回。
+
+### 内容与 Markdown
+
+任务内容是一段 Markdown：`# 标题`、`- 列表`、\`\`\`代码块\`\`\`、`>` 引用都会渲染。编辑时是纯文本 + vim 全套文本操作；`Ctrl+V` 进入块模式，可以用矩形选区批量删除/复制表格一样的文本块。
+
+### 复制粘贴
+
+`p`/`P` 优先粘贴**系统剪贴板**（你从浏览器/编辑器复制的任何内容直接可用，多行自动按行拆入）；`yy`/`yw`/块复制等 yank 操作会反向写入系统剪贴板，Vido 与系统之间双向互通。
+
+### 数据与保存
+
+- 数据 100% 本地：生产环境在 `~/.vido/`（`data/tasks.json` 任务数据、`data/prefs.json` 偏好），开发环境隔离在 `~/.vido-dev/`
+- 所有变更 **800ms 防抖自动保存**，状态行 `[+]` 表示有未保存变更；`:w` 立即落盘
+- 无需账号、无网络依赖、无遥测
+
+## 常见问题
+
+**macOS 提示「无法验证开发者」/「已损坏」？** 见上文「安装」：右键打开放行，或 `xattr -cr /Applications/Vido.app` 清除下载隔离属性。
+
+**能换主题吗？** `T` 或 `:theme dark|light` 即时切换，偏好持久保存。
+
+**键位太多记不住？** 任何场景按 `?` 只显示**当前场景**的键位表（列表 / 配置 / 内容编辑 / 日历 / 命令各一份）；状态行也常驻一行最小提示。直觉键（Esc 返回）不做提示。
+
+**任务数据能迁移吗？** 备份/迁移 `~/.vido/data/tasks.json` 即可，纯 JSON 可读可改。
+
+## 开发与构建
 
 ```bash
 pnpm install
 pnpm dev          # Vite + Electron，HMR
-pnpm test         # 全部测试
+pnpm test         # 全部测试（Vitest）
 pnpm typecheck    # vue-tsc
+pnpm lint
 ```
 
-## 打包（全平台 / 全架构）
+**发布**：推送 `v*` 标签（如 `v0.2.0`）触发 GitHub Actions，自动构建 macOS（x64/arm64/universal，dmg+zip）、Windows（x64/arm64，NSIS+zip）、Linux（x64/arm64，AppImage+deb）并发布到 Releases；也可在 Actions 页手动 `workflow_dispatch`。本地按需：`pnpm build:mac[:arm64|x64|universal]`、`pnpm build:win`、`pnpm build:linux`、`pnpm build:unpack`。
 
-支持矩阵：**macOS x64 / arm64 / universal**（dmg + zip）、**Windows x64 / arm64**（NSIS 安装包 + zip 免安装）、**Linux x64 / arm64**（AppImage + deb）。
+**签名**：默认出未签名包；macOS 打包后自动做 ad-hoc 签名（规避 Gatekeeper「已损坏」），配置正式 Developer ID 证书后自动跳过 ad-hoc。
 
-### 一键出全部平台（推荐）
+更详细的开发规范（架构分层、日志规范、自动化测试流程）见 [CLAUDE.md](CLAUDE.md)。
 
-推送 `v*` 标签（如 `v0.2.0`）触发 GitHub Actions，自动构建全部平台/架构并发布到 GitHub Release；也可在 Actions 页手动 `workflow_dispatch`。见 `.github/workflows/release.yml`。
+## License
 
-### 本地构建（按需）
-
-```bash
-pnpm build                  # 当前平台 + 当前架构（含 typecheck）
-pnpm build:mac              # macOS，当前架构（dmg + zip）
-pnpm build:mac:arm64        # macOS Apple Silicon
-pnpm build:mac:x64          # macOS Intel
-pnpm build:mac:universal    # macOS 双架构合一包（x64+arm64）
-pnpm build:win              # Windows x64 + arm64（安装包 + zip）
-pnpm build:linux            # Linux x64 + arm64（AppImage + deb）
-pnpm build:unpack           # 只出未打包目录（快速冒烟验证）
-```
-
-产物在 `release/<version>/`，命名 `Vido-<平台>-<架构>-<版本>.<ext>`。
-（Linux x64 遵循发行版惯例：AppImage 用 `x86_64`、deb 用 `amd64`；arm64 全部统一为 `arm64`。）
-
-**平台限制**（本地单机交叉构建的固有限制）：
-- macOS 上构建 Windows：需要 Wine（`brew install --cask wine-stable`）来写 exe 资源/图标；缺 Wine 会报错 → 直接走 CI 最省事。
-- macOS 上不能构建 Linux 目标（electron-builder 限制）→ 用 Linux 机器 / Docker / CI。
-
-**签名与分发**：
-- 默认出**未签名**包（本地与 CI 都设 `CSC_IDENTITY_AUTO_DISCOVERY=false`）。
-- **macOS 包自动做 ad-hoc 签名**（`scripts/after-pack-adhoc-sign.cjs`）：未签名应用被 Gatekeeper 判「已损坏」且无「仍要打开」按钮；ad-hoc 签名后变为「无法验证开发者」，可右键打开或到 系统设置 → 隐私与安全性 → 仍要打开 放行。
-- 正式分发：配置 Apple Developer ID 证书（自动跳过 ad-hoc，不覆盖正式签名），macOS 建议走 notarize（Apple 公证），并把 `electron-builder.json5` 里 `mac.hardenedRuntime` 改回 `true`。
-- Windows 图标由 `build/icon.png`（1024×1024）自动转 `ico`，不要手动指向不存在的 `build/icon.ico`。
-
-### macOS 安装提示
-
-下载的 dmg 带隔离属性，首次打开可能提示「无法验证开发者」：
-
-1. 右键 Vido.app → 打开 → 再点「打开」；或
-2. 系统设置 → 隐私与安全性 → 拉到「安全性」→ 仍要打开；或
-3. 若个别环境仍提示「已损坏」（老版本未签名包）：终端执行
-   ```bash
-   xattr -cr /Applications/Vido.app
-   ```
-   移除下载隔离属性后即可正常打开。
-
-**国内加速**：下载 Electron 慢时设置镜像：
-```bash
-export ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
-```
-
-## Vue DevTools
-
-```bash
-./node_modules/.bin/vue-devtools
-```
+[MIT](LICENSE) © windery
