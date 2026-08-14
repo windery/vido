@@ -251,6 +251,11 @@ watch(
     color: var(--accent);
 }
 
+/* week 计划表：今天的列加极淡绿底（区别于选中绿框），快速定位今天 */
+.cal-week .cal-cell.is-today {
+    background: rgba(89, 217, 138, 0.05);
+}
+
 /* 日焦点（j/k 移动）：磷光绿实线描边 + 淡底 */
 .cal-cell.is-focused {
     border-color: var(--accent);
