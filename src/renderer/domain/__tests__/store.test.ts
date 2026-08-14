@@ -1449,7 +1449,7 @@ describe('Store — 日历视图网格交互（j/k 移日焦点 · Enter 开详�
     expect(cv(s).selectedDate).toBe('2026-07-06');
   });
 
-  it('数字跳日期：1..当月天数跳转到该日；无效取消焦点（month 与 week）', () => {
+  it('数字跳日期：month 1..当月天数跳转；week 1..7 跳星期列；无效取消焦点', () => {
     const s = makeCalStore();
     s.openCalendarView(); // month, anchor 05-08
     s.jumpCalendarDay(15);
@@ -1460,10 +1460,12 @@ describe('Store — 日历视图网格交互（j/k 移日焦点 · Enter 开详�
     expect(cv(s).selectedDate).toBeUndefined();
 
     s.state.calendarView.granularity = 'week';
-    s.state.calendarView.anchor = '2026-05-08';
-    s.jumpCalendarDay(20); // 活跃周跟随目标日
-    expect(cv(s).anchor).toBe('2026-05-20');
-    expect(cv(s).selectedDate).toBe('2026-05-20');
+    s.state.calendarView.anchor = '2026-05-08'; // 活跃周 05-03..05-09
+    s.jumpCalendarDay(3); // 第 3 列 = 周二 05-05
+    expect(cv(s).anchor).toBe('2026-05-08'); // 周不动
+    expect(cv(s).selectedDate).toBe('2026-05-05');
+    s.jumpCalendarDay(8); // 周视图越界 → 取消焦点
+    expect(cv(s).selectedDate).toBeUndefined();
 
     s.state.calendarView.granularity = 'day';
     s.state.calendarView.anchor = '2026-05-08';

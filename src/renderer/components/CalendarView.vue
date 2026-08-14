@@ -25,30 +25,22 @@
             </div>
         </div>
 
-        <!-- week：当月网格展示，仅当前周正常显示、范围外置灰；活跃周跨月初/月末时，邻月的周内日期一并显示（补全完整一周） -->
+        <!-- week：7 列日计划表（周日~周六），每天一列竖排任务；跨月周列头各标自己月份（8/30 → 9/1） -->
         <div v-else-if="granularity === 'week'">
-            <div class="cal-weekdays">
-                <span v-for="w in WEEKDAYS" :key="w" class="cal-weekday-label">{{ w }}</span>
-            </div>
-            <div class="cal-grid cal-month">
-                <div v-for="c in weekViewCells" :key="c" class="cal-cell"
-                    :style="{ gridColumnStart: weekCellPos(c).gridColumnStart, gridRowStart: weekCellPos(c).gridRowStart }"
-                    :class="{
-                        'is-today': c === todayStr,
-                        'is-week': weekDates.includes(c),
-                        'is-out': !weekDates.includes(c),
-                        'is-focused': c === selectedDate,
-                    }">
+            <div class="cal-grid cal-week">
+                <div v-for="c in weekCells" :key="c.date" class="cal-cell"
+                    :class="{ 'is-today': c.date === todayStr, 'is-focused': c.date === selectedDate }">
                     <div class="cal-cell-head">
-                        <span class="cal-cell-date">{{ c.slice(8) }}</span>
+                        <span class="cal-cell-weekday">{{ weekdayName(c.date) }}</span>
+                        <span class="cal-cell-date">{{ c.label }}</span>
                     </div>
                     <div class="cal-cell-tasks">
-                        <div v-for="t in cellTasks(c).slice(0, 3)" :key="t.id" class="cal-task"
-                            :class="{ done: t.completed, selected: c === selectedDate && t.id === selectedTaskId }">
+                        <div v-for="t in cellTasks(c.date).slice(0, 6)" :key="t.id" class="cal-task"
+                            :class="{ done: t.completed, selected: c.date === selectedDate && t.id === selectedTaskId }">
                             <span class="cal-task-dot">{{ t.completed ? '✓' : '○' }}</span>
                             <span class="cal-task-title">{{ t.title }}</span>
                         </div>
-                        <div v-if="cellTasks(c).length > 3" class="cal-overflow">+{{ cellTasks(c).length - 3 }}</div>
+                        <div v-if="cellTasks(c.date).length > 6" class="cal-overflow">+{{ cellTasks(c.date).length - 6 }}</div>
                     </div>
                 </div>
             </div>
@@ -102,10 +94,10 @@ const todayStr = formatDate(new Date());
 
 const rangeLabel = computed(() => getCalendarRange(props.granularity, props.anchor).label);
 
-/** date → 当日任务（含 repeat 展开）；week/month 均按整月网格收集，day 按天 */
+/** date → 当日任务（含 repeat 展开）；范围与各粒度视图一致：day=当天、week=活跃周、month=当月 */
 const tasksByDate = computed(() => {
     const map = new Map<string, Task[]>();
-    const rangeGran = props.granularity === 'day' ? 'day' : 'month';
+    const rangeGran = props.granularity === 'day' ? 'day' : props.granularity === 'week' ? 'week' : 'month';
     const days = collectTasksInRange(props.tasks, rangeGran, props.anchor);
     for (const d of days) map.set(d.date, d.tasks);
     return map;
@@ -119,10 +111,7 @@ const detailDate = computed(() =>
     props.granularity === 'day' ? props.anchor : (props.selectedDate ?? props.anchor)
 );
 
-/** week：锚点所在周（周日~周六）的 7 个日期（用于判定切换范围） */
-const weekDates = computed(() => calendarGridCells('week', props.anchor));
-
-/** month/week 网格：仅当月天数（上/下月不占格）；1 号对齐其星期列（gridColumnStart） */
+/** month 网格：仅当月天数（上/下月不占格）；1 号对齐其星期列（gridColumnStart） */
 const monthCells = computed(() => calendarGridCells('month', props.anchor).map((date) => ({ date })));
 
 /** 当月 1 号的星期列（1=Sun .. 7=Sat） */
@@ -131,26 +120,21 @@ const firstCellColumn = computed(() => {
     return a ? a.getDay() + 1 : 1;
 });
 
-/** week 视图：当月天数 + 活跃周跨月的邻月日（月初/月末补全完整一周），按日期排序 */
-const weekViewCells = computed(() => {
-    const month = props.anchor.slice(0, 7);
-    const extras = weekDates.value.filter((d) => d.slice(0, 7) !== month);
-    return [...extras, ...calendarGridCells('month', props.anchor)].sort();
-});
-
 /**
- * week 视图每格**显式行列定位**：首格落在其星期列的第 1 行，其后按日期顺序每 7 天换行。
- * 只给 gridColumnStart 会被 CSS 网格稀疏布局按「最早空闲行」散排，活跃周会被拆成多行——
- * 行列都给死后，连续 7 天的活跃周必然是同一条连续的横排。
+ * week 视图：活跃周 7 天（周日~周六）的 7 列。
+ * 列头日期标签：当周跨月时，月份变化的那天起带月前缀（8/30、31、9/1 …），否则只显示日号。
  */
-const weekCellPos = (date: string): { gridColumnStart: number; gridRowStart: number } => {
-    const first = parseDate(weekViewCells.value[0] ?? props.anchor);
-    const d = parseDate(date);
-    const diffDays = first && d ? Math.round((d.getTime() - first.getTime()) / 86400000) : 0;
-    // 行 = 首格星期偏移 + 距首格天数，按 7 天一周取整：连续 7 天必然同一行
-    const row = Math.floor(((first?.getDay() ?? 0) + diffDays) / 7) + 1;
-    return { gridColumnStart: (d?.getDay() ?? 0) + 1, gridRowStart: row };
-};
+const weekCells = computed(() => {
+    let prevMonth = '';
+    return calendarGridCells('week', props.anchor).map((date) => {
+        const month = date.slice(5, 7);
+        const day = String(parseInt(date.slice(8), 10)); // 去前导零：'05' → '5'
+        // 跨月那天起带月前缀（8/30 → 9/1 风格），同月只显示日号
+        const label = month === prevMonth ? day : `${parseInt(month, 10)}/${day}`;
+        prevMonth = month;
+        return { date, label };
+    });
+});
 
 // 选中变化时把目标行滚入视口（vim-instant：同一帧、最小滚动）
 watch(
@@ -231,6 +215,11 @@ watch(
 
 .cal-month .cal-cell {
     min-height: 74px;
+}
+
+/* week：7 列日计划表，单行高格子，给任务留足纵向空间 */
+.cal-week .cal-cell {
+    min-height: 150px;
 }
 
 /* 单日：整宽单元 */

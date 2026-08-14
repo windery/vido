@@ -46,7 +46,7 @@ import { useTaskState } from '../composables/use-task-state';
 import { t } from '../i18n';
 
 // 使用新的统一状态管理架构
-const { editorMode, lastlineContent, selectedTask, tasks, filteredTasks, cursorPosition, flashMessage, dirty, calendarVisible, configNavIndex } = useTaskState();
+const { editorMode, lastlineContent, selectedTask, tasks, filteredTasks, cursorPosition, flashMessage, dirty, calendarVisible, calendarView, configNavIndex } = useTaskState();
 
 // 搜索过滤激活（lastlineContent 以 / 开头且有词）
 const searchTerm = computed(() => {
@@ -78,9 +78,15 @@ const configModeText = computed(() => {
   }
 });
 
-// 日历视图：状态栏中央显示主要按键（与 schedule config 同风格，? help 收尾）；
-// 年月已由日历头部正中展示，状态栏不再重复提示日期
-const calendarStatusText = computed(() => (calendarVisible.value ? t('mode.calendar') : ''));
+// 日历视图：状态栏中央显示主要按键（按粒度区分，与 schedule config 同风格，? help 收尾）；
+// 年月/周范围已由日历头部正中展示，状态栏不再重复提示日期
+const calendarStatusText = computed(() => {
+  if (!calendarVisible.value) return '';
+  const g = calendarView.value?.granularity;
+  if (g === 'week') return t('mode.calendarWeek');
+  if (g === 'day') return t('mode.calendarDay');
+  return t('mode.calendar');
+});
 
 // 光标位置：内容导航 / 编辑时显示「行 · 列」
 const posInfo = computed(() => {

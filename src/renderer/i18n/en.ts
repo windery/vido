@@ -30,8 +30,10 @@ export const en = {
     configTagsEdit: '⏎ save',
     help: 'Press ? for help',
     calendar: 'jkhl move · 1-31 day · [ ] page · ? help',
+    calendarWeek: 'jkhl move · 1-7 wd · [ ] page · ? help',
+    calendarDay: 'jkhl move · [ ] page · ? help',
     search: '-- SEARCH --',
-    command: '-- COMMAND -- (:w save · :q quit · ? all keys)',
+    command: '-- COMMAND -- (:w save · :q quit · ? help)',
     lastLine: '-- LAST-LINE --',
   },
   task: {
@@ -56,7 +58,7 @@ export const en = {
     noTags: 'No tags',
     tagPlaceholder: 'Type a tag, Enter to save',
     add: 'Add',
-    footer: '<kbd>H</kbd><kbd>L</kbd> sections · <kbd>j</kbd><kbd>k</kbd> nav · <kbd>⏎</kbd> select · <kbd>?</kbd> all keys',
+    footer: '<kbd>H</kbd><kbd>L</kbd> sections · <kbd>j</kbd><kbd>k</kbd> nav · <kbd>⏎</kbd> select · <kbd>?</kbd> help',
   },
   content: {
     placeholder: '# Task content (markdown supported)',
@@ -196,14 +198,14 @@ export const en = {
         scope: 'calendar',
         commands: [
           { key: 'g c', desc: 'Open (default month · anchor: selected task date / today)' },
-          { key: 'h l j k', desc: 'Grid: left/right ±1 day · up/down ±7 days (week: prev/next week)' },
-          { key: '1 - 31', desc: 'Jump to day of displayed month (invalid cancels focus)' },
+          { key: 'h l j k', desc: 'Move: left/right ±1 day · up/down ±7 days (week: prev/next week)' },
+          { key: '1 - 31', desc: 'Month: jump to day of month · week: 1-7 weekday column' },
           { key: 'Enter', desc: 'Grid: open day detail · detail: open task' },
           { key: 'Esc', desc: 'Day detail: back to grid · grid: exit' },
           { key: '[ / ]', desc: 'Previous / next page' },
           { key: 'H / L', desc: 'Switch granularity: day / week / month' },
         ],
-        notes: ['Month grid shows only current-month days; week view also renders the active week\'s adjacent-month days when the week crosses a month boundary'],
+        notes: ['Week view is a 7-column day planner (Sun–Sat); a week crossing months labels each date with its month (8/30 → 9/1)'],
       },
       {
         title: 'CONFIG — SCHEDULE',

@@ -441,13 +441,13 @@ export class Store {
   // ============ 日期视图（g c 进入 / H L 切粒度 / [ ] 翻页 / jkhl 上下左右 / 数字跳日期 / Enter 打开） ============
 
   /** 日历视图内可见条目（按日期分组展开后拍平，含 repeat 出现；搜索激活时同样过滤）。
-   *  week 与 month 都以整月网格展示，收集范围一律按月；day 按天 */
+   *  范围与各粒度视图的展示一致：day=当天、week=活跃周 7 天、month=当月 */
   private calendarEntries(): Array<{ date: string; task: Task }> {
     const term = this.getSearchTerm();
     const base = term
       ? this.manager.list.items.filter((t) => taskMatchesSearch(t, term))
       : this.manager.list.items;
-    const rangeGran = this.state.calendarView.granularity === 'day' ? 'day' : 'month';
+    const rangeGran = this.state.calendarView.granularity;
     const days = collectTasksInRange(base, rangeGran, this.state.calendarView.anchor);
     const out: Array<{ date: string; task: Task }> = [];
     for (const d of days) {
@@ -625,12 +625,26 @@ export class Store {
   }
 
   /**
-   * 数字跳日期（类似 tags 数字直达）：1..31 → 显示月份的第 N 天；week 视图下活跃周跟随目标日。
-   * 编号无效（> 当月天数）→ 取消日焦点（显示与操作一致）。
+   * 数字跳日期（类似 tags 数字直达）：
+   * - month：1..31 连按累加成多位序号 → 显示月份的第 N 天；无效（> 当月天数）→ 取消日焦点
+   * - week（7 列日计划表）：1..7 → 活跃周的第 N 个星期列（1=周日）；无效 → 取消日焦点
    */
   jumpCalendarDay(n: number): void {
     const cv = this.state.calendarView;
     if (!cv.visible || cv.granularity === 'day') return;
+    if (cv.granularity === 'week') {
+      const cells = calendarGridCells('week', cv.anchor);
+      if (n < 1 || n > 7) {
+        cv.selectedDate = undefined;
+        cv.selectedTaskId = undefined;
+        this.changed();
+        return;
+      }
+      cv.selectedDate = cells[n - 1];
+      cv.selectedTaskId = this.calendarTasksOn(cv.selectedDate)[0]?.id;
+      this.changed();
+      return;
+    }
     const a = parseDate(cv.anchor) || new Date();
     const daysInMonth = new Date(a.getFullYear(), a.getMonth() + 1, 0).getDate();
     if (n < 1 || n > daysInMonth) {
@@ -640,7 +654,6 @@ export class Store {
       return;
     }
     const target = formatDate(new Date(a.getFullYear(), a.getMonth(), n));
-    if (cv.granularity === 'week') cv.anchor = target; // 活跃周 = 目标日所在周，显示月份同目标月
     cv.selectedDate = target;
     cv.selectedTaskId = this.calendarTasksOn(target)[0]?.id;
     this.changed();
