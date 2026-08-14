@@ -3,7 +3,8 @@ name: Release
 # 推送 v* 标签（如 v0.1.0）时自动打包全平台全架构并发布到 GitHub Release；
 # 也可在 Actions 页手动触发（workflow_dispatch）。
 #
-# 产物矩阵：
+# 产物矩阵：每个「平台 × 架构」一个独立 job，用 CLI --arch 显式指定
+#（不依赖 config 里 target 级 arch 数组，规避多架构混编的兼容问题）：
 #   macOS   x64 / arm64 / universal（dmg + zip）
 #   Windows x64 / arm64（Setup.exe + zip）
 #   Linux   x64 / arm64（AppImage + deb）
@@ -24,18 +25,30 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # macOS：arm64 宿主交叉出 x64 + arm64 + universal（macos-13 Intel runner 已退役，不再使用）
+          # macOS：全部在 arm64 runner 上构建（x64/universal 交叉构建；macos-13 Intel runner 已退役）
           - os: macos-latest
-            label: macos-x64+arm64+universal
+            label: macos-arm64
             args: --mac --arm64
-          # Windows x64 + arm64
+          - os: macos-latest
+            label: macos-x64
+            args: --mac --x64
+          - os: macos-latest
+            label: macos-universal
+            args: --mac --universal
+          # Windows
           - os: windows-latest
-            label: windows-x64+arm64
-            args: --win
-          # Linux x64 + arm64
+            label: windows-x64
+            args: --win --x64
+          - os: windows-latest
+            label: windows-arm64
+            args: --win --arm64
+          # Linux
           - os: ubuntu-latest
-            label: linux-x64+arm64
-            args: --linux
+            label: linux-x64
+            args: --linux --x64
+          - os: ubuntu-latest
+            label: linux-arm64
+            args: --linux --arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -72,19 +85,6 @@ jobs:
         run: pnpm exec electron-builder ${{ matrix.args }} --publish never
         env:
           # CI 无签名证书：明确关闭自动发现，避免卡在签名步骤
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-
-      # macOS 在 arm64 宿主上交叉构建 x64 与 universal（x64+arm64 合一）包
-      - name: Package x64 (macOS only)
-        if: runner.os == 'macOS'
-        run: pnpm exec electron-builder --mac --x64 --publish never
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-
-      - name: Package universal (macOS only)
-        if: runner.os == 'macOS'
-        run: pnpm exec electron-builder --mac --universal --publish never
-        env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
       - name: Upload build artifact

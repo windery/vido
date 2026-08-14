@@ -1,6 +1,6 @@
 {
   "name": "electron-vue-vite",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "main": "dist-electron/main/index.js",
   "description": "Vido — vim-style todo manager for programmers (Electron + Vue + Vite).",
   "author": "windery <res.windery@gmail.com>",

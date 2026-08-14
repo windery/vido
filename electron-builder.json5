@@ -36,10 +36,7 @@
   win: {
     // electron-builder 会自动把 ≥256px 的 png 转成 ico（build/icon.ico 并不存在，勿改回）
     icon: 'build/icon.png',
-    target: [
-      { target: 'nsis', arch: ['x64', 'arm64'] },
-      { target: 'zip', arch: ['x64', 'arm64'] },
-    ],
+    target: ['nsis', 'zip'],
     artifactName: '${productName}-Windows-${arch}-${version}.${ext}',
   },
 
@@ -53,10 +50,7 @@
   linux: {
     icon: 'build/icon.png',
     category: 'Utility',
-    target: [
-      { target: 'AppImage', arch: ['x64', 'arm64'] },
-      { target: 'deb', arch: ['x64', 'arm64'] },
-    ],
+    target: ['AppImage', 'deb'],
     artifactName: '${productName}-Linux-${arch}-${version}.${ext}',
   },
 }
