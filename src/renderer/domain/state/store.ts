@@ -32,9 +32,11 @@ export interface AppState {
   dirty: boolean;
   /** 配置面板 nav 态选项序号（1 基；0 = 未进入 nav）：j/k/数字 高亮导航、Enter 选中高亮项 */
   configNavIndex: number;
-  /** Ctrl+V 可视块模式：active + 锚点（进入块模式时的光标）；选区 = 锚点 ↔ 当前光标矩形，由纯操作推导 */
-  visualBlock: {
+  /** v/V/Ctrl+V 可视模式：active + kind（char 字符 / line 行 / block 块）+ 锚点（进入模式时的光标）；
+   *  选区 = 锚点 ↔ 当前光标（按 kind 语义），由纯操作推导 */
+  visual: {
     active: boolean;
+    kind: 'char' | 'line' | 'block';
     anchorLine: number;
     anchorCol: number;
   };
@@ -187,7 +189,7 @@ export class Store {
       flashMessage: null,
       dirty: false,
       configNavIndex: 0,
-      visualBlock: { active: false, anchorLine: 0, anchorCol: 0 },
+      visual: { active: false, kind: 'block', anchorLine: 0, anchorCol: 0 },
       calendarView: { visible: false, granularity: 'week', anchor: '', selectedDate: undefined, selectedTaskId: undefined, dayDetail: false },
     });
   }
@@ -327,7 +329,7 @@ export class Store {
       lastlineVisible: this.state.lastlineVisible,
       flashMessage: this.state.flashMessage,
       configNavIndex: this.state.configNavIndex,
-      visualBlock: this.state.visualBlock,
+      visual: this.state.visual,
       calendarView: this.state.calendarView,
       tasks: this.manager.list.items,
     };
@@ -346,31 +348,31 @@ export class Store {
   get filteredTasks(): any[] { return this.manager.list.all; }
 
   // 转发 manager 方法（每个写操作后触发 changed）
-  selectTask(id: number): void { this.resetConfigNav(); this.resetVisualBlock(); this.manager.selectTask(id); this.syncSelection(); this.changed(); }
+  selectTask(id: number): void { this.resetConfigNav(); this.resetVisual(); this.manager.selectTask(id); this.syncSelection(); this.changed(); }
   /** 搜索激活时 j/k 只在匹配集内移动（所见即所动）；否则全量移动 */
   selectNext(): void {
     this.resetConfigNav();
-    this.resetVisualBlock();
+    this.resetVisual();
     if (this.isSearchActive()) { this.searchNext(1); return; }
     this.manager.selectNext(); this.syncSelection(); this.changed();
   }
   selectPrevious(): void {
     this.resetConfigNav();
-    this.resetVisualBlock();
+    this.resetVisual();
     if (this.isSearchActive()) { this.searchNext(-1); return; }
     this.manager.selectPrevious(); this.syncSelection(); this.changed();
   }
-  goToFirst(): void { this.resetConfigNav(); this.resetVisualBlock(); this.manager.goToFirst(); this.syncSelection(); this.changed(); }
-  goToLast(): void { this.resetConfigNav(); this.resetVisualBlock(); this.manager.goToLast(); this.syncSelection(); this.changed(); }
+  goToFirst(): void { this.resetConfigNav(); this.resetVisual(); this.manager.goToFirst(); this.syncSelection(); this.changed(); }
+  goToLast(): void { this.resetConfigNav(); this.resetVisual(); this.manager.goToLast(); this.syncSelection(); this.changed(); }
 
   /** nav 高亮是面板瞬态 UI：任务移动时清理，防止高亮残留到其他任务 */
   private resetConfigNav(): void {
     if (this.state.configNavIndex !== 0) this.state.configNavIndex = 0;
   }
-  /** 可视块选区绑定当前任务内容，任务移动/退出导航时一并清理 */
-  resetVisualBlock(): void {
-    if (this.state.visualBlock.active) {
-      this.state.visualBlock.active = false;
+  /** 可视选区绑定当前任务内容，任务移动/退出导航时一并清理 */
+  resetVisual(): void {
+    if (this.state.visual.active) {
+      this.state.visual.active = false;
       this.changed();
     }
   }
@@ -774,70 +776,95 @@ export class Store {
     writeSystemClipboard(text);
   }
 
-  // ============ Ctrl+V 可视块模式 ============
+  // ============ v/V/Ctrl+V 可视模式（字符 / 行 / 块） ============
 
-  /** 进入可视块模式：锚点 = 当前光标 */
-  startVisualBlock(): void {
+  /** 进入可视模式：kind = char（v 字符）/ line（V 行）/ block（Ctrl+V 块）；锚点 = 当前光标 */
+  startVisual(kind: 'char' | 'line' | 'block'): void {
     const t = this.manager.list.selected;
-    this.state.visualBlock = {
+    this.state.visual = {
       active: true,
+      kind,
       anchorLine: t?.cursorLine ?? 0,
       anchorCol: t?.cursorColumn ?? 0,
     };
     this.changed();
-    logger.info('Store', 'start visual block', { anchorLine: this.state.visualBlock.anchorLine, anchorCol: this.state.visualBlock.anchorCol });
+    logger.info('Store', 'start visual', { kind, anchorLine: this.state.visual.anchorLine, anchorCol: this.state.visual.anchorCol });
   }
 
-  endVisualBlock(): void {
-    if (!this.state.visualBlock.active) return;
-    this.state.visualBlock.active = false;
+  endVisual(): void {
+    if (!this.state.visual.active) return;
+    this.state.visual.active = false;
     this.changed();
   }
 
-  /** y：复制可视块（内部缓冲 + 系统剪贴板），退出块模式 */
-  copyVisualBlock(): void {
-    const vb = this.state.visualBlock;
-    if (!vb.active) return;
-    const sel = this.manager.blockSelection(vb.anchorLine, vb.anchorCol);
-    this.endVisualBlock();
-    if (!sel) return;
-    this.setContentClipboard(sel.text, true);
-    logger.info('Store', 'copy block', { lines: sel.endLine - sel.startLine + 1, chars: sel.text.length });
+  /** 当前可视选区（按 kind 语义：block 矩形 / line 整行 / char 连续字符），供 yank 与光标定位 */
+  private visualSelection(): { text: string; isLine: boolean; startLine: number; startCol: number } | null {
+    const vb = this.state.visual;
+    if (!vb.active) return null;
+    if (vb.kind === 'block') {
+      const sel = this.manager.blockSelection(vb.anchorLine, vb.anchorCol);
+      return sel ? { text: sel.text, isLine: true, startLine: sel.startLine, startCol: sel.startCol } : null;
+    }
+    if (vb.kind === 'line') {
+      const sel = this.manager.lineSelection(vb.anchorLine);
+      return sel ? { text: sel.text, isLine: true, startLine: sel.startLine, startCol: 0 } : null;
+    }
+    const sel = this.manager.charSelection(vb.anchorLine, vb.anchorCol);
+    return sel ? { text: sel.text, isLine: false, startLine: sel.startLine, startCol: sel.startCol } : null;
   }
 
-  /** x/d：删除可视块（内容入内部缓冲 + 系统剪贴板），光标落块左上角，退出块模式 */
-  deleteVisualBlock(): void {
-    const vb = this.state.visualBlock;
+  /** y：复制可视选区（内部缓冲 + 系统剪贴板），退出可视模式 */
+  copyVisual(): void {
+    const vb = this.state.visual;
+    if (!vb.active) return;
+    const sel = this.visualSelection();
+    this.endVisual();
+    if (!sel) return;
+    this.setContentClipboard(sel.text, sel.isLine);
+    logger.info('Store', 'copy visual', { kind: vb.kind, chars: sel.text.length });
+  }
+
+  /** x/d：删除可视选区（内容入内部缓冲 + 系统剪贴板），光标落选区起点，退出可视模式 */
+  deleteVisual(): void {
+    const vb = this.state.visual;
     if (!vb.active) return;
     const id = this.manager.list.selected?.id;
-    const sel = this.manager.blockSelection(vb.anchorLine, vb.anchorCol);
-    this.mutate(() => this.manager.deleteBlock(vb.anchorLine, vb.anchorCol));
-    this.endVisualBlock();
-    if (sel) this.setContentClipboard(sel.text, true);
-    logger.info('Store', 'delete block', { taskId: id, lines: (sel?.endLine ?? 0) - (sel?.startLine ?? 0) + 1 });
+    const sel = this.visualSelection();
+    this.mutate(() => {
+      if (vb.kind === 'block') this.manager.deleteBlock(vb.anchorLine, vb.anchorCol);
+      else if (vb.kind === 'line') this.manager.deleteLineSelection(vb.anchorLine);
+      else this.manager.deleteCharSelection(vb.anchorLine, vb.anchorCol);
+    });
+    this.endVisual();
+    if (sel) this.setContentClipboard(sel.text, sel.isLine);
+    logger.info('Store', 'delete visual', { taskId: id, kind: vb.kind, chars: sel?.text.length ?? 0 });
   }
 
-  /** c：删除可视块后进入插入（编辑态转换由 handler 负责） */
-  changeVisualBlock(): void { this.deleteVisualBlock(); }
+  /** c：删除可视选区后进入插入（编辑态转换由 handler 负责） */
+  changeVisual(): void { this.deleteVisual(); }
 
-  /** 内部 yank 缓冲访问器（块模式 p/P 替换时回退用） */
+  /** 内部 yank 缓冲访问器（可视模式 p/P 替换时回退用） */
   getContentClipboard(): { text: string; isLine: boolean } | null {
     return this.contentClipboard ? { ...this.contentClipboard } : null;
   }
 
   /**
-   * 块模式 p/P（vim 语义：用粘贴文本**替换**块选区）：
-   * 删除块（光标落块左上角）→ 在原位字符式粘贴文本；空文本 = 仅删除。
-   * 不把被删块写入 yank/系统剪贴板（保持原粘贴内容不被打断）。
+   * 可视模式 p/P（vim 语义：用粘贴文本**替换**选区）：
+   * 按 kind 删除选区（光标落选区起点）→ 在原位字符式粘贴文本；空文本 = 仅删除。
+   * 不把被删选区写入 yank/系统剪贴板（保持原粘贴内容不被打断）。
    */
-  replaceVisualBlock(text: string): void {
-    const vb = this.state.visualBlock;
+  replaceVisual(text: string): void {
+    const vb = this.state.visual;
     if (!vb.active) return;
     const id = this.manager.list.selected?.id;
-    this.mutate(() => this.manager.deleteBlock(vb.anchorLine, vb.anchorCol));
-    this.endVisualBlock();
+    this.mutate(() => {
+      if (vb.kind === 'block') this.manager.deleteBlock(vb.anchorLine, vb.anchorCol);
+      else if (vb.kind === 'line') this.manager.deleteLineSelection(vb.anchorLine);
+      else this.manager.deleteCharSelection(vb.anchorLine, vb.anchorCol);
+    });
+    this.endVisual();
     if (text) this.pasteTextRaw(text, false);
-    logger.info('Store', 'replace block', { taskId: id, chars: text.length });
+    logger.info('Store', 'replace visual', { taskId: id, kind: vb.kind, chars: text.length });
   }
 
   // ============ 子任务缩进（tab / Shift+Tab） ============
@@ -906,8 +933,8 @@ export class Store {
     if (trigger === 'Escape') {
       if (this.state.lastlineVisible) this.state.lastlineVisible = false;
       if (this.state.lastlineContent?.startsWith('/')) this.state.lastlineContent = '';
-      // 退出导航/编辑时清理可视块选区（changed 由 transition 统一触发）
-      if (this.state.visualBlock.active) this.state.visualBlock.active = false;
+      // 退出导航/编辑时清理可视选区（changed 由 transition 统一触发）
+      if (this.state.visual.active) this.state.visual.active = false;
     }
     return { success: true };
   }

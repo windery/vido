@@ -70,15 +70,15 @@ describe('ContentNavigationModeHandler', () => {
         cursorCol = col;
       }),
       insertNewLineBelow: vi.fn(),
-      startVisualBlock: vi.fn(),
-      endVisualBlock: vi.fn(),
-      deleteVisualBlock: vi.fn(),
-      copyVisualBlock: vi.fn(),
-      changeVisualBlock: vi.fn(),
+      startVisual: vi.fn(),
+      endVisual: vi.fn(),
+      deleteVisual: vi.fn(),
+      copyVisual: vi.fn(),
+      changeVisual: vi.fn(),
       pasteAfter: vi.fn(),
       pasteBefore: vi.fn(),
       pasteTextRaw: vi.fn(),
-      replaceVisualBlock: vi.fn(),
+      replaceVisual: vi.fn(),
       getContentClipboard: vi.fn(() => null),
       undo: vi.fn(),
     };
@@ -263,7 +263,7 @@ describe('ContentNavigationModeHandler', () => {
     });
   });
 
-  describe('Ctrl+V 可视块模式', () => {
+  describe('v/V/Ctrl+V 可视模式', () => {
     function makeBlockTDM(): any {
       return {
         ...mockTDM,
@@ -271,51 +271,53 @@ describe('ContentNavigationModeHandler', () => {
           editorMode: 4,
           selectedTaskId: 1,
           tasks: [selectedTask],
-          visualBlock: { active: true, anchorLine: 0, anchorCol: 0 },
+          visual: { active: true, kind: 'block', anchorLine: 0, anchorCol: 0 },
         }),
       };
     }
 
-    it('Ctrl+V 进入块模式；普通 v 退出导航', () => {
+    it('Ctrl+V 进块模式、v 进字符可视、V 进行可视（绝不退出导航）', () => {
       handler.handleKey(makeCtrlEvent('v'), 'v', mockTDM, false);
-      expect(mockTDM.startVisualBlock).toHaveBeenCalledTimes(1);
-
+      expect(mockTDM.startVisual).toHaveBeenLastCalledWith('block');
       handler.handleKey(makeEvent('v'), 'v', mockTDM, false);
-      expect(mockTDM.transition).toHaveBeenCalledWith('Escape');
+      expect(mockTDM.startVisual).toHaveBeenLastCalledWith('char');
+      handler.handleKey(makeEvent('V'), 'V', mockTDM, false);
+      expect(mockTDM.startVisual).toHaveBeenLastCalledWith('line');
+      expect(mockTDM.transition).not.toHaveBeenCalled();
     });
 
     it('块模式内 Esc 只退出块，不退出导航', () => {
       handler.handleKey(makeEvent('Escape'), 'Escape', makeBlockTDM(), false);
-      expect(mockTDM.endVisualBlock).toHaveBeenCalled();
+      expect(mockTDM.endVisual).toHaveBeenCalled();
       expect(mockTDM.transition).not.toHaveBeenCalled();
     });
 
     it('块模式内 x/d 删除块、y 复制块', () => {
       handler.handleKey(makeEvent('x'), 'x', makeBlockTDM(), false);
-      expect(mockTDM.deleteVisualBlock).toHaveBeenCalledTimes(1);
+      expect(mockTDM.deleteVisual).toHaveBeenCalledTimes(1);
 
       handler.handleKey(makeEvent('d'), 'd', makeBlockTDM(), false);
-      expect(mockTDM.deleteVisualBlock).toHaveBeenCalledTimes(2);
+      expect(mockTDM.deleteVisual).toHaveBeenCalledTimes(2);
 
       handler.handleKey(makeEvent('y'), 'y', makeBlockTDM(), false);
-      expect(mockTDM.copyVisualBlock).toHaveBeenCalledTimes(1);
+      expect(mockTDM.copyVisual).toHaveBeenCalledTimes(1);
     });
 
     it('块模式内 c 删除块后进入插入', () => {
       handler.handleKey(makeEvent('c'), 'c', makeBlockTDM(), false);
-      expect(mockTDM.changeVisualBlock).toHaveBeenCalled();
+      expect(mockTDM.changeVisual).toHaveBeenCalled();
       expect(mockTDM.transition).toHaveBeenCalledWith('i');
     });
 
     it('块模式内移动键扩展选区（放行主 switch，不删块）', () => {
       handler.handleKey(makeEvent('j'), 'j', makeBlockTDM(), false);
       expect(mockTDM.moveCursorDown).toHaveBeenCalled();
-      expect(mockTDM.deleteVisualBlock).not.toHaveBeenCalled();
+      expect(mockTDM.deleteVisual).not.toHaveBeenCalled();
     });
 
     it('块模式内未绑定键：退出块后按普通键继续', () => {
       handler.handleKey(makeEvent('u'), 'u', makeBlockTDM(), false);
-      expect(mockTDM.endVisualBlock).toHaveBeenCalled();
+      expect(mockTDM.endVisual).toHaveBeenCalled();
       expect(mockTDM.undo).toHaveBeenCalled(); // 退出块后 u 正常撤销
     });
 
@@ -326,12 +328,12 @@ describe('ContentNavigationModeHandler', () => {
 
     it('块模式内 p/P 用粘贴内容替换块（系统剪贴板优先，回退内部 yank）', async () => {
       handler.handleKey(makeEvent('p'), 'p', makeBlockTDM(), false);
-      expect(mockTDM.replaceVisualBlock).toHaveBeenCalledWith(''); // 无系统剪贴板 + 空内部缓冲 → 仅删除
+      expect(mockTDM.replaceVisual).toHaveBeenCalledWith(''); // 无系统剪贴板 + 空内部缓冲 → 仅删除
 
       (readSystemClipboard as any).mockReturnValueOnce(Promise.resolve('外部文本'));
       handler.handleKey(makeEvent('P'), 'P', makeBlockTDM(), false);
       await new Promise((r) => setTimeout(r, 0));
-      expect(mockTDM.replaceVisualBlock).toHaveBeenCalledWith('外部文本');
+      expect(mockTDM.replaceVisual).toHaveBeenCalledWith('外部文本');
     });
   });
 

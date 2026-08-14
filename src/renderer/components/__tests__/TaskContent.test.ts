@@ -74,7 +74,7 @@ describe('TaskContent — vim 块光标镜像层', () => {
 
 describe('TaskContent — Ctrl+V 可视块选区覆盖层', () => {
   it('块模式激活：块内字符渲染 bm-sel 高亮，块前行透明占位', () => {
-    store.state.visualBlock = { active: true, anchorLine: 0, anchorCol: 0 };
+    store.state.visual = { active: true, kind: 'block', anchorLine: 0, anchorCol: 0 };
     try {
       // 锚点 (0,0)、光标 (1,2) → 块 = 行 0..1 × 列 0..2
       const wrapper = mountContent(makeTask({ cursorLine: 1, cursorColumn: 2 }));
@@ -84,12 +84,12 @@ describe('TaskContent — Ctrl+V 可视块选区覆盖层', () => {
       // 多行结构：镜像层按行渲染（含真实换行），高亮绝不被压到第一行
       expect(wrapper.find('.block-mirror').element.textContent).toContain('\n');
     } finally {
-      store.state.visualBlock = { active: false, anchorLine: 0, anchorCol: 0 };
+      store.state.visual = { active: false, kind: 'block', anchorLine: 0, anchorCol: 0 };
     }
   });
 
   it('块模式未激活：不渲染覆盖层', () => {
-    store.state.visualBlock = { active: false, anchorLine: 0, anchorCol: 0 };
+    store.state.visual = { active: false, kind: 'block', anchorLine: 0, anchorCol: 0 };
     const wrapper = mountContent(makeTask({ cursorLine: 1, cursorColumn: 2 }));
     expect(wrapper.find('.block-mirror').exists()).toBe(false);
   });

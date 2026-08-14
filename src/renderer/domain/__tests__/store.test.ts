@@ -903,7 +903,7 @@ describe('Store — content-nav vim 编辑操作', () => {
   });
 });
 
-describe('Store — Ctrl+V 可视块模式', () => {
+describe('Store — v/V/Ctrl+V 可视模式', () => {
   function makeNavStore(content: string): Store {
     const store = new Store();
     const t = new Task(1);
@@ -920,22 +920,22 @@ describe('Store — Ctrl+V 可视块模式', () => {
   it('进入块模式：锚点=当前光标', () => {
     const s = makeNavStore('ab\ncd');
     s.moveCursorRight(); // col=1
-    s.startVisualBlock();
-    expect(s.state.visualBlock.active).toBe(true);
-    expect(s.state.visualBlock.anchorLine).toBe(0);
-    expect(s.state.visualBlock.anchorCol).toBe(1);
+    s.startVisual('block');
+    expect(s.state.visual.active).toBe(true);
+    expect(s.state.visual.anchorLine).toBe(0);
+    expect(s.state.visual.anchorCol).toBe(1);
   });
 
   it('x 删除矩形块：内容删除、yank 入缓冲、光标落左上角、退出块模式', () => {
     const s = makeNavStore('abcd\nefgh\nijkl');
     s.moveCursorRight(); // (0,1)
-    s.startVisualBlock(); // 锚点 (0,1)
+    s.startVisual('block'); // 锚点 (0,1)
     s.moveCursorDown(); // (1,1)
     s.moveCursorDown(); // (2,1)
     s.moveCursorRight(); // (2,2) → 块 = 行 0..2 × 列 1..2
-    s.deleteVisualBlock();
+    s.deleteVisual();
     expect(cur(s).content).toBe('ad\neh\nil');
-    expect(s.state.visualBlock.active).toBe(false);
+    expect(s.state.visual.active).toBe(false);
     expect(cur(s).cursorLine).toBe(0);
     expect(cur(s).cursorColumn).toBe(1);
 
@@ -947,12 +947,12 @@ describe('Store — Ctrl+V 可视块模式', () => {
   it('y 复制块不删除，退出块模式', () => {
     const s = makeNavStore('abcd\nefgh');
     s.moveCursorRight(); // (0,1)
-    s.startVisualBlock(); // 锚点 (0,1)
+    s.startVisual('block'); // 锚点 (0,1)
     s.moveCursorDown(); // (1,1)
     s.moveCursorRight(); // (1,2) → 块 = 行 0..1 × 列 1..2
-    s.copyVisualBlock();
+    s.copyVisual();
     expect(cur(s).content).toBe('abcd\nefgh');
-    expect(s.state.visualBlock.active).toBe(false);
+    expect(s.state.visual.active).toBe(false);
 
     s.moveCursorToLastLine();
     s.pasteAfter();
@@ -962,40 +962,74 @@ describe('Store — Ctrl+V 可视块模式', () => {
   it('块模式 p/P 替换：删除块并用文本原位替换（空文本=仅删除）', () => {
     const s = makeNavStore('abcd\nefgh');
     s.moveCursorRight(); // (0,1)
-    s.startVisualBlock();
+    s.startVisual('block');
     s.moveCursorDown(); // (1,1) → 块 = 行 0..1 × 列 1..1
-    s.replaceVisualBlock('X\nY');
+    s.replaceVisual('X\nY');
     // 删列 1 → 'acd\negh'；在 (0,1) 字符式粘贴 'X\nY' → 'aX'、'Ycd'、'egh'
     expect(cur(s).content).toBe('aX\nYcd\negh');
-    expect(s.state.visualBlock.active).toBe(false);
+    expect(s.state.visual.active).toBe(false);
     expect(cur(s).cursorLine).toBe(1);
     expect(cur(s).cursorColumn).toBe(1); // 光标在末段粘贴内容末尾（'Y' 后）
 
     // 空文本 = 仅删除块
     const s2 = makeNavStore('abcd\nefgh');
     s2.moveCursorRight();
-    s2.startVisualBlock();
+    s2.startVisual('block');
     s2.moveCursorDown();
-    s2.replaceVisualBlock('');
+    s2.replaceVisual('');
     expect(cur(s2).content).toBe('acd\negh');
-    expect(s2.state.visualBlock.active).toBe(false);
+    expect(s2.state.visual.active).toBe(false);
   });
 
   it('短行不足块起列：该行不删字符', () => {
     const s = makeNavStore('abcd\nx');
-    s.startVisualBlock(); // 锚点 (0,0)
+    s.startVisual('block'); // 锚点 (0,0)
     s.moveCursorDown(); // (1,0)
     s.moveCursorRight(); // (1,1) → 块 = 行 0..1 × 列 0..1
-    s.deleteVisualBlock();
+    s.deleteVisual();
     expect(cur(s).content).toBe('cd\n');
+  });
+
+  it('V 行可视：x 删除选中整行（yank 入缓冲），光标落首行行首', () => {
+    const s = makeNavStore('aa\nbb\ncc');
+    s.startVisual('line'); // 锚点 (0,0)
+    s.moveCursorDown(); // → (1,0)：选中 0..1 行
+    s.deleteVisual();
+    expect(cur(s).content).toBe('cc');
+    expect(s.state.visual.active).toBe(false);
+    expect(cur(s).cursorLine).toBe(0);
+    expect(cur(s).cursorColumn).toBe(0);
+    s.pasteAfter(); // 行式 yank：插入到光标行下方
+    expect(cur(s).content).toBe('cc\naa\nbb');
+  });
+
+  it('v 字符可视：x 删除连续字符区间（跨行含换行），光标落区间起点', () => {
+    const s = makeNavStore('abcd\nefgh');
+    s.moveCursorRight(); // (0,1)
+    s.startVisual('char'); // 锚点 (0,1)
+    s.moveCursorDown(); // (1,1)：区间 = 'bcd\ne'（扁平 bcd\nef… 的 [1,6)）
+    s.deleteVisual();
+    expect(cur(s).content).toBe('afgh');
+    expect(s.state.visual.active).toBe(false);
+    expect(cur(s).cursorLine).toBe(0);
+    expect(cur(s).cursorColumn).toBe(1);
+  });
+
+  it('V 行可视：p 用粘贴文本替换选中行', () => {
+    const s = makeNavStore('aa\nbb\ncc');
+    s.startVisual('line');
+    s.moveCursorDown(); // 选中 0..1 行
+    s.replaceVisual('X');
+    expect(cur(s).content).toBe('Xcc');
+    expect(s.state.visual.active).toBe(false);
   });
 
   it('Esc（transition）退出导航时清理块选区', () => {
     const s = makeNavStore('ab');
-    s.startVisualBlock();
-    expect(s.state.visualBlock.active).toBe(true);
+    s.startVisual('block');
+    expect(s.state.visual.active).toBe(true);
     s.transition('Escape');
-    expect(s.state.visualBlock.active).toBe(false);
+    expect(s.state.visual.active).toBe(false);
   });
 });
 

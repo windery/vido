@@ -92,7 +92,9 @@ Download the installer for your platform from [GitHub Releases](https://github.c
 | `c` + motion | Change (delete then insert): `cw cb ce c$ cc` |
 | `y` + motion | Copy: `yw y$ yy` |
 | `p` / `P` | Paste (**system clipboard first**, yank buffer as fallback) |
-| `Ctrl+V` | Visual block: move to extend the rectangle, `x`/`d` delete, `y` copy, `p`/`P` replace, `c` change, `Esc` exit |
+| `v` / `V` | Visual (char) / visual line mode (move to extend) |
+| `Ctrl+V` | Visual block: move to extend the rectangle |
+| In visual `x`/`d`/`y`/`c` | Delete selection / copy / delete then insert; `p`/`P` replace the selection with pasted text; `Esc` exits |
 | `r{char}` | Replace char under cursor |
 | `~` | Swap case |
 | `J` | Join line below |

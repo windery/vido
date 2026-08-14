@@ -12,11 +12,11 @@
                     :class="['content-editor', { 'content-nav': isNav() }]"
                     :placeholder="t('content.placeholder')">
       </textarea>
-                <!-- 可视块选区覆盖层：块内字符高亮（半透明绿底），锚点↔光标矩形随移动实时重算 -->
-                <div v-if="blockRows.length" class="block-mirror" aria-hidden="true"
+                <!-- 可视选区覆盖层：选区内字符高亮（半透明绿底），v/V/Ctrl+V 随移动实时重算 -->
+                <div v-if="selectionRows.length" class="block-mirror" aria-hidden="true"
                     :style="{ transform: `translateY(${-scrollTop}px)` }">
                     <span class="mirror-text">
-                        <template v-for="(row, i) in blockRows" :key="i">
+                        <template v-for="(row, i) in selectionRows" :key="i">
                             <template v-if="i > 0">{{ '\n' }}</template>
                             <span v-if="row.pre" class="bm-trans">{{ row.pre }}</span><span v-if="row.sel" class="bm-sel">{{ row.sel }}</span><span class="bm-trans">{{ row.post }}</span>
                         </template>
@@ -92,29 +92,67 @@ const caretChar = computed(() => {
     return cur[col] || ' ';
 });
 
-// 可视块选区逐行拆分（锚点 ↔ 当前光标矩形）：覆盖层需渲染 0..endLine 全部行
-// （块之前的行透明占位保证垂直对齐），仅块内列区间高亮。
+// 可视选区逐行拆分（v 字符 / V 行 / Ctrl+V 块——锚点 ↔ 当前光标，按 kind 语义）：
+// 覆盖层需渲染 0..endLine 全部行（选区之前的行透明占位保证垂直对齐），仅选区内字符高亮。
 interface BlockRow { pre: string; sel: string; post: string; }
-const blockRows = computed<BlockRow[]>(() => {
-    const vb = store.state.visualBlock;
-    if (!vb.active || !isNav()) return [];
-    const lines = (props.task.content || '').split('\n');
+const selectionRows = computed<BlockRow[]>(() => {
+    const vb = store.state.visual;
+    if (!vb?.active || !isNav()) return [];
+    const content = props.task.content || '';
+    const lines = content.split('\n');
     const curLine = props.task.cursorLine ?? 0;
     const curCol = props.task.cursorColumn ?? 0;
-    const startLine = Math.min(vb.anchorLine, curLine);
-    const endLine = Math.min(Math.max(vb.anchorLine, curLine), lines.length - 1);
-    const startCol = Math.min(vb.anchorCol, curCol);
-    const endCol = Math.max(vb.anchorCol, curCol);
     const rows: BlockRow[] = [];
-    for (let i = 0; i <= endLine; i++) {
+
+    if (vb.kind === 'line') {
+        // V 行可视：选中行整行高亮
+        const startLine = Math.min(vb.anchorLine, curLine);
+        const endLine = Math.min(Math.max(vb.anchorLine, curLine), lines.length - 1);
+        for (let i = 0; i <= endLine; i++) {
+            const text = lines[i] ?? '';
+            rows.push(i < startLine ? { pre: text, sel: '', post: '' } : { pre: '', sel: text, post: '' });
+        }
+        return rows;
+    }
+
+    if (vb.kind === 'block') {
+        // Ctrl+V 块可视：矩形列区间
+        const startLine = Math.min(vb.anchorLine, curLine);
+        const endLine = Math.min(Math.max(vb.anchorLine, curLine), lines.length - 1);
+        const startCol = Math.min(vb.anchorCol, curCol);
+        const endCol = Math.max(vb.anchorCol, curCol);
+        for (let i = 0; i <= endLine; i++) {
+            const text = lines[i] ?? '';
+            if (i < startLine) {
+                rows.push({ pre: text, sel: '', post: '' });
+                continue;
+            }
+            const sc = Math.min(startCol, text.length);
+            const ec = Math.min(endCol + 1, text.length);
+            rows.push({ pre: text.slice(0, sc), sel: text.slice(sc, ec), post: text.slice(ec) });
+        }
+        return rows;
+    }
+
+    // v 字符可视：锚点↔光标的连续字符区间（跨行含换行，行间换行不高亮）
+    const offsets: number[] = [0];
+    for (const l of lines) offsets.push(offsets[offsets.length - 1] + l.length + 1);
+    const a = Math.min(offsets[vb.anchorLine] + vb.anchorCol, content.length);
+    const b = Math.min(offsets[curLine] + curCol, content.length);
+    const start = Math.min(a, b);
+    const end = Math.max(a, b);
+    for (let i = 0; i < lines.length; i++) {
         const text = lines[i] ?? '';
-        if (i < startLine) {
+        const ls = offsets[i];
+        const le = ls + text.length; // 行内容结束（不含换行）
+        if (ls >= end) break;
+        const sRel = Math.max(0, Math.min(end, le) - Math.max(start, ls));
+        const sPos = Math.max(0, Math.max(start, ls) - ls);
+        if (sRel <= 0) {
             rows.push({ pre: text, sel: '', post: '' });
             continue;
         }
-        const s = Math.min(startCol, text.length);
-        const e = Math.min(endCol + 1, text.length);
-        rows.push({ pre: text.slice(0, s), sel: text.slice(s, e), post: text.slice(e) });
+        rows.push({ pre: text.slice(0, sPos), sel: text.slice(sPos, sPos + sRel), post: text.slice(sPos + sRel) });
     }
     return rows;
 });

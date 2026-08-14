@@ -628,6 +628,87 @@ export function deleteBlock(list: TaskList, anchorLine: number, anchorCol: numbe
   return updateCursor(setLines(list, task, lines), task.id, sel.startLine, sel.startCol);
 }
 
+// ==================== v/V 可视模式（字符式 / 行式） ====================
+
+/** vim V（行可视）：锚点行↔光标行（含）的整行选区 */
+export function getLineSelection(
+  list: TaskList,
+  anchorLine: number
+): { text: string; startLine: number; endLine: number } | null {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return null;
+  const lines = linesOf(task);
+  const curLine = task.cursorLine || 0;
+  const startLine = Math.min(anchorLine, curLine);
+  const endLine = Math.min(Math.max(anchorLine, curLine), lines.length - 1);
+  return { text: lines.slice(startLine, endLine + 1).join('\n'), startLine, endLine };
+}
+
+/** vim V：删除选中整行，光标落首行行首 */
+export function deleteLineSelection(list: TaskList, anchorLine: number): TaskList {
+  const sel = getLineSelection(list, anchorLine);
+  const task = list.selected;
+  if (!sel || !task) return list;
+  const lines = linesOf(task);
+  lines.splice(sel.startLine, sel.endLine - sel.startLine + 1);
+  const newLine = Math.max(0, Math.min(sel.startLine, lines.length - 1));
+  return updateCursor(setLines(list, task, lines), task.id, newLine, 0);
+}
+
+/** vim v（字符可视）：锚点↔光标的连续字符区间（跨行含换行），返回扁平偏移与行列 */
+export function getCharSelection(
+  list: TaskList,
+  anchorLine: number,
+  anchorCol: number
+): {
+  text: string;
+  startLine: number;
+  startCol: number;
+  endLine: number;
+  endCol: number;
+  startOff: number;
+  endOff: number;
+} | null {
+  const task = list.selected;
+  if (!task || task.status !== TaskState.CONTENT_NAVIGATION) return null;
+  const content = task.content || '';
+  const lines = content.split('\n');
+  const lineOffsets: number[] = [0];
+  for (const l of lines) lineOffsets.push(lineOffsets[lineOffsets.length - 1] + l.length + 1);
+  const anchorOff = Math.min(lineOffsets[anchorLine] + anchorCol, content.length);
+  const curLine = task.cursorLine || 0;
+  const curOff = Math.min(lineOffsets[curLine] + (task.cursorColumn || 0), content.length);
+  const startOff = Math.min(anchorOff, curOff);
+  const endOff = Math.max(anchorOff, curOff);
+  const toLineCol = (off: number): { line: number; col: number } => {
+    for (let i = 1; i < lineOffsets.length; i++) {
+      if (off < lineOffsets[i]) return { line: i - 1, col: off - lineOffsets[i - 1] };
+    }
+    return { line: lines.length - 1, col: off - lineOffsets[lines.length - 1] };
+  };
+  const s = toLineCol(startOff);
+  const e = toLineCol(endOff);
+  return {
+    text: content.slice(startOff, endOff),
+    startLine: s.line,
+    startCol: s.col,
+    endLine: e.line,
+    endCol: e.col,
+    startOff,
+    endOff,
+  };
+}
+
+/** vim v：删除选中字符区间，光标落区间起点 */
+export function deleteCharSelection(list: TaskList, anchorLine: number, anchorCol: number): TaskList {
+  const sel = getCharSelection(list, anchorLine, anchorCol);
+  const task = list.selected;
+  if (!sel || !task) return list;
+  const content = task.content || '';
+  const newContent = content.slice(0, sel.startOff) + content.slice(sel.endOff);
+  return updateCursor(updateProperty(list, task.id, 'content', newContent), task.id, sel.startLine, sel.startCol);
+}
+
 /** vim O：上方插入空行，光标落新行行首 */
 export function insertLineAbove(list: TaskList): TaskList {
   const task = list.selected;

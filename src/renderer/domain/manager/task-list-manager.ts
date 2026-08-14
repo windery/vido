@@ -11,7 +11,7 @@ import {
   deleteCharAtCursor, deleteCharBeforeCursor, deleteWordForward, deleteWordBackward, deleteWordEnd,
   deleteToLineEnd, deleteToLineStart, deleteToFirstLine, deleteToLastLine, mergeLineBelow,
   replaceCharAtCursor, swapCaseAtCursor, copyTextAtCursor, pasteTextAtCursor, pasteExternalText,
-  getBlockSelection, deleteBlock,
+  getBlockSelection, deleteBlock, getLineSelection, deleteLineSelection, getCharSelection, deleteCharSelection,
   indentTask, unindentTask,
   moveCursorToLineStart, moveCursorToLineEnd, moveCursorToFirstLine, moveCursorToLastLine,
   moveCursorWordForward, moveCursorWordBackward, moveCursorWordEnd,
@@ -150,6 +150,14 @@ export class TaskListManager {
   blockSelection(anchorLine: number, anchorCol: number) { return getBlockSelection(this.list, anchorLine, anchorCol); }
   /** 可视块删除，光标落块左上角 */
   deleteBlock(anchorLine: number, anchorCol: number): void { this.list = deleteBlock(this.list, anchorLine, anchorCol); }
+  /** V 行可视选区（锚点行↔光标行整行） */
+  lineSelection(anchorLine: number) { return getLineSelection(this.list, anchorLine); }
+  /** V 行可视删除，光标落首行行首 */
+  deleteLineSelection(anchorLine: number): void { this.list = deleteLineSelection(this.list, anchorLine); }
+  /** v 字符可视选区（锚点↔光标连续字符，含换行） */
+  charSelection(anchorLine: number, anchorCol: number) { return getCharSelection(this.list, anchorLine, anchorCol); }
+  /** v 字符可视删除，光标落区间起点 */
+  deleteCharSelection(anchorLine: number, anchorCol: number): void { this.list = deleteCharSelection(this.list, anchorLine, anchorCol); }
   indentTask(id: number): void { this.list = indentTask(this.list, id); }
   unindentTask(id: number): void { this.list = unindentTask(this.list, id); }
 

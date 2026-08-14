@@ -34,7 +34,7 @@ function buildState(): any {
     lastlineVisible: store.state.lastlineVisible,
     flashMessage: store.state.flashMessage,
     configNavIndex: store.state.configNavIndex,
-    visualBlock: store.state.visualBlock,
+    visual: store.state.visual,
     dirty: store.state.dirty,
     calendarView: store.state.calendarView,
     tasks: store.manager.list.items,

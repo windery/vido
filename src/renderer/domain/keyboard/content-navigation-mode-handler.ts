@@ -3,7 +3,7 @@
  * vim 风格光标移动：hjkl、w/b/e 词导航、0/$ 行首尾、gg/G 首尾行
  * vim 风格编辑：x/X/dw/db/de/d$/d0/dd/dgg/dG、cw/cc/c$、yy/yw/y$、p/P、
  * r{char}、~、J、u/Ctrl+R、A/I/O、i/a/o
- * Ctrl+V 可视块模式：锚点↔光标矩形选区，x/d 删除、y 复制、c 删除后插入、Esc 退出
+ * v/V/Ctrl+V 可视模式：v 字符、V 行、Ctrl+V 块，锚点↔光标选区，x/d 删除、y 复制、p/P 替换、c 删除后插入、Esc 退出
  * p/P：系统剪贴板优先（外部复制内容），无则回退内部 yank 缓冲
  */
 
@@ -45,9 +45,10 @@ export class ContentNavigationModeHandler implements ModeHandler {
       this.pendingOp = null; // 非法 motion，取消操作符，继续按普通键处理
     }
 
-    // 可视块模式：x/d/y/c/Esc 作用于块，移动键扩展选区（放行主 switch），其余键先退出块模式再按普通键处理
-    if (taskDataManager.getState().visualBlock?.active) {
-      const handled = this.handleBlockKey(event, key, taskDataManager);
+    // 可视模式（v 字符 / V 行 / Ctrl+V 块）：x/d/y/c/p/Esc 作用于选区，移动键扩展选区（放行主 switch），
+    // 其余键先退出可视模式再按普通键处理
+    if (taskDataManager.getState().visual?.active) {
+      const handled = this.handleVisualKey(event, key, taskDataManager);
       if (handled) return true;
     }
 
@@ -246,17 +247,16 @@ export class ContentNavigationModeHandler implements ModeHandler {
         this.pasteKey(taskDataManager, true);
         return true;
 
-      // Ctrl+V：进入可视块模式（锚点=当前光标，j/k/h/l/w/0/$/gg/G 扩展矩形选区）
+      // v：字符可视；Ctrl+V：可视块；V：行可视（锚点=当前光标，移动键扩展选区）
       case 'v':
-        if (event.ctrlKey) {
-          event.preventDefault();
-          taskDataManager.startVisualBlock();
-          return true;
-        }
-        // 普通 v 未绑定：按未知键处理（退出导航回 command）
         event.preventDefault();
-        taskDataManager.transition('Escape');
-        this.blurInputFields();
+        if (event.ctrlKey) taskDataManager.startVisual('block');
+        else taskDataManager.startVisual('char');
+        return true;
+
+      case 'V':
+        event.preventDefault();
+        taskDataManager.startVisual('line');
         return true;
 
       // 操作符前缀（vim operator + motion）
@@ -317,35 +317,35 @@ export class ContentNavigationModeHandler implements ModeHandler {
     return true;
   }
 
-  /** 可视块模式按键：x/d 删除块、y 复制块、c 删除后插入、Esc 仅退出块；移动键返回 false 放行主 switch 扩展选区 */
-  private handleBlockKey(event: KeyboardEvent, key: string, tdm: Store): boolean {
+  /** 可视模式按键：x/d 删除选区、y 复制、c 删除后插入、p/P 替换、Esc 仅退出可视；移动键返回 false 放行主 switch 扩展选区 */
+  private handleVisualKey(event: KeyboardEvent, key: string, tdm: Store): boolean {
     switch (key) {
       case 'Escape':
         event.preventDefault();
-        tdm.endVisualBlock();
+        tdm.endVisual();
         return true;
 
       case 'x':
       case 'd':
         event.preventDefault();
-        tdm.deleteVisualBlock();
+        tdm.deleteVisual();
         return true;
 
       case 'y':
         event.preventDefault();
-        tdm.copyVisualBlock();
+        tdm.copyVisual();
         return true;
 
-      // vim 语义：块选中时 p/P 用粘贴内容**替换**块（系统剪贴板优先，回退内部 yank）
+      // vim 语义：可视选中时 p/P 用粘贴内容**替换**选区（系统剪贴板优先，回退内部 yank）
       case 'p':
       case 'P':
         event.preventDefault();
-        this.pasteOverBlock(tdm);
+        this.pasteOverVisual(tdm);
         return true;
 
       case 'c':
         event.preventDefault();
-        tdm.changeVisualBlock();
+        tdm.changeVisual();
         tdm.transition('i');
         this.enableContentEditing(tdm);
         return true;
@@ -362,8 +362,8 @@ export class ContentNavigationModeHandler implements ModeHandler {
         return false;
 
       default:
-        // 未绑定键：退出块模式后按普通键继续（不吞键）
-        tdm.endVisualBlock();
+        // 未绑定键：退出可视模式后按普通键继续（不吞键）
+        tdm.endVisual();
         return false;
     }
   }
@@ -388,11 +388,11 @@ export class ContentNavigationModeHandler implements ModeHandler {
     else tdm.pasteAfter();
   }
 
-  /** 块模式 p/P：删除块后用粘贴文本原位替换（系统剪贴板优先，无/空则回退内部 yank；空文本 = 仅删除块） */
-  private pasteOverBlock(tdm: Store): void {
+  /** 可视模式 p/P：删除选区后用粘贴文本原位替换（系统剪贴板优先，无/空则回退内部 yank；空文本 = 仅删除选区） */
+  private pasteOverVisual(tdm: Store): void {
     const fallback = () => {
       const cb = tdm.getContentClipboard();
-      tdm.replaceVisualBlock(cb ? cb.text : '');
+      tdm.replaceVisual(cb ? cb.text : '');
     };
     const sys = readSystemClipboard();
     if (sys === null) {
@@ -401,7 +401,7 @@ export class ContentNavigationModeHandler implements ModeHandler {
     }
     void sys
       .then((text) => {
-        if (text) tdm.replaceVisualBlock(text);
+        if (text) tdm.replaceVisual(text);
         else fallback();
       })
       .catch(fallback);

@@ -20,7 +20,7 @@ export const en = {
   mode: {
     titleEdit: '-- TITLE EDIT -- (⏎ save)',
     contentEdit: '-- INSERT --',
-    contentNav: '-- CONTENT-NAV -- (hjkl move · i insert · ^V block · p paste · ? help)',
+    contentNav: '-- CONTENT-NAV -- (hjkl move · i insert · v visual · ^V block · p paste · ? help)',
     config: '-- CONFIG --',
     // 键位详情在面板 footer/输入框 placeholder 展示，状态栏只报 section 名（徽标），不重复提示
     configSchedule: 'j k nav · ⏎ select · x clear · ? help',
@@ -184,9 +184,11 @@ export const en = {
           { key: 'c + motion', desc: 'Change (delete + insert): cw cb ce c$ cc' },
           { key: 'y + motion', desc: 'Copy: yw y$ yy' },
           { key: 'p / P', desc: 'Paste after / before (system clipboard first)' },
+          { key: 'v / V', desc: 'Visual (char) / visual line mode' },
           { key: 'Ctrl-V', desc: 'Visual block: hjkl/w/0/$/gg/G extend' },
-          { key: 'x / d (block)', desc: 'Delete block (yanks it) · y copies' },
-          { key: 'c (block)', desc: 'Delete block + insert · Esc exits block' },
+          { key: 'x / d (visual)', desc: 'Delete selection (yanks it) · y copies' },
+          { key: 'p / P (visual)', desc: 'Replace selection with pasted text' },
+          { key: 'c (visual)', desc: 'Delete + insert · Esc exits visual' },
           { key: 'r{char}', desc: 'Replace char under cursor' },
           { key: '~', desc: 'Swap case' },
           { key: 'J', desc: 'Join line below' },
