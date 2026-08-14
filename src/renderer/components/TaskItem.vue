@@ -64,13 +64,13 @@
                 <input ref="scheduleInputRef" v-model="scheduleInputValue" class="config-input" spellcheck="false"
                   :placeholder="t('config.schedulePlaceholder')"
                   @compositionstart="configComposing = true" @compositionend="configComposing = false"
-                  @keydown.tab.prevent="completeScheduleKeyword"
+                  @keydown.tab.prevent="completeScheduleInput"
                   @keydown.enter.stop="saveScheduleInput" @keydown.escape.stop="cancelScheduleInput" />
               </div>
               <!-- 格式展示：可接受的写法（程序员友好的文档式提示） -->
               <div class="config-input-hint" v-html="t('config.scheduleFormats')"></div>
-              <!-- 实时预览：解析成功即显示最终日程，让输入所见即所得 -->
-              <div v-if="schedulePreview" class="config-input-preview">→ {{ schedulePreview }}</div>
+              <!-- 实时预览：解析成功即显示最终日程（所见即所得）；含关键字/非法输入红色提示 -->
+              <div v-if="schedulePreview" class="config-input-preview" :class="{ 'is-error': schedulePreviewError }">{{ schedulePreviewError ? '✗ ' : '→ ' }}{{ schedulePreview }}</div>
             </div>
             <div v-else class="config-pills">
               <span class="config-pill" :class="{ 'nav-active': navOn('schedule-select', 1) }"><kbd>1</kbd> {{ t('config.today') }}</span>
@@ -230,31 +230,53 @@ watchEffect(() => {
   }
 });
 
-/** 实时预览：当前输入可解析时展示最终日程文案（所见即所得） */
+/** 是否含关键字（自定义输入仅支持数字日期/时间格式；tomorrow 等走快捷 pill） */
+const scheduleInputHasKeyword = computed(() => /[a-zA-Z]/.test(scheduleInputValue.value.trim()));
+
+/** 实时预览：数字可解析 → 最终日程文案；含关键字/非法数字 → 红色提示（所见即所得） */
+const schedulePreviewError = computed(() => {
+  const val = scheduleInputValue.value.trim();
+  if (!val) return false;
+  if (scheduleInputHasKeyword.value) return true;
+  return !parseScheduleFromString(val);
+});
+
 const schedulePreview = computed(() => {
   const val = scheduleInputValue.value.trim();
   if (!val) return '';
+  if (scheduleInputHasKeyword.value) return 'numbers only: YYYY-MM-DD [HH:MM]';
   const s = parseScheduleFromString(val);
-  return s ? getScheduleDisplayText(s) : '';
+  return s ? getScheduleDisplayText(s) : 'invalid date/time';
 });
 
-/** Tab 补全：关键字循环（today → tomorrow → next week → 周几 → every 周几…），空输入先给 today */
-const SCHEDULE_KEYWORDS = ['today', 'tomorrow', 'next week', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'every monday', 'every day', 'every week', 'every month', 'every year', 'clear'];
-
-const completeScheduleKeyword = () => {
-  const cur = scheduleInputValue.value.trim().toLowerCase();
+/** Tab 数字补全：日期前缀 → 今天日期；完整日期 → 补默认 10:00；小时前缀 → 补 :00 */
+const completeScheduleInput = () => {
+  const cur = scheduleInputValue.value.trim();
   if (!cur) {
-    scheduleInputValue.value = 'today';
-    return;
-  }
-  const matches = SCHEDULE_KEYWORDS.filter((k) => k.startsWith(cur));
-  if (matches.length > 0) {
-    scheduleInputValue.value = matches[0];
-    return;
-  }
-  // 数字开头：补全为今天日期（YYYY-MM-DD）
-  if (/^\d/.test(cur)) {
     scheduleInputValue.value = getCurrentDate();
+    return;
+  }
+  const today = getCurrentDate(); // 2026-08-14
+  const todayCompact = today.replace(/-/g, ''); // 20260814
+  // 纯数字且是今天紧凑日期的前缀 → 补全为今天（带分隔符）
+  if (/^\d{1,7}$/.test(cur) && todayCompact.startsWith(cur)) {
+    scheduleInputValue.value = today;
+    return;
+  }
+  // 完整日期 → 追加默认时间 10:00
+  if (/^\d{4}-\d{2}-\d{2}$/.test(cur)) {
+    scheduleInputValue.value = `${cur} 10:00`;
+    return;
+  }
+  // 日期 + 小时前缀 → 补 :00
+  if (/^\d{4}-\d{2}-\d{2} \d{1,2}$/.test(cur)) {
+    scheduleInputValue.value = `${cur}:00`;
+    return;
+  }
+  // 纯小时（今日时间）→ HH:00
+  if (/^\d{1,2}$/.test(cur)) {
+    scheduleInputValue.value = `${cur.padStart(2, '0')}:00`;
+    return;
   }
 };
 
@@ -262,14 +284,17 @@ const saveScheduleInput = () => {
   // 输入法选字确认的 Enter 不保存
   if (configComposing.value) return;
   const val = scheduleInputValue.value.trim();
-  if (val) {
-    const s = parseScheduleFromString(val);
-    if (s) {
-      const tdm = useTaskState().taskDataManager;
-      tdm.updateTaskProperty(props.task.id, 'schedule', s);
-    }
+  if (!val) {
+    useTaskState().taskDataManager.setConfigState(props.task.id, 'schedule-select');
+    return;
   }
-  useTaskState().taskDataManager.setConfigState(props.task.id, 'schedule-select');
+  // 仅数字格式：关键字/非法输入不保存，留在编辑态（预览行红色提示）
+  if (scheduleInputHasKeyword.value) return;
+  const s = parseScheduleFromString(val);
+  if (!s) return;
+  const tdm = useTaskState().taskDataManager;
+  tdm.updateTaskProperty(props.task.id, 'schedule', s);
+  tdm.setConfigState(props.task.id, 'schedule-select');
 };
 
 const cancelScheduleInput = () => {
@@ -666,6 +691,10 @@ watchEffect(() => {
   font-size: 12px;
   font-family: var(--mono);
   color: var(--accent-bright);
+}
+
+.config-input-preview.is-error {
+  color: var(--p1);
 }
 
 .config-input:focus {
