@@ -268,11 +268,9 @@ export class ContentNavigationModeHandler implements ModeHandler {
         return true;
 
       default:
-        // 未绑定键，退出导航回 command 模式
+        // 未绑定键：消费并**保持当前状态**（绝不退回 normal）；修饰键组合放行浏览器默认行为
         if (key.length === 1 && !['Shift', 'Control', 'Alt', 'Meta'].includes(key)) {
           event.preventDefault();
-          taskDataManager.transition('Escape');
-          this.blurInputFields();
           return true;
         }
         return false;

@@ -239,6 +239,20 @@ describe('ContentNavigationModeHandler', () => {
     });
   });
 
+  describe('未绑定键', () => {
+    it('消费并保持当前状态，绝不退回 normal', () => {
+      const ok = handler.handleKey(makeEvent('q'), 'q', mockTDM, false);
+      expect(ok).toBe(true);
+      expect(mockTDM.transition).not.toHaveBeenCalled();
+    });
+
+    it('修饰键本身放行（不消费，浏览器默认行为）', () => {
+      const ok = handler.handleKey(makeEvent('Shift'), 'Shift', mockTDM, false);
+      expect(ok).toBe(false);
+      expect(mockTDM.transition).not.toHaveBeenCalled();
+    });
+  });
+
   describe('? — 打开完整键位参考（不退出导航）', () => {
     it('calls toggleHelp', () => {
       handler.handleKey(makeEvent('?'), '?', mockTDM, false);

@@ -46,7 +46,7 @@ Esc 关闭配置（edit 态先取消回 select，再 Esc 关闭）
 4. select → J/K → 切换到另一个类型的 select（j/k 只导航高亮、Enter 才选中生效，绝不切任务）
 5. 操作完成后不改配置类型——加完标签留在 tags-select，选完优先级留在 priority-select
 
-**内容导航模式（command 下 `i` 进入）**：hjkl/w/b/e/0/$/gg/G 移动，x/X/d+cw/cc/c$/yy/yw/y$/p/P/r/~ /J/u 编辑。
+**内容导航模式（command 下 `i` 进入）**：hjkl/w/b/e/0/$/gg/G 移动，x/X/d+cw/cc/c$/yy/yw/y$/p/P/r/~ /J/u 编辑；**未绑定键一律消费并保持当前状态，绝不退回 normal**（修饰键本身放行浏览器默认行为）。
 - **可视模式三态**（锚点=按下时光标，移动键扩展选区，半透明绿底覆盖层实时高亮）：`v` 字符可视（连续字符区间）、`V` 行可视（整行）、`Ctrl+V` 块可视（矩形）；统一操作——`x`/`d` 删除选区（内容入内部缓冲+系统剪贴板）、`y` 只复制、`c` 删除后进入插入、**`p`/`P` 用粘贴内容替换选区**（系统剪贴板优先、回退内部 yank，空文本=仅删除）、`Esc` 只退出可视模式；未绑定键先退出可视再按普通键处理；切换任务/退出导航自动清理选区。
 - **p/P 粘贴**：系统剪贴板优先（外部复制内容，经主进程 `clipboard` IPC，无权限问题）；无系统剪贴板/读取失败/为空时回退内部 yank 缓冲。yank（yy/yw/y$/块复制/块删除）反向写回系统剪贴板（unnamedplus 语义）。系统文本按字符式粘贴：多行在当前光标处切行插入，p 光标落粘贴末尾、P 落开头。
 
@@ -453,6 +453,10 @@ grep -E "(KeyboardManager|State transition)" ~/.vido-dev/log/vido-$(date +%Y-%m-
 - Use log analysis to understand system behavior
 - Verify fixes before presenting solutions
 - Ensure solutions work through systematic testing
+
+## Release 规范
+
+- 发布说明 = **整体描述主要变更**的简洁摘要（写在**标注 tag 的 message** 里，由 release.yml 直接作为 release body）；**不列逐条提交、不列安装包/产物清单**（GitHub 自动展示产物文件列表）。
 
 ## Development Notes
 

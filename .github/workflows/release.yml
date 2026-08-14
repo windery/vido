@@ -127,7 +127,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ always() && startsWith(github.ref, 'refs/tags/') }}
     steps:
-      - name: Checkout (for changelog)
+      - name: Checkout (fetch tag message for release notes)
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
@@ -138,31 +138,14 @@ jobs:
         with:
           path: artifacts
 
-      - name: Build release body (changelog + installers)
+      - name: Release notes (annotated tag message)
         run: |
-          # 上一个 tag 到当前 tag 的提交作为更新内容；无上一 tag 时回退最近 15 条
-          PREV=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)
-          if [ -n "$PREV" ]; then RANGE="$PREV..HEAD"; else RANGE="HEAD~15..HEAD"; fi
-          {
-            echo '## 更新内容'
-            echo
-            git log --pretty=format:'- %s' "$RANGE"
-            echo
-            echo
-            echo '## 安装包'
-            echo
-            echo '**macOS**'
-            find artifacts -type f \( -name 'Vido-Mac-*.dmg' -o -name 'Vido-Mac-*.zip' \) | sort | sed 's|.*/||; s|^|  - |'
-            echo
-            echo '**Windows**'
-            find artifacts -type f \( -name 'Vido-Windows-*.exe' -o -name 'Vido-Windows-*.zip' \) | sort | sed 's|.*/||; s|^|  - |'
-            echo
-            echo '**Linux**'
-            find artifacts -type f \( -name 'Vido-Linux-*.AppImage' -o -name 'Vido-Linux-*.deb' \) | sort | sed 's|.*/||; s|^|  - |'
-            echo
-            echo '---'
-            echo '详细构建日志见各 CI job 的 electron-builder.log。'
-          } > body.md
+          # 发布说明 = 标注 tag 的整体摘要（人工撰写，只讲主要变更，不列逐条提交、不列安装包清单）
+          TAG="${GITHUB_REF#refs/tags/}"
+          git tag -l --format='%(contents)' "$TAG" > body.md
+          if [ ! -s body.md ]; then echo "v$TAG" > body.md; fi
+          echo "--- release notes ---"
+          cat body.md
 
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2
