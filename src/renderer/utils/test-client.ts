@@ -16,6 +16,18 @@ declare global {
   }
 }
 
+/**
+ * 解析模拟按键字符串："Ctrl+v" / "ctrl+V" → { key: 'v', ctrlKey: true }。
+ * 修饰键前缀大小写不敏感，其余原样作为 event.key。
+ */
+export function parseSimulatedKey(rawKey: string): { key: string; ctrlKey: boolean } {
+  const m = /^(ctrl|control)\+/i.exec(rawKey);
+  if (m) {
+    return { key: rawKey.slice(m[0].length), ctrlKey: true };
+  }
+  return { key: rawKey, ctrlKey: false };
+}
+
 class TestClient {
   private isEnabled: boolean = false;
 
@@ -86,18 +98,24 @@ class TestClient {
     logger.info('TestClient', 'Test client initialized with Electron IPC');
   }
 
-  private simulateKeyboardEvent(key: string): void {
+  private simulateKeyboardEvent(rawKey: string): void {
+    const { key, ctrlKey } = parseSimulatedKey(rawKey);
+
     // 创建并分发键盘事件
     const event = new KeyboardEvent('keydown', {
       key: key,
       bubbles: true,
       cancelable: true,
+      ctrlKey,
     });
 
     // 首先在document上触发（用于全局键盘管理器）
     document.dispatchEvent(event);
 
-    // 如果当前有活动的input元素，也在该元素上触发事件
+    // 如果当前有活动的input元素，也在该元素上触发事件（不冒泡）：
+    // 输入框自身的监听器（@keydown 等）收到直发事件，而键盘管理器只经
+    // document 投递一次——冒泡会导致同一按键被全局管理器处理两次
+    // （p 粘贴两次、dd 删两个任务、标题字符翻倍）。
     const activeElement = document.activeElement;
     if (
       activeElement &&
@@ -106,13 +124,14 @@ class TestClient {
     ) {
       const targetEvent = new KeyboardEvent('keydown', {
         key: key,
-        bubbles: true,
+        bubbles: false,
         cancelable: true,
+        ctrlKey,
       });
       activeElement.dispatchEvent(targetEvent);
 
       // 对于可输入字符，还需要模拟input事件来更新v-model
-      if (this.isInputCharacter(key)) {
+      if (this.isInputCharacter(key) && !ctrlKey) {
         // 更新input的value
         const currentValue = activeElement.value;
         const newValue = currentValue + key;

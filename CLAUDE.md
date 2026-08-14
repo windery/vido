@@ -74,6 +74,7 @@ Esc 关闭配置（edit 态先取消回 select，再 Esc 关闭）
 | 已完成 | 无符号，**样式区分**：标题删除线 + 行变暗 | 灰 `--text-dim` / 透明度 |
 | 进度条 | `▰▱` ASCII 块 | 磷光绿 |
 | 选中行 | `›` 标记 + 行号高亮 | `--accent` |
+| 可视块选区（Ctrl+V 内容编辑） | 无文字符号，**半透明磷光绿底 + 1px 绿描边**覆盖层 | `--accent-soft` 底 / `--accent-dim` 描边 |
 
 ### UX Principles
 
@@ -270,7 +271,14 @@ curl -X POST http://localhost:3002/api/key/k
 curl -X POST http://localhost:3002/api/sequence \
   -H "Content-Type: application/json" \
   -d '{"keys": ["j", "k", "i", "Escape"]}'
+
+# 修饰键：Ctrl+/ctrl+ 前缀（大小写不敏感），如可视块模式
+curl -X POST http://localhost:3002/api/sequence \
+  -H "Content-Type: application/json" \
+  -d '{"keys": ["i", "Ctrl+v", "j", "j", "x"]}'
 ```
+
+**投递语义（单次保证）**: TestClient 对每个模拟键只让全局键盘管理器处理一次——document 投递负责全局路由，聚焦 input 的直发事件（`bubbles: false`）只给输入框自身监听器；字符输入由 TestClient 统一模拟（value 更新 + input 事件），组件侧不再重复插入。因此 p 只粘贴一次、dd 只删一个任务、标题字符不翻倍。
 
 **Claude Code Testing Process (MANDATORY)**:
 1. **Trigger**: Send API commands for keyboard operations

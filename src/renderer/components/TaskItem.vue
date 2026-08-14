@@ -163,26 +163,11 @@ const handleTitleInput = (event: Event) => {
 };
 
 const handleTitleKeydown = (event: KeyboardEvent) => {
-    const target = event.target as HTMLInputElement;
-
-    // 对于普通字符输入，手动更新输入框的值（仅用于程序化键盘事件模拟）
-    if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
-        // 检查是否是程序化事件（通过isTrusted属性判断）
-        // 程序化事件的isTrusted为false，真实用户事件的isTrusted为true
-        if (!event.isTrusted) {
-            // 只有程序化事件才需要手动添加字符
-            const currentValue = target.value;
-            const newValue = currentValue + event.key;
-            target.value = newValue;
-
-            // 触发 input 事件
-            const inputEvent = new Event('input', { bubbles: true });
-            target.dispatchEvent(inputEvent);
-
-            // 阻止默认行为，避免重复
-            event.preventDefault();
-        }
-        // 对于真实用户输入，让浏览器默认处理，不需要做任何事情
+    // 程序化测试事件的字符输入由 TestClient 统一模拟（value 更新 + input 事件），
+    // 这里不再重复插入字符（双重插入是旧测试路径字符翻倍的根源）；
+    // 只阻止程序化事件的默认行为，真实输入走浏览器原生路径。
+    if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey && !event.isTrusted) {
+        event.preventDefault();
     }
 };
 
