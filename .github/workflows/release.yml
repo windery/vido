@@ -84,6 +84,7 @@ jobs:
           pnpm exec vite build
 
       - name: Package (electron-builder, publish never)
+        shell: bash  # 显式 bash：Windows runner 默认 pwsh，pipefail/tee 语法不兼容
         run: |
           set -o pipefail  # electron-builder 失败必须让 step 失败（tee 不掩盖退出码）
           mkdir -p release
@@ -96,12 +97,13 @@ jobs:
           # CI 无签名证书：明确关闭自动发现（afterPack hook 会给 mac 包做 ad-hoc 签名）
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
-      # 签名健全性检查：ad-hoc 签名必须通过 strict 校验（Gatekeeper 认这个）
+      # 签名健全性检查：ad-hoc 签名必须通过 strict 校验（Gatekeeper 认这个）；
+      # 跳过 universal 的临时架构目录（合并前不签）
       - name: Verify mac signature
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          find release -type d -name '*.app' > release/app-list.txt
+          find release -type d -name '*.app' | grep -v -- '-temp' > release/app-list.txt || true
           cat release/app-list.txt
           FAIL=0
           while IFS= read -r APP; do
@@ -112,6 +114,7 @@ jobs:
           exit $FAIL
 
       - name: Upload build artifact
+        if: ${{ always() }}  # 构建失败也上传日志，Release body 可定位
         uses: actions/upload-artifact@v6
         with:
           name: vido-${{ matrix.label }}

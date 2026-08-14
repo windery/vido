@@ -32,6 +32,13 @@ exports.default = async function afterPack(context) {
   );
   if (!fs.existsSync(appPath)) return;
 
+  // universal 构建的 x64/arm64 临时目录（*-x64-temp / *-arm64-temp）不签：
+  // 签名会破坏 @electron/universal 的合并；合并后的最终 app 由 afterPack 再次调用时签名
+  if (/-(x64|arm64)-temp/.test(context.appOutDir)) {
+    console.log(`  • universal 临时架构，跳过签名: ${context.appOutDir}`);
+    return;
+  }
+
   // 注意：Electron 官方二进制自带 linker-signed（adhoc）签名，codesign -dv 会成功，
   // 但它没有 bundle 级 _CodeSignature 密封，Gatekeeper 照样判「已损坏」。
   // 因此只以 TeamIdentifier 判断：有真实 Team（正式证书）才让路，其余一律重新 ad-hoc 签名。
