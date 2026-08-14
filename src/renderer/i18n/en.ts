@@ -62,11 +62,6 @@ export const en = {
   msg: {
     quitFallback: 'Quit function available in Electron environment',
   },
-  empty: {
-    noResults: 'No search results found',
-    emptyTitle: 'Empty buffer — start managing your todos',
-    emptyKeys: 'Press <kbd>o</kbd> new task · <kbd>/</kbd> search · <kbd>:</kbd> command · <kbd>?</kbd> help',
-  },
   status: {
     tasks: 'tasks',
     task: 'task',

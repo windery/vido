@@ -15,7 +15,7 @@
                     :selected-date="calendarSelectedDate" :selected-task-id="calendarSelectedTaskId" />
 
                 <!-- Empty Buffer -->
-                <EmptyBuffer v-else-if="filteredTasks.length === 0" :is-searching="isSearching" />
+                <EmptyBuffer v-else-if="filteredTasks.length === 0" :is-searching="isSearching" :search-term="searchTerm" />
 
                 <!-- Task List -->
                 <div v-else class="buffer-content">

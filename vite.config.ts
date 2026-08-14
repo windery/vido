@@ -15,6 +15,10 @@ export default defineConfig(({ command }) => {
   const sourcemap = isServe || !!process.env.VSCODE_DEBUG;
 
   return {
+    define: {
+      // 应用版本注入（空 buffer 欢迎屏展示，vim 启动屏语义）
+      'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkg.version),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
