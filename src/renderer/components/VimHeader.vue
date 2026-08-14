@@ -8,7 +8,7 @@
             <div class="stats">
                 <span class="stat-block">
                     <span class="stat-num">{{ filteredTasksCount }}</span>
-                    <span class="stat-label">{{ t('header.tasks') }}</span>
+                    <span class="stat-label">{{ tasksLabel }}</span>
                 </span>
                 <span class="stat-block stat-done-block">
                     <span class="stat-num">{{ completedTasksCount }}<span class="stat-sep">/</span>{{ filteredTasksCount }}</span>
@@ -40,10 +40,13 @@ const props = defineProps<Props>();
 const now = ref(new Date());
 let timeInterval: ReturnType<typeof setInterval> | null = null;
 
+const tasksLabel = computed(() => (props.filteredTasksCount === 1 ? t('header.task') : t('header.tasks')));
+
 const currentTime = computed(() => {
     return now.value.toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
+        year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
         hour12: false

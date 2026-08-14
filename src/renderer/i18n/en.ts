@@ -14,6 +14,7 @@ export interface HelpSection {
 export const en = {
   header: {
     tasks: 'tasks',
+    task: 'task',
     done: 'done',
   },
   mode: {
@@ -72,7 +73,10 @@ export const en = {
   },
   status: {
     tasks: 'tasks',
+    task: 'task',
     pos: 'Ln {l}, Col {c}',
+    /** 状态栏文件名 tooltip：数据文件说明 */
+    dataFile: 'Task data file (tasks.json)',
   },
   flash: {
     saved: 'Saved',

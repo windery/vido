@@ -5,8 +5,8 @@
       <span class="mode-indicator" :class="getModeClass(editorMode)">
         {{ getModeText(editorMode) }}
       </span>
-      <span class="file-info">
-        vido.todo<span v-if="dirty" class="modified-mark"> [+]</span>
+      <span class="file-info" :title="t('status.dataFile')">
+        tasks.json<span v-if="dirty" class="modified-mark"> [+]</span>
       </span>
     </div>
     <div class="status-center">
@@ -29,6 +29,7 @@
       <span v-else-if="selectedTask?.configState" class="help-text">
         {{ configModeText }}
       </span>
+      <span v-else-if="searchActive" class="help-text search-term">/{{ searchTerm }}</span>
       <span v-else class="help-text">
         {{ t('mode.help') }}
       </span>
@@ -47,21 +48,39 @@ import { useTaskState } from '../composables/use-task-state';
 import { t } from '../i18n';
 
 // 使用新的统一状态管理架构
-const { editorMode, lastlineContent, selectedTask, tasks, filteredTasks, cursorPosition, flashMessage, dirty, calendarVisible } = useTaskState();
+const { editorMode, lastlineContent, selectedTask, tasks, filteredTasks, cursorPosition, flashMessage, dirty, calendarVisible, configNavIndex } = useTaskState();
 
-// 右下角统计：可见/全部任务数
+// 搜索过滤激活（lastlineContent 以 / 开头且有词）
+const searchTerm = computed(() => {
+  const f = lastlineContent.value;
+  return f && f.startsWith('/') && f.length > 1 ? f.slice(1) : '';
+});
+const searchActive = computed(() => searchTerm.value !== '');
+
+// 右下角统计：可见/全部任务数（单复数，程序员会在意 "1 tasks" 这种低级错误）
 const taskCounter = computed(() => {
-  return `${filteredTasks.value.length}/${tasks.value.length} ${t('status.tasks')}`;
+  const total = tasks.value.length;
+  const label = total === 1 ? t('status.task') : t('status.tasks');
+  return `${filteredTasks.value.length}/${total} ${label}`;
 });
 
-// 配置面板展开时显示当前 config 子状态（select / edit 区分类型与阶段）
+// 配置面板展开时显示当前 config 子状态；nav 态附当前位置 [n/total]（j/k 导航的进度反馈）
 const configModeText = computed(() => {
   const cs = selectedTask.value?.configState;
+  const nav = configNavIndex.value;
+  let pos = '';
+  if (nav > 0) {
+    const total = cs === 'schedule-select' ? 5
+      : cs === 'priority-select' ? 4
+      : cs === 'tags-select' ? ((selectedTask.value?.tags?.length || 0) + 2)
+      : 0;
+    if (total > 0) pos = ` [${nav}/${total}]`;
+  }
   switch (cs) {
-    case 'schedule-select': return t('mode.configSchedule');
+    case 'schedule-select': return t('mode.configSchedule') + pos;
     case 'schedule-edit': return t('mode.configScheduleEdit');
-    case 'priority-select': return t('mode.configPriority');
-    case 'tags-select': return t('mode.configTags');
+    case 'priority-select': return t('mode.configPriority') + pos;
+    case 'tags-select': return t('mode.configTags') + pos;
     case 'tags-edit': return t('mode.configTagsEdit');
     default: return t('mode.config');
   }
@@ -248,6 +267,13 @@ const getModeClass = (mode: EditorMode) => {
 .help-text {
   font-style: italic;
   color: var(--text-muted);
+}
+
+/* 激活的搜索过滤词：磷光绿等宽，非斜体——过滤状态必须一眼可辨 */
+.search-term {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--accent-bright);
 }
 
 .flash-message {
