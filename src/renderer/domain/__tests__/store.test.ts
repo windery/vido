@@ -1277,7 +1277,7 @@ describe('Store — 日历视图任务选择（j/k/Enter + 翻页校正）', () 
   });
 });
 
-describe('Store — dirty 状态指示（tasks.json [+]）', () => {
+describe('Store — dirty 状态指示（[+]）', () => {
   it('数据变更置 dirty，保存成功后清除', async () => {
     const store = makeStore();
     const saveSpy = vi.spyOn(store.manager, 'save').mockResolvedValue(undefined);

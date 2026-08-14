@@ -25,7 +25,7 @@ export interface AppState {
   lastlineVisible: boolean;
   isHelpVisible: boolean;
   flashMessage: string | null;
-  /** 未保存变更（状态行 tasks.json [+] 指示器，vim 语义） */
+  /** 未保存变更（状态行 [+] 指示器，vim 语义） */
   dirty: boolean;
   /** 标签删除待确认序号（1 基；0 = 未处于删除态），驱动 tags-select 面板高亮目标标签 */
   tagDeleteIndex: number;

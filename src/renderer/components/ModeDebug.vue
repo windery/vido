@@ -5,9 +5,7 @@
       <span class="mode-indicator" :class="getModeClass(editorMode)">
         {{ getModeText(editorMode) }}
       </span>
-      <span class="file-info" :title="t('status.dataFile')">
-        tasks.json<span v-if="dirty" class="modified-mark"> [+]</span>
-      </span>
+      <span v-if="dirty" class="modified-mark">[+]</span>
     </div>
     <div class="status-center">
       <span v-if="flashMessage" class="flash-message">{{ flashMessage }}</span>
@@ -253,12 +251,7 @@ const getModeClass = (mode: EditorMode) => {
   color: var(--mode-help);
 }
 
-.file-info {
-  color: var(--text-dim);
-  white-space: nowrap;
-}
-
-/* vim 语义：未保存修改时 [*] 亮绿，保存后消失 */
+/* vim 语义：未保存修改时 [+] 亮绿，保存后消失 */
 .modified-mark {
   color: var(--accent-bright);
   font-weight: 700;
