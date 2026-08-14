@@ -1,6 +1,6 @@
 {
   "name": "electron-vue-vite",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "main": "dist-electron/main/index.js",
   "description": "Vido — vim-style todo manager for programmers (Electron + Vue + Vite).",
   "author": "windery <res.windery@gmail.com>",
@@ -50,6 +50,7 @@
     "vue": "^3.4.21"
   },
   "devDependencies": {
+    "@electron/osx-sign": "^2.6.0",
     "@eslint/js": "^9.7.0",
     "@nabla/vite-plugin-eslint": "^2.0.4",
     "@types/cors": "^2.8.19",

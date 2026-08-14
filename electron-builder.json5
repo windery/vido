@@ -21,6 +21,8 @@
     output: 'release/${version}',
   },
   files: ['dist', 'dist-electron'],
+  // 无证书时给 mac 包做 ad-hoc 签名（否则 Gatekeeper 直接判「已损坏」且无法放行）
+  afterPack: 'scripts/after-pack-adhoc-sign.cjs',
 
   mac: {
     icon: 'build/icon.icns',

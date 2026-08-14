@@ -39,9 +39,22 @@ pnpm build:unpack           # 只出未打包目录（快速冒烟验证）
 - macOS 上不能构建 Linux 目标（electron-builder 限制）→ 用 Linux 机器 / Docker / CI。
 
 **签名与分发**：
-- 默认出**未签名**包（本地与 CI 都设 `CSC_IDENTITY_AUTO_DISCOVERY=false`）。未签名包首次打开需右键「打开」（macOS Gatekeeper）。
-- 正式分发：配置签名证书并移除该环境变量；macOS 建议走 notarize（Apple 公证），并把 `electron-builder.json5` 里 `mac.hardenedRuntime` 改回 `true`。
+- 默认出**未签名**包（本地与 CI 都设 `CSC_IDENTITY_AUTO_DISCOVERY=false`）。
+- **macOS 包自动做 ad-hoc 签名**（`scripts/after-pack-adhoc-sign.cjs`）：未签名应用被 Gatekeeper 判「已损坏」且无「仍要打开」按钮；ad-hoc 签名后变为「无法验证开发者」，可右键打开或到 系统设置 → 隐私与安全性 → 仍要打开 放行。
+- 正式分发：配置 Apple Developer ID 证书（自动跳过 ad-hoc，不覆盖正式签名），macOS 建议走 notarize（Apple 公证），并把 `electron-builder.json5` 里 `mac.hardenedRuntime` 改回 `true`。
 - Windows 图标由 `build/icon.png`（1024×1024）自动转 `ico`，不要手动指向不存在的 `build/icon.ico`。
+
+### macOS 安装提示
+
+下载的 dmg 带隔离属性，首次打开可能提示「无法验证开发者」：
+
+1. 右键 Vido.app → 打开 → 再点「打开」；或
+2. 系统设置 → 隐私与安全性 → 拉到「安全性」→ 仍要打开；或
+3. 若个别环境仍提示「已损坏」（老版本未签名包）：终端执行
+   ```bash
+   xattr -cr /Applications/Vido.app
+   ```
+   移除下载隔离属性后即可正常打开。
 
 **国内加速**：下载 Electron 慢时设置镜像：
 ```bash
