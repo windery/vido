@@ -33,6 +33,24 @@ describe('CalendarView — 仅当月天数网格（上/下月不占格）', () =
     expect(wrapper.findAll('.cal-cell').length).toBe(28);
   });
 
+  it('week 跨月：活跃周跨月初/月末时补全邻月日（完整一周可见）', () => {
+    // 活跃周 08-30..09-05（anchor 周日 08-30）→ 8 月 31 格 + 9/1..9/5 共 36 格
+    const w1 = mount(CalendarView, {
+      props: { ...baseProps, granularity: 'week', anchor: '2026-08-30', selectedDate: '2026-08-30' },
+    });
+    const cells1 = w1.findAll('.cal-cell');
+    expect(cells1.length).toBe(36);
+    expect(cells1.filter((c) => c.classes().includes('is-week')).length).toBe(7); // 完整一周全部高亮
+
+    // 反向：显示 9 月（anchor 09-02），活跃周同样 08-30..09-05 → 9 月 30 格 + 8/30、8/31 共 32 格
+    const w2 = mount(CalendarView, {
+      props: { ...baseProps, granularity: 'week', anchor: '2026-09-02', selectedDate: '2026-09-02' },
+    });
+    const cells2 = w2.findAll('.cal-cell');
+    expect(cells2.length).toBe(32);
+    expect(cells2.filter((c) => c.classes().includes('is-week')).length).toBe(7);
+  });
+
   it('week 视图渲染当月全部天数，仅当前周正常、范围外置灰', () => {
     const wrapper = mount(CalendarView, {
       props: { ...baseProps, granularity: 'week' },

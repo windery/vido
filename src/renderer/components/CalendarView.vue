@@ -25,30 +25,30 @@
             </div>
         </div>
 
-        <!-- week：当月网格展示（仅当月天数，上/下月不占格），仅当前周（切换范围）正常显示，范围外日期置灰 -->
+        <!-- week：当月网格展示，仅当前周正常显示、范围外置灰；活跃周跨月初/月末时，邻月的周内日期一并显示（补全完整一周） -->
         <div v-else-if="granularity === 'week'">
             <div class="cal-weekdays">
                 <span v-for="w in WEEKDAYS" :key="w" class="cal-weekday-label">{{ w }}</span>
             </div>
             <div class="cal-grid cal-month">
-                <div v-for="(c, i) in monthCells" :key="c.date" class="cal-cell"
-                    :style="i === 0 ? { gridColumnStart: firstCellColumn } : undefined"
+                <div v-for="c in weekViewCells" :key="c" class="cal-cell"
+                    :style="{ gridColumnStart: weekColumn(c) }"
                     :class="{
-                        'is-today': c.date === todayStr,
-                        'is-week': weekDates.includes(c.date),
-                        'is-out': !weekDates.includes(c.date),
-                        'is-focused': c.date === selectedDate,
+                        'is-today': c === todayStr,
+                        'is-week': weekDates.includes(c),
+                        'is-out': !weekDates.includes(c),
+                        'is-focused': c === selectedDate,
                     }">
                     <div class="cal-cell-head">
-                        <span class="cal-cell-date">{{ c.date.slice(8) }}</span>
+                        <span class="cal-cell-date">{{ c.slice(8) }}</span>
                     </div>
                     <div class="cal-cell-tasks">
-                        <div v-for="t in cellTasks(c.date).slice(0, 3)" :key="t.id" class="cal-task"
-                            :class="{ done: t.completed, selected: c.date === selectedDate && t.id === selectedTaskId }">
+                        <div v-for="t in cellTasks(c).slice(0, 3)" :key="t.id" class="cal-task"
+                            :class="{ done: t.completed, selected: c === selectedDate && t.id === selectedTaskId }">
                             <span class="cal-task-dot">{{ t.completed ? '✓' : '○' }}</span>
                             <span class="cal-task-title">{{ t.title }}</span>
                         </div>
-                        <div v-if="cellTasks(c.date).length > 3" class="cal-overflow">+{{ cellTasks(c.date).length - 3 }}</div>
+                        <div v-if="cellTasks(c).length > 3" class="cal-overflow">+{{ cellTasks(c).length - 3 }}</div>
                     </div>
                 </div>
             </div>
@@ -130,6 +130,16 @@ const firstCellColumn = computed(() => {
     const a = parseDate(props.anchor);
     return a ? a.getDay() + 1 : 1;
 });
+
+/** week 视图：当月天数 + 活跃周跨月的邻月日（月初/月末补全完整一周），按日期排序、每格按星期列定位 */
+const weekViewCells = computed(() => {
+    const month = props.anchor.slice(0, 7);
+    const extras = weekDates.value.filter((d) => d.slice(0, 7) !== month);
+    return [...extras, ...calendarGridCells('month', props.anchor)].sort();
+});
+
+/** 日期 → 星期列（1=Sun .. 7=Sat）：week 视图每格显式定位，保证跨月周连续排列 */
+const weekColumn = (date: string): number => (parseDate(date)?.getDay() ?? 0) + 1;
 
 // 选中变化时把目标行滚入视口（vim-instant：同一帧、最小滚动）
 watch(
