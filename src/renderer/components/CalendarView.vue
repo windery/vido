@@ -159,9 +159,10 @@ const weekCells = computed(() => {
     });
 });
 
-// 选中/翻页/切粒度变化时：目标任务行与高亮日格滚入视口（vim-instant：同一帧、最小滚动）
+// 仅当**用户移动选中**（jkhl/数字）时：目标任务行与高亮日格滚入视口（vim-instant：同一帧、最小滚动）。
+// 翻页（[ ]）只改显示、不改选中，视口也绝不跟随滚动——焦点是用户已确定的日期。
 watch(
-    () => `${props.granularity}:${props.anchor}:${props.selectedDate}:${props.selectedTaskId}`,
+    () => `${props.selectedDate}:${props.selectedTaskId}`,
     () => {
         nextTick(() => {
             const taskEl = document.querySelector('.cal-task.selected');
