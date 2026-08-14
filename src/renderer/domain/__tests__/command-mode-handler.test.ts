@@ -119,30 +119,30 @@ describe('CommandModeHandler integration with TaskList', () => {
     expect(tdm.setConfigState).toHaveBeenCalledWith(1, 'schedule-select');
   });
 
-  it('L cycles config section forward (schedule → priority)', () => {
+  it('K cycles config section forward (schedule → priority)', () => {
     const tasks = makeTasks(2);
     tasks[0].configState = 'schedule-select';
     const tdm = createMockTDM(tasks);
     handler = new CommandModeHandler();
-    handler.handleKey(makeEvent('L'), 'L', tdm, false);
+    handler.handleKey(makeEvent('K'), 'K', tdm, false);
     expect(tdm.setConfigState).toHaveBeenCalledWith(1, 'priority-select');
   });
 
-  it('H cycles config section backward (schedule → tags, wraps)', () => {
+  it('J cycles config section backward (schedule → tags, wraps)', () => {
     const tasks = makeTasks(2);
     tasks[0].configState = 'schedule-select';
     const tdm = createMockTDM(tasks);
     handler = new CommandModeHandler();
-    handler.handleKey(makeEvent('H'), 'H', tdm, false);
+    handler.handleKey(makeEvent('J'), 'J', tdm, false);
     expect(tdm.setConfigState).toHaveBeenCalledWith(1, 'tags-select');
   });
 
-  it('H/L without config open are consumed (no-op, no task movement)', () => {
+  it('J/K without config open are consumed (no-op, no task movement)', () => {
     const tasks = makeTasks(3);
     const tdm = createMockTDM(tasks);
     handler = new CommandModeHandler();
-    handler.handleKey(makeEvent('L'), 'L', tdm, false);
-    handler.handleKey(makeEvent('H'), 'H', tdm, false);
+    handler.handleKey(makeEvent('K'), 'K', tdm, false);
+    handler.handleKey(makeEvent('J'), 'J', tdm, false);
     expect(tdm.setConfigState).not.toHaveBeenCalled();
     expect(tdm._list().selected?.id).toBe(1); // 不移动任务
   });
@@ -240,8 +240,9 @@ describe('CommandModeHandler — 日历视图按键', () => {
         calendarView: { visible: true, granularity: 'week', anchor: '', dayDetail: false },
         tasks,
       })),
-      moveCalendarFocus: vi.fn(),
+      moveCalendarDirection: vi.fn(),
       moveCalendarDaySelection: vi.fn(),
+      jumpCalendarDay: vi.fn(),
       openCalendarDayDetail: vi.fn(),
       closeCalendarDayDetail: vi.fn(),
       toggleHelp: vi.fn(),
@@ -253,13 +254,17 @@ describe('CommandModeHandler — 日历视图按键', () => {
     };
   }
 
-  it('网格内：j/k 移日焦点、Enter 打开详情、Esc 退出、[ ] 翻页、? 帮助', () => {
+  it('网格内：jkhl 上下左右、Enter 打开详情、Esc 退出、[ ] 翻页、? 帮助', () => {
     const tdm = makeCalTDM();
     const h = new CommandModeHandler();
     h.handleKey(makeEvent('j'), 'j', tdm, false);
-    expect(tdm.moveCalendarFocus).toHaveBeenCalledWith(1);
+    expect(tdm.moveCalendarDirection).toHaveBeenCalledWith('down');
     h.handleKey(makeEvent('k'), 'k', tdm, false);
-    expect(tdm.moveCalendarFocus).toHaveBeenCalledWith(-1);
+    expect(tdm.moveCalendarDirection).toHaveBeenCalledWith('up');
+    h.handleKey(makeEvent('h'), 'h', tdm, false);
+    expect(tdm.moveCalendarDirection).toHaveBeenCalledWith('left');
+    h.handleKey(makeEvent('l'), 'l', tdm, false);
+    expect(tdm.moveCalendarDirection).toHaveBeenCalledWith('right');
     h.handleKey(makeEvent('H'), 'H', tdm, false);
     expect(tdm.cycleCalendarGranularity).toHaveBeenCalledWith(-1);
     h.handleKey(makeEvent(']'), ']', tdm, false);
@@ -271,6 +276,18 @@ describe('CommandModeHandler — 日历视图按键', () => {
     expect(tdm.closeCalendarView).toHaveBeenCalled();
     h.handleKey(makeEvent('?'), '?', tdm, false);
     expect(tdm.toggleHelp).toHaveBeenCalledWith('calendar');
+  });
+
+  it('网格内数字跳日期：600ms 内累加成多位序号（1→12 = 12 日）', () => {
+    const tdm = makeCalTDM();
+    const h = new CommandModeHandler();
+    h.handleKey(makeEvent('1'), '1', tdm, false);
+    expect(tdm.jumpCalendarDay).toHaveBeenLastCalledWith(1);
+    h.handleKey(makeEvent('2'), '2', tdm, false);
+    expect(tdm.jumpCalendarDay).toHaveBeenLastCalledWith(12);
+    h.handleKey(makeEvent('j'), 'j', tdm, false); // 非数字键中断序列
+    h.handleKey(makeEvent('3'), '3', tdm, false);
+    expect(tdm.jumpCalendarDay).toHaveBeenLastCalledWith(3);
   });
 
   it('详情内：j/k 选任务、Enter 打开任务、Esc 返回网格', () => {

@@ -438,15 +438,17 @@ export class Store {
     logger.info('Store', 'set schedule repeat', { taskId, repeat });
   }
 
-  // ============ 日期视图（g c 进入 / H L 切粒度 / [ ] 翻页 / j k 选任务 / Enter 打开） ============
+  // ============ 日期视图（g c 进入 / H L 切粒度 / [ ] 翻页 / jkhl 上下左右 / 数字跳日期 / Enter 打开） ============
 
-  /** 日历视图内可见条目（按日期分组展开后拍平，含 repeat 出现；搜索激活时同样过滤） */
+  /** 日历视图内可见条目（按日期分组展开后拍平，含 repeat 出现；搜索激活时同样过滤）。
+   *  week 与 month 都以整月网格展示，收集范围一律按月；day 按天 */
   private calendarEntries(): Array<{ date: string; task: Task }> {
     const term = this.getSearchTerm();
     const base = term
       ? this.manager.list.items.filter((t) => taskMatchesSearch(t, term))
       : this.manager.list.items;
-    const days = collectTasksInRange(base, this.state.calendarView.granularity, this.state.calendarView.anchor);
+    const rangeGran = this.state.calendarView.granularity === 'day' ? 'day' : 'month';
+    const days = collectTasksInRange(base, rangeGran, this.state.calendarView.anchor);
     const out: Array<{ date: string; task: Task }> = [];
     for (const d of days) {
       for (const t of d.tasks) out.push({ date: d.date, task: t });
@@ -484,15 +486,21 @@ export class Store {
       const d = (sd as any).getShortText ? sd.getShortText() : '';
       if (d && /^\d{4}-\d{2}-\d{2}/.test(d)) anchor = d.slice(0, 10);
     }
-    this.state.calendarView = { visible: true, granularity: 'week', anchor, selectedDate: undefined, selectedTaskId: undefined, dayDetail: false };
-    // 预选：当前选中任务在范围内的首次出现，否则范围内第一个条目（Enter 即可直接打开）
+    // 默认 month 视图；日焦点 = 锚点
+    this.state.calendarView = { visible: true, granularity: 'month', anchor, selectedDate: anchor, selectedTaskId: undefined, dayDetail: false };
+    // 预选：当前选中任务在当月网格内的首次出现，否则当月网格内第一个条目
     const entries = this.calendarEntries();
-    if (entries.length > 0) {
-      const pick = entries.find((e) => e.task.id === selected?.id) ?? entries[0];
+    const cells = calendarGridCells('month', anchor);
+    const pick =
+      entries.find((e) => e.task.id === selected?.id && cells.includes(e.date)) ??
+      entries.find((e) => cells.includes(e.date));
+    if (pick) {
       this.state.calendarView.selectedDate = pick.date;
       this.state.calendarView.selectedTaskId = pick.task.id;
+    } else {
+      this.state.calendarView.selectedTaskId = this.calendarTasksOn(anchor)[0]?.id;
     }
-    logger.info('Store', 'open calendar view', { anchor, granularity: 'week' });
+    logger.info('Store', 'open calendar view', { anchor, granularity: 'month' });
   }
 
   closeCalendarView(): void {
@@ -519,30 +527,109 @@ export class Store {
     else d.setMonth(d.getMonth() + dir);
     cv.anchor = formatDate(d);
     cv.dayDetail = false; // 翻页回到网格
-    this.syncCalendarSelection();
+    // 焦点跟随锚点（week：新周同星期几；month：下月同一天号；day：锚点即当日）
+    cv.selectedDate = cv.anchor;
+    cv.selectedTaskId = this.calendarTasksOn(cv.anchor)[0]?.id;
     this.changed();
   }
 
-  /** 某日期在视图内的任务（repeat 展开、搜索过滤后） */
+  /** 某日期在视图内的任务（repeat 展开、搜索过滤后）——按天精确收集 */
   private calendarTasksOn(date: string): Task[] {
     const term = this.getSearchTerm();
     const base = term
       ? this.manager.list.items.filter((t) => taskMatchesSearch(t, term))
       : this.manager.list.items;
-    const days = collectTasksInRange(base, this.state.calendarView.granularity, this.state.calendarView.anchor);
+    const days = collectTasksInRange(base, 'day', date);
     return days.find((d) => d.date === date)?.tasks ?? [];
   }
 
-  /** 网格内 j/k：移动日焦点（沿日期组件格序，含邻月淡化格），自动选中该日第一个任务 */
-  moveCalendarFocus(dir: 1 | -1): void {
+  /**
+   * 网格内 jkhl 二维移动（vim 语义）：
+   * - month：h/l ±1 天、j/k ±7 天（同行/同列），移出网格时显示月份翻到目标所在月
+   * - week：展示整月网格但仅当前周可切换——h/l 在周内左右移（跨周自动翻周），j/k 上下翻周；显示月份跟随活跃周
+   * - day：h/l ±1 天、j/k ±7 天
+   */
+  moveCalendarDirection(dir: 'up' | 'down' | 'left' | 'right'): void {
     const cv = this.state.calendarView;
-    const cells = calendarGridCells(cv.granularity, cv.anchor);
-    if (cells.length === 0) return;
-    let idx = cells.indexOf(cv.selectedDate ?? '');
-    if (idx < 0) idx = 0;
-    const next = cells[(idx + dir + cells.length) % cells.length];
-    cv.selectedDate = next;
-    cv.selectedTaskId = this.calendarTasksOn(next)[0]?.id;
+    if (!cv.visible) return;
+    const step = dir === 'left' ? -1 : dir === 'right' ? 1 : dir === 'up' ? -7 : 7;
+
+    if (cv.granularity === 'day') {
+      const d = parseDate(cv.anchor) || new Date();
+      d.setDate(d.getDate() + step);
+      cv.anchor = formatDate(d);
+      cv.selectedDate = cv.anchor;
+      cv.selectedTaskId = this.calendarTasksOn(cv.anchor)[0]?.id;
+      this.changed();
+      return;
+    }
+
+    if (cv.granularity === 'week') {
+      const weekCells = calendarGridCells('week', cv.anchor);
+      const cur = cv.selectedDate && weekCells.includes(cv.selectedDate) ? cv.selectedDate : weekCells[0];
+      if (dir === 'left' || dir === 'right') {
+        const idx = weekCells.indexOf(cur);
+        const nIdx = idx + (dir === 'right' ? 1 : -1);
+        if (nIdx >= 0 && nIdx < weekCells.length) {
+          cv.selectedDate = weekCells[nIdx];
+        } else {
+          // 跨周：锚点翻周，落点对侧边缘
+          const base = parseDate(cv.anchor) || new Date();
+          base.setDate(base.getDate() + (dir === 'right' ? 7 : -7));
+          cv.anchor = formatDate(base);
+          const nc = calendarGridCells('week', cv.anchor);
+          cv.selectedDate = dir === 'right' ? nc[0] : nc[nc.length - 1];
+        }
+      } else {
+        // j/k：整周上下翻
+        const base = parseDate(cv.anchor) || new Date();
+        base.setDate(base.getDate() + (dir === 'down' ? 7 : -7));
+        cv.anchor = formatDate(base);
+        const curD = parseDate(cur) || new Date();
+        curD.setDate(curD.getDate() + (dir === 'down' ? 7 : -7));
+        cv.selectedDate = formatDate(curD);
+      }
+      cv.selectedTaskId = this.calendarTasksOn(cv.selectedDate)[0]?.id;
+      this.changed();
+      return;
+    }
+
+    // month：42 格网格内移动（h/l 同行 ±1、j/k 同列 ±7），移出网格翻到目标所在月
+    const cells = calendarGridCells('month', cv.anchor);
+    const cur = cv.selectedDate && cells.includes(cv.selectedDate) ? cv.selectedDate : cv.anchor;
+    const idx = Math.max(0, cells.indexOf(cur));
+    const nIdx = idx + step;
+    if (nIdx >= 0 && nIdx < cells.length) {
+      cv.selectedDate = cells[nIdx];
+    } else {
+      const curD = parseDate(cur) || new Date();
+      curD.setDate(curD.getDate() + step);
+      cv.anchor = formatDate(curD); // 锚点=目标日 → 显示月份翻到目标所在月
+      cv.selectedDate = cv.anchor;
+    }
+    cv.selectedTaskId = this.calendarTasksOn(cv.selectedDate)[0]?.id;
+    this.changed();
+  }
+
+  /**
+   * 数字跳日期（类似 tags 数字直达）：1..31 → 显示月份的第 N 天；week 视图下活跃周跟随目标日。
+   * 编号无效（> 当月天数）→ 取消日焦点（显示与操作一致）。
+   */
+  jumpCalendarDay(n: number): void {
+    const cv = this.state.calendarView;
+    if (!cv.visible || cv.granularity === 'day') return;
+    const a = parseDate(cv.anchor) || new Date();
+    const daysInMonth = new Date(a.getFullYear(), a.getMonth() + 1, 0).getDate();
+    if (n < 1 || n > daysInMonth) {
+      cv.selectedDate = undefined;
+      cv.selectedTaskId = undefined;
+      this.changed();
+      return;
+    }
+    const target = formatDate(new Date(a.getFullYear(), a.getMonth(), n));
+    if (cv.granularity === 'week') cv.anchor = target; // 活跃周 = 目标日所在周，显示月份同目标月
+    cv.selectedDate = target;
+    cv.selectedTaskId = this.calendarTasksOn(target)[0]?.id;
     this.changed();
   }
 

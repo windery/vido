@@ -1227,12 +1227,13 @@ describe('Store — 日期视图（g c / H L / [ ]）', () => {
     return store;
   }
   const cv = (s: Store) => s.state.calendarView;
-  it('openCalendarView：默认周粒度 + 今天锚点', () => {
+  it('openCalendarView：默认月粒度 + 今天锚点', () => {
     const s = makeStore();
     s.openCalendarView();
     expect(cv(s).visible).toBe(true);
-    expect(cv(s).granularity).toBe('week');
+    expect(cv(s).granularity).toBe('month');
     expect(cv(s).anchor).toBe(getCurrentDate());
+    expect(cv(s).selectedDate).toBe(getCurrentDate()); // 日焦点=锚点
   });
 
   it('openCalendarView：选中任务有日程时锚点用其日期', () => {
@@ -1242,31 +1243,38 @@ describe('Store — 日期视图（g c / H L / [ ]）', () => {
     expect(cv(s).anchor).toBe('2026-05-08');
   });
 
-  it('H/L 循环切换粒度：day ↔ week ↔ month', () => {
+  it('H/L 循环切换粒度：day ↔ week ↔ month（默认 month）', () => {
     const s = makeStore();
-    s.openCalendarView();
-    s.cycleCalendarGranularity(1); // week → month
-    expect(cv(s).granularity).toBe('month');
+    s.openCalendarView(); // month
     s.cycleCalendarGranularity(1); // month → day
     expect(cv(s).granularity).toBe('day');
-    s.cycleCalendarGranularity(-1); // day → month（回绕）
+    s.cycleCalendarGranularity(1); // day → week
+    expect(cv(s).granularity).toBe('week');
+    s.cycleCalendarGranularity(1); // week → month（回绕）
     expect(cv(s).granularity).toBe('month');
   });
 
-  it('[ ] 翻页：day ±1 天 / week ±7 天 / month ±1 月', () => {
+  it('[ ] 翻页：day ±1 天 / week ±7 天 / month ±1 月，焦点跟随锚点', () => {
     const s = makeStore();
-    s.openCalendarView(); // week, anchor=today
+    s.openCalendarView(); // month, anchor=today
     s.shiftCalendarPage(1);
-    // 今天 +7 天
     const d = new Date();
-    d.setDate(d.getDate() + 7);
-    const expectDate = formatDate(d);
-    expect(cv(s).anchor).toBe(expectDate);
+    d.setMonth(d.getMonth() + 1);
+    expect(cv(s).anchor).toBe(formatDate(d));
+    expect(cv(s).selectedDate).toBe(formatDate(d)); // 焦点跟随锚点
+
+    s.state.calendarView.granularity = 'week';
+    s.shiftCalendarPage(1);
+    const w = new Date(d);
+    w.setDate(w.getDate() + 7);
+    expect(cv(s).anchor).toBe(formatDate(w));
+    expect(cv(s).selectedDate).toBe(formatDate(w));
+
     s.state.calendarView.granularity = 'day';
     s.shiftCalendarPage(-1);
-    const d2 = new Date();
-    d2.setDate(d2.getDate() + 6); // 7-1
-    expect(cv(s).anchor).toBe(formatDate(d2));
+    const dd = new Date(w);
+    dd.setDate(dd.getDate() - 1);
+    expect(cv(s).anchor).toBe(formatDate(dd));
   });
 
   it('closeCalendarView 退出', () => {
@@ -1351,24 +1359,89 @@ describe('Store — 日历视图网格交互（j/k 移日焦点 · Enter 开详�
     expect(cv(s).selectedTaskId).toBe(1);
   });
 
-  it('网格内 j/k 移动日焦点，自动选中该日第一个任务', () => {
+  it('网格内 jkhl 二维移动（month：h/l ±1 天、j/k ±7 天），自动选中该日第一个任务', () => {
     const s = makeCalStore();
     s.openCalendarView(); // 焦点 05-08（任务 A）
-    s.moveCalendarFocus(1); // → 05-09（任务 B）
+    s.moveCalendarDirection('right'); // → 05-09（任务 B）
     expect(cv(s).selectedDate).toBe('2026-05-09');
     expect(cv(s).selectedTaskId).toBe(2);
-    s.moveCalendarFocus(1); // → 回绕周日 05-03（无任务）
-    expect(cv(s).selectedDate).toBe('2026-05-03');
+    s.moveCalendarDirection('down'); // → 05-16（同列下一周）
+    expect(cv(s).selectedDate).toBe('2026-05-16');
     expect(cv(s).selectedTaskId).toBeUndefined();
-    s.moveCalendarFocus(-1); // → 05-09
+    s.moveCalendarDirection('up'); // → 05-09
     expect(cv(s).selectedDate).toBe('2026-05-09');
-    expect(cv(s).selectedTaskId).toBe(2);
+    s.moveCalendarDirection('left'); // → 05-08
+    expect(cv(s).selectedDate).toBe('2026-05-08');
+    expect(cv(s).selectedTaskId).toBe(1);
+  });
+
+  it('month 移出网格：显示月份翻到目标所在月', () => {
+    const s = makeCalStore();
+    s.openCalendarView();
+    s.state.calendarView.selectedDate = '2026-06-06'; // 5 月网格最后一格（6×7）
+    s.moveCalendarDirection('down'); // +7 → 06-13 移出网格
+    expect(cv(s).anchor).toBe('2026-06-13');
+    expect(cv(s).selectedDate).toBe('2026-06-13');
+    s.moveCalendarDirection('up'); // -7 → 06-06（6 月网格内，无需翻月）
+    expect(cv(s).anchor).toBe('2026-06-13');
+    expect(cv(s).selectedDate).toBe('2026-06-06');
+  });
+
+  it('week 视图：h/l 周内左右移（跨周翻周），j/k 上下翻周', () => {
+    const s = makeCalStore();
+    s.openCalendarView();
+    s.state.calendarView.granularity = 'week';
+    s.state.calendarView.anchor = '2026-05-08'; // 周五；活跃周 05-03..05-09
+    s.state.calendarView.selectedDate = '2026-05-08';
+    s.moveCalendarDirection('right'); // → 05-09（周六，周内）
+    expect(cv(s).selectedDate).toBe('2026-05-09');
+    s.moveCalendarDirection('right'); // 跨周 → 下周日 05-10
+    expect(cv(s).selectedDate).toBe('2026-05-10');
+    expect(cv(s).anchor).toBe('2026-05-15');
+    s.moveCalendarDirection('down'); // 翻周：anchor 05-22、焦点 05-17
+    expect(cv(s).anchor).toBe('2026-05-22');
+    expect(cv(s).selectedDate).toBe('2026-05-17');
+  });
+
+  it('week 视图：翻到下月的周时显示月份跟随（anchor 月份 = 下月）', () => {
+    const s = makeCalStore();
+    s.openCalendarView();
+    s.state.calendarView.granularity = 'week';
+    s.state.calendarView.anchor = '2026-06-29'; // 周一；活跃周 06-28..07-04（显示 6 月）
+    s.state.calendarView.selectedDate = '2026-06-29';
+    s.moveCalendarDirection('down'); // → 07-06 所在周（显示 7 月）
+    expect(cv(s).anchor).toBe('2026-07-06');
+    expect(cv(s).anchor.slice(0, 7)).toBe('2026-07');
+    expect(cv(s).selectedDate).toBe('2026-07-06');
+  });
+
+  it('数字跳日期：1..当月天数跳转到该日；无效取消焦点（month 与 week）', () => {
+    const s = makeCalStore();
+    s.openCalendarView(); // month, anchor 05-08
+    s.jumpCalendarDay(15);
+    expect(cv(s).selectedDate).toBe('2026-05-15');
+    s.jumpCalendarDay(31);
+    expect(cv(s).selectedDate).toBe('2026-05-31');
+    s.jumpCalendarDay(32); // 5 月没有 32 号 → 取消焦点
+    expect(cv(s).selectedDate).toBeUndefined();
+
+    s.state.calendarView.granularity = 'week';
+    s.state.calendarView.anchor = '2026-05-08';
+    s.jumpCalendarDay(20); // 活跃周跟随目标日
+    expect(cv(s).anchor).toBe('2026-05-20');
+    expect(cv(s).selectedDate).toBe('2026-05-20');
+
+    s.state.calendarView.granularity = 'day';
+    s.state.calendarView.anchor = '2026-05-08';
+    s.state.calendarView.selectedDate = '2026-05-08';
+    s.jumpCalendarDay(10); // day 视图无数字跳转
+    expect(cv(s).selectedDate).toBe('2026-05-08');
   });
 
   it('Enter 打开当日详情，详情内 j/k 选任务，Enter 选中退出视图', () => {
     const s = makeCalStore();
     s.openCalendarView(); // 焦点 05-08
-    s.moveCalendarFocus(1); // 焦点 05-09（B）
+    s.moveCalendarDirection('right'); // 焦点 05-09（B）
     s.openCalendarDayDetail();
     expect(cv(s).dayDetail).toBe(true);
     expect(cv(s).selectedTaskId).toBe(2);
@@ -1395,20 +1468,20 @@ describe('Store — 日历视图网格交互（j/k 移日焦点 · Enter 开详�
     const s = makeCalStore();
     s.openCalendarView();
     s.openCalendarDayDetail();
-    s.shiftCalendarPage(1); // week +7：A/B 不可见
+    s.shiftCalendarPage(1); // month +1：A/B 不可见
     expect(cv(s).dayDetail).toBe(false);
     expect(cv(s).selectedTaskId).toBeUndefined();
     s.openCalendarDayDetail();
-    s.cycleCalendarGranularity(-1); // week → day（anchor 05-15，无任务）
+    s.cycleCalendarGranularity(-1); // month → week（anchor 下月，无任务）
     expect(cv(s).dayDetail).toBe(false);
     expect(cv(s).selectedTaskId).toBeUndefined();
   });
 
-  it('视图内无任务时网格 j/k 仍移动日焦点且不崩溃', () => {
+  it('视图内无任务时网格移动仍不崩溃', () => {
     const s = makeCalStore();
     s.openCalendarView();
     for (let i = 0; i < 10; i++) s.shiftCalendarPage(1); // 翻到无任务页
-    s.moveCalendarFocus(1);
+    s.moveCalendarDirection('down');
     expect(cv(s).selectedTaskId).toBeUndefined();
     expect(cv(s).selectedDate).toBeTruthy();
   });

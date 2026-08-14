@@ -24,7 +24,7 @@ schedule:    schedule-select ──Enter──→ schedule-edit ──Enter/Esc�
 priority:    priority-select  (只有 select，1/2/3 直接选，选后留在 priority-select)
 tags:        tags-select ──Enter──→ tags-edit ──Enter/Esc──→ tags-select
 
-H/L 在 select 状态间横向切换（同一任务的配置项）:  schedule-select ←→ priority-select ←→ tags-select
+J/K 在 select 状态间切换（同一任务的配置项，纵向列表用纵向键）:  schedule-select ←→ priority-select ←→ tags-select
 j/k/0/$ 进入 nav 态（焦点锁定当前任务，绝不切换任务）：j/0 → 第一项、k/$ → 最后一项（固定起点）；nav 内 j/k 逐项移动、0/$ 直达首/尾、Enter 选中高亮项（唯一生效路径）后退出 nav 回 select；Esc 退出 nav 回 select（再 Esc 关面板）
 Esc 关闭配置（edit 态先取消回 select，再 Esc 关闭）
 ```
@@ -35,7 +35,7 @@ Esc 关闭配置（edit 态先取消回 select，再 Esc 关闭）
 - `e` 重复前缀：`ed/ew/em/ey` 设置每天/每周/每月/每年重复
 - `j/k/0/$` 进入 **nav 态**（**绝不切任务**）：候选固定排序（schedule：今天→明天→下周→自定义；priority：!!!→!!→!；tags：各标签→Add；清除不在导航内，用 `x` 键），**j/0 → 第一项、k/$ → 最后一项**；nav 内 j/k 逐项移动、0/$ 直达首/尾、`Enter` 选中高亮项（唯一生效路径）→ 退出 nav 回 select；`Esc` 退出 nav 回 select；不按 j/k 时保留原快捷流（1/2/3 直接选、Enter 打开输入）
 - **tags-select 数字直达**：`1-9` 跳转到第 N 个标签（nav 高亮，chip 编号前缀即跳转目标）；**连按数字在 600ms 窗口内累加成多位序号**（`3→33`，标签多时 `12` 直达第 12 个），编号不存在则**取消高亮**（显示与操作一致）；`x` 删除高亮标签、无高亮时清空全部；`Enter` 高亮标签时无操作（只在 Add 上打开输入）——删除唯一入口是 `x`，绝不复用 Enter/d
-- `H/L` 横向切 section（同一任务）；其余未知键（含 `d`）一律消费，不落到命令层触发全局删除
+- `J/K` 切 section（同一任务，放行命令层；H/L 在面板内消费无动作）；其余未知键（含 `d`）一律消费，不落到命令层触发全局删除
 
 **tags-select 标签删除（数字直达 + x，唯一入口）**：标签 chip 带 1 基编号前缀（即跳转目标）；按 `1-9` 跳到第 N 个标签（nav 高亮，连按数字 600ms 内累加成多位序号，编号不存在则取消高亮）→ `x` 删除该标签（无高亮时清空全部）；`Enter` 高亮标签时无操作（只在 Add 上打开输入）。删除后留在 tags-select，编号自动重排。其余 section 的 `d` 一律消费，不落到命令层触发全局删除。
 
@@ -43,12 +43,18 @@ Esc 关闭配置（edit 态先取消回 select，再 Esc 关闭）
 1. select → Enter → edit（打开输入框）
 2. edit → Enter → select（保存，回到同类型的 select）
 3. edit → Esc → select（取消，回到同类型的 select，内容不保存）
-4. select → H/L → 切换到另一个类型的 select（j/k 只导航高亮、Enter 才选中生效，绝不切任务）
+4. select → J/K → 切换到另一个类型的 select（j/k 只导航高亮、Enter 才选中生效，绝不切任务）
 5. 操作完成后不改配置类型——加完标签留在 tags-select，选完优先级留在 priority-select
 
 **内容导航模式（command 下 `i` 进入）**：hjkl/w/b/e/0/$/gg/G 移动，x/X/d+cw/cc/c$/yy/yw/y$/p/P/r/~ /J/u 编辑。
 - **Ctrl+V 可视块模式**：锚点=按下时光标，移动键（hjkl/w/b/e/0/$/gg/G）扩展矩形选区（半透明绿底覆盖层实时高亮）；`x`/`d` 删块（内容入内部缓冲+系统剪贴板）、`y` 只复制、`c` 删块后进入插入、`Esc` 只退出块模式；未绑定键先退出块再按普通键处理；切换任务/退出导航自动清理选区。
 - **p/P 粘贴**：系统剪贴板优先（外部复制内容，经主进程 `clipboard` IPC，无权限问题）；无系统剪贴板/读取失败/为空时回退内部 yank 缓冲。yank（yy/yw/y$/块复制/块删除）反向写回系统剪贴板（unnamedplus 语义）。系统文本按字符式粘贴：多行在当前光标处切行插入，p 光标落粘贴末尾、P 落开头。
+
+**日历视图（g c 进入，默认 month 粒度）**：
+- **网格二维移动（vim 语义）**：`h/l` = 左右 ±1 天、`j/k` = 上下 ±7 天；month 移出网格时显示月份翻到目标所在月；week 视图 `j/k` 翻周、`h/l` 周内左右（跨周自动翻周）；day 视图 h/l ±1 天、j/k ±7 天
+- **数字跳日期**（类似 tags 数字直达）：`1-31` 连按 600ms 内累加成多位序号，跳到显示月份的第 N 天（week 视图活跃周跟随目标日）；编号无效（> 当月天数）→ 取消日焦点（显示与操作一致）
+- **week 视图 = 整月网格展示**：仅当前周（切换范围）正常显示，范围外日期置灰（邻月格更淡）；翻到下月的周时显示月份随之切换（anchor 月份 = 活跃周所在月）
+- `Enter` 网格开当日详情 / 详情开任务；`Esc` 详情回网格 / 网格退出；`H/L` 切粒度（day/week/month，仅日历内）；`[ ]` 翻页（焦点跟随锚点）
 
 **Help 分级（? 按场景过滤）**: 常规态（有选中任务）→ 只显示 NORMAL MODE 主线键；次级配置内按 ? → 只显示该场景键位（配置/内容编辑/日历/命令 `:help`）；无选中任务（空列表）→ 显示全部键位。场景内提示语统一以 `? keys` 收尾。直觉键（Esc）不做提示。
 

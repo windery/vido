@@ -4,7 +4,7 @@
         <div class="calendar-header">
             <span class="cal-badge">{{ granularity.toUpperCase() }}</span>
             <span class="cal-range">{{ rangeLabel }}</span>
-            <span class="cal-hint">[ ] page &nbsp;·&nbsp; H/L view &nbsp;·&nbsp; ? keys</span>
+            <span class="cal-hint">jkhl move &nbsp;·&nbsp; 1-31 day &nbsp;·&nbsp; [ ] page &nbsp;·&nbsp; H/L view &nbsp;·&nbsp; ? keys</span>
         </div>
 
         <!-- 当日详情（day 粒度 / 网格内 Enter 打开）：完整任务列表 -->
@@ -26,24 +26,29 @@
             </div>
         </div>
 
-        <!-- week：单行 7 格日期组件 -->
+        <!-- week：整月网格展示，仅当前周（切换范围）正常显示，范围外日期置灰；翻到下月的周时月份随之切换 -->
         <div v-else-if="granularity === 'week'">
             <div class="cal-weekdays">
                 <span v-for="w in WEEKDAYS" :key="w" class="cal-weekday-label">{{ w }}</span>
             </div>
-            <div class="cal-grid cal-week">
-                <div v-for="d in weekDates" :key="d" class="cal-cell"
-                    :class="{ 'is-today': d === todayStr, 'is-focused': d === selectedDate }">
+            <div class="cal-grid cal-month">
+                <div v-for="c in monthCells" :key="c.date" class="cal-cell"
+                    :class="{
+                        'is-today': c.date === todayStr,
+                        'is-out': !weekDates.includes(c.date),
+                        'is-dim': !c.inMonth && !weekDates.includes(c.date),
+                        'is-focused': c.date === selectedDate,
+                    }">
                     <div class="cal-cell-head">
-                        <span class="cal-cell-date">{{ d.slice(5) }}</span>
+                        <span class="cal-cell-date">{{ c.date.slice(8) }}</span>
                     </div>
                     <div class="cal-cell-tasks">
-                        <div v-for="t in cellTasks(d).slice(0, 6)" :key="t.id" class="cal-task"
-                            :class="{ done: t.completed, selected: d === selectedDate && t.id === selectedTaskId }">
+                        <div v-for="t in cellTasks(c.date).slice(0, 3)" :key="t.id" class="cal-task"
+                            :class="{ done: t.completed, selected: c.date === selectedDate && t.id === selectedTaskId }">
                             <span class="cal-task-dot">{{ t.completed ? '✓' : '○' }}</span>
                             <span class="cal-task-title">{{ t.title }}</span>
                         </div>
-                        <div v-if="cellTasks(d).length > 6" class="cal-overflow">+{{ cellTasks(d).length - 6 }}</div>
+                        <div v-if="cellTasks(c.date).length > 3" class="cal-overflow">+{{ cellTasks(c.date).length - 3 }}</div>
                     </div>
                 </div>
             </div>
@@ -96,10 +101,11 @@ const todayStr = formatDate(new Date());
 
 const rangeLabel = computed(() => getCalendarRange(props.granularity, props.anchor).label);
 
-/** date → 当日任务（含 repeat 展开） */
+/** date → 当日任务（含 repeat 展开）；week/month 均按整月网格收集，day 按天 */
 const tasksByDate = computed(() => {
     const map = new Map<string, Task[]>();
-    const days = collectTasksInRange(props.tasks, props.granularity, props.anchor);
+    const rangeGran = props.granularity === 'day' ? 'day' : 'month';
+    const days = collectTasksInRange(props.tasks, rangeGran, props.anchor);
     for (const d of days) map.set(d.date, d.tasks);
     return map;
 });
@@ -202,10 +208,6 @@ watch(
     min-height: 74px;
 }
 
-.cal-week .cal-cell {
-    min-height: 120px;
-}
-
 /* 单日：整宽单元 */
 .cal-single .cal-cell {
     min-height: 120px;
@@ -241,6 +243,11 @@ watch(
 /* 邻月日期：更淡更不明显 */
 .cal-cell.is-dim {
     opacity: 0.35;
+}
+
+/* week 视图：切换范围（当前周）之外的日期置灰 */
+.cal-cell.is-out {
+    opacity: 0.45;
 }
 
 .cal-cell-head {

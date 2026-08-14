@@ -117,8 +117,8 @@ export class CommandModeHandler implements ModeHandler {
         this.resetAll();
         return true;
 
-      // 配置展开时：H/L 在同一任务的配置项间横向切换（j/k 留给任务级上下移动）
-      case 'H':
+      // 配置展开时：J/K 在同一任务的配置项间切换（j/k 留给任务级上下移动；纵向列表用纵向键切换 section）
+      case 'J':
         event.preventDefault();
         if (selectedTaskId) {
           const task = (currentState as any).tasks?.find((t: any) => t.id === selectedTaskId);
@@ -131,7 +131,7 @@ export class CommandModeHandler implements ModeHandler {
         this.resetAll();
         return true;
 
-      case 'L':
+      case 'K':
         event.preventDefault();
         if (selectedTaskId) {
           const task = (currentState as any).tasks?.find((t: any) => t.id === selectedTaskId);
@@ -381,7 +381,7 @@ export class CommandModeHandler implements ModeHandler {
 
   private navigateConfig(tdm: Store, taskId: number, current: string, dir: 'next' | 'prev'): void {
     const cycle = ['schedule-select', 'priority-select', 'tags-select'];
-    // edit 态由输入框独占，不参与 H/L 切换
+    // edit 态由输入框独占，不参与 J/K 切换
     const idx = cycle.indexOf(current);
     if (idx < 0) return;
     const nextIdx = dir === 'next'
@@ -408,8 +408,21 @@ export class CommandModeHandler implements ModeHandler {
     this.keySequenceTimeout = setTimeout(() => this.resetSequenceState(), 1000);
   }
 
-  /** 日期视图按键：网格内 j/k 移日焦点、Enter 打开当日详情；详情内 j/k 选任务、Enter 打开任务、Esc 返回网格；
-   *  H/L 切粒度、[ ] 翻页（详情内先返回网格）；Esc 网格退出视图；? 打开日历键位帮助 */
+  /** 日期视图按键：网格内 jkhl 上下左右移日焦点、数字跳日期（600ms 累加）、Enter 打开当日详情；
+   *  详情内 j/k 选任务、Enter 打开任务、Esc 返回网格；H/L 切粒度、[ ] 翻页；Esc 网格退出视图；? 打开日历键位帮助 */
+  private calNumBuffer = '';
+  private calNumTimeout: ReturnType<typeof setTimeout> | null = null;
+  private calNumPendingAt = 0;
+
+  private resetCalNumBuffer(): void {
+    this.calNumBuffer = '';
+    this.calNumPendingAt = 0;
+    if (this.calNumTimeout) {
+      clearTimeout(this.calNumTimeout);
+      this.calNumTimeout = null;
+    }
+  }
+
   private handleCalendarKey(
     event: KeyboardEvent,
     key: string,
@@ -417,6 +430,10 @@ export class CommandModeHandler implements ModeHandler {
   ): boolean {
     const cv = (taskDataManager.getState() as any).calendarView;
     const inDetail = !!cv?.dayDetail || cv?.granularity === 'day';
+
+    // 数字缓冲：任何非数字键都中断多位数字序列（1→12 是 12 日，不是两次 1）
+    if (key < '0' || key > '9') this.resetCalNumBuffer();
+
     switch (key) {
       case 'H':
         event.preventDefault();
@@ -441,15 +458,24 @@ export class CommandModeHandler implements ModeHandler {
       case 'j':
         event.preventDefault();
         if (inDetail) taskDataManager.moveCalendarDaySelection(1);
-        else taskDataManager.moveCalendarFocus(1);
+        else taskDataManager.moveCalendarDirection('down');
         return true;
       case 'k':
         event.preventDefault();
         if (inDetail) taskDataManager.moveCalendarDaySelection(-1);
-        else taskDataManager.moveCalendarFocus(-1);
+        else taskDataManager.moveCalendarDirection('up');
+        return true;
+      case 'h':
+        event.preventDefault();
+        if (!inDetail) taskDataManager.moveCalendarDirection('left');
+        return true;
+      case 'l':
+        event.preventDefault();
+        if (!inDetail) taskDataManager.moveCalendarDirection('right');
         return true;
       case 'Escape':
         event.preventDefault();
+        this.resetCalNumBuffer();
         // 详情子视图 → 返回网格；否则退出日历（day 粒度没有网格，Esc 直接退出）
         if (cv?.dayDetail) taskDataManager.closeCalendarDayDetail();
         else taskDataManager.closeCalendarView();
@@ -461,6 +487,7 @@ export class CommandModeHandler implements ModeHandler {
         return true;
       case 'Enter':
         event.preventDefault();
+        this.resetCalNumBuffer();
         if (inDetail) {
           taskDataManager.selectCalendarTask();
           this.scrollToSelectedTask();
@@ -469,12 +496,26 @@ export class CommandModeHandler implements ModeHandler {
         }
         return true;
       default:
+        // 网格内数字跳日期：600ms 窗口内累加成多位序号（1→12 → 12 日），
+        // 编号无效由 store 取消日焦点（显示与操作一致）
+        if (!inDetail && key >= '0' && key <= '9') {
+          event.preventDefault();
+          const now = Date.now();
+          if (now - this.calNumPendingAt > 600) this.calNumBuffer = '';
+          this.calNumBuffer += key;
+          this.calNumPendingAt = now;
+          if (this.calNumTimeout) clearTimeout(this.calNumTimeout);
+          this.calNumTimeout = setTimeout(() => this.resetCalNumBuffer(), 600);
+          taskDataManager.jumpCalendarDay(parseInt(this.calNumBuffer, 10));
+          return true;
+        }
         return true; // 视图内其余键一律消费，不落到命令层
     }
   }
 
   dispose(): void {
     this.resetSequenceState();
+    this.resetCalNumBuffer();
     this.countPrefix = '';
     this.scrollCallback = null;
     this.pageScrollCallback = null;

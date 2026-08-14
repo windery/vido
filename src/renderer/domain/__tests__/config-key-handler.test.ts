@@ -294,10 +294,18 @@ describe('ConfigKeyHandler state machine', () => {
     expect(tdm.setConfigState).not.toHaveBeenCalled();
   });
 
-  it('H/L are not handled by config handler (command layer switches sections)', () => {
+  it('J/K are not handled by config handler (command layer switches sections)', () => {
     const tdm = createTDM(makeTask('schedule-select'));
-    expect(handler.handleKey(makeEvent('H'), 'H', tdm)).toBe(false);
-    expect(handler.handleKey(makeEvent('L'), 'L', tdm)).toBe(false);
+    expect(handler.handleKey(makeEvent('J'), 'J', tdm)).toBe(false);
+    expect(handler.handleKey(makeEvent('K'), 'K', tdm)).toBe(false);
+  });
+
+  it('H/L 在面板内一律消费无动作（section 切换已改走 J/K）', () => {
+    const tdm = createTDM(makeTask('schedule-select'));
+    expect(handler.handleKey(makeEvent('H'), 'H', tdm)).toBe(true);
+    expect(handler.handleKey(makeEvent('L'), 'L', tdm)).toBe(true);
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
+    expect(tdm.setConfigState).not.toHaveBeenCalled();
   });
 
   it('j/k are consumed by config handler (never switch tasks)', () => {

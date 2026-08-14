@@ -14,7 +14,7 @@
  *     Esc 退出 nav 回 select（再 Esc 关面板）。不按 j/k 时保留原快捷流：1/2/3 直接选、Enter 打开输入（schedule/tags）
  *   tags-select 数字直达：1-9 跳转到第 N 个标签（nav 高亮，x 删除高亮标签、无高亮清空全部）；
  *     连按数字在 600ms 窗口内累加成多位序号（3→33），编号不存在则取消高亮（显示与操作一致）
- *   H/L 放行命令层横向切换 section；其余未知键一律消费，防止落到命令层触发 paste/delete/undo 等全局副作用
+ *   J/K 放行命令层切换 section（纵向列表用纵向键，H/L 在面板内消费无动作）；其余未知键一律消费，防止落到命令层触发 paste/delete/undo 等全局副作用
  */
 
 import { Store } from '../state/store';
@@ -88,9 +88,9 @@ export class ConfigKeyHandler {
         taskDataManager.setConfigNavIndex(0);
         return true;
       }
-      if (key === 'H' || key === 'L') {
+      if (key === 'J' || key === 'K') {
         taskDataManager.setConfigNavIndex(0);
-        return false;
+        return false; // 放行命令层：J/K 切 section
       }
       taskDataManager.setConfigNavIndex(0); // 其余键取消 nav，继续正常流程
     }
@@ -200,9 +200,9 @@ export class ConfigKeyHandler {
         return true; // priority 只有 select 态，Enter 无操作
 
       default:
-        // H/L 放行命令层横向切换 section；j/k/0/$ 进入 nav 态（j/0 → 第一项、k/$ → 最后一项，Enter 才选中生效）；
+        // J/K 放行命令层切换 section；j/k/0/$ 进入 nav 态（j/0 → 第一项、k/$ → 最后一项，Enter 才选中生效）；
         // 其余未知键一律消费，避免落到命令层产生全局副作用
-        if (key === 'H' || key === 'L') return false;
+        if (key === 'J' || key === 'K') return false;
         if (key === 'j') {
           event.preventDefault();
           this.jumpNav(taskDataManager, task, cs, 'first');
