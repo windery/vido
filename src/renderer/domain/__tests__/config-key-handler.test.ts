@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ConfigKeyHandler, isConfigEditState } from '../keyboard/config-key-handler';
 import { Task, TaskPriority } from '../task';
+import { createSpecificDateTimeSchedule } from '../../utils/schedule-helper';
+import { getCurrentDate, parseDate, formatDate } from '../../utils/date-formatter';
 
 function makeEvent(key: string): KeyboardEvent {
   return new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
@@ -206,10 +208,10 @@ describe('ConfigKeyHandler state machine', () => {
     expect(handler.handleKey(makeEvent('L'), 'L', tdm)).toBe(false);
   });
 
-  it('j/k are not handled by config handler (task-level movement passes through)', () => {
+  it('j/k are consumed by config handler (never switch tasks)', () => {
     const tdm = createTDM(makeTask('schedule-select'));
-    expect(handler.handleKey(makeEvent('j'), 'j', tdm)).toBe(false);
-    expect(handler.handleKey(makeEvent('k'), 'k', tdm)).toBe(false);
+    expect(handler.handleKey(makeEvent('j'), 'j', tdm)).toBe(true);
+    expect(handler.handleKey(makeEvent('k'), 'k', tdm)).toBe(true);
     expect(tdm.setConfigState).not.toHaveBeenCalled();
   });
 
@@ -290,12 +292,12 @@ describe('ConfigKeyHandler 标签删除（d + 序号 + Enter）', () => {
     expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
   });
 
-  it('非数字键取消待确认并放行命令层（j/k 任务级移动）', () => {
+  it('非数字键取消待确认并消费（j/k 不再切任务）', () => {
     const tdm = createTDM(makeTagTask(['a', 'b']));
 
     handler.handleKey(makeEvent('d'), 'd', tdm);
     const ok = handler.handleKey(makeEvent('j'), 'j', tdm);
-    expect(ok).toBe(false); // 放行命令层做任务移动
+    expect(ok).toBe(true); // 面板内消费，不落命令层
     expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(0);
     expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
   });
@@ -312,5 +314,77 @@ describe('ConfigKeyHandler 标签删除（d + 序号 + Enter）', () => {
     handler.handleKey(makeEvent('1'), '1', tdm);
     // 残留删除态已取消，数字按 priority 快捷选择处理
     expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'priority', TaskPriority.HIGH);
+  });
+});
+
+describe('ConfigKeyHandler j/k 循环当前任务的值（绝不切任务）', () => {
+  let handler: ConfigKeyHandler;
+
+  beforeEach(() => {
+    handler = new ConfigKeyHandler();
+  });
+
+  const cur = (tdm: any) => tdm.getTaskDataState().tasks[0];
+
+  it('schedule：无日程时 j → 今天，k → 下周', () => {
+    const tdm = createTDM(makeTask('schedule-select'));
+    handler.handleKey(makeEvent('j'), 'j', tdm);
+    expect((cur(tdm).schedule as any).quickTime?.date).toBe(getCurrentDate());
+
+    const tdm2 = createTDM(makeTask('schedule-select'));
+    handler.handleKey(makeEvent('k'), 'k', tdm2);
+    const d = parseDate(getCurrentDate())!;
+    const day = d.getDay();
+    const daysUntilNextMonday = (8 - (day === 0 ? 7 : day)) % 7 || 7;
+    d.setDate(d.getDate() + daysUntilNextMonday);
+    expect((cur(tdm2).schedule as any).quickTime?.date).toBe(formatDate(d));
+  });
+
+  it('schedule：今天 →j 明天 →j 下周 →j 回绕今天；k 反向', () => {
+    const tdm = createTDM(makeTask('schedule-select'));
+    handler.handleKey(makeEvent('j'), 'j', tdm); // 今天
+    handler.handleKey(makeEvent('j'), 'j', tdm); // 明天
+    const tomorrow = parseDate(getCurrentDate())!;
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    expect((cur(tdm).schedule as any).quickTime?.date).toBe(formatDate(tomorrow));
+    handler.handleKey(makeEvent('j'), 'j', tdm); // 下周
+    handler.handleKey(makeEvent('j'), 'j', tdm); // 回绕今天
+    expect((cur(tdm).schedule as any).quickTime?.date).toBe(getCurrentDate());
+    handler.handleKey(makeEvent('k'), 'k', tdm); // 今天 →k 下周
+    const d = parseDate(getCurrentDate())!;
+    const day = d.getDay();
+    const daysUntilNextMonday = (8 - (day === 0 ? 7 : day)) % 7 || 7;
+    d.setDate(d.getDate() + daysUntilNextMonday);
+    expect((cur(tdm).schedule as any).quickTime?.date).toBe(formatDate(d));
+  });
+
+  it('schedule：自定义日期 j/k 不覆盖（保护手工输入）', () => {
+    const t = makeTask('schedule-select');
+    t.schedule = createSpecificDateTimeSchedule('2026-05-08 10:00:00');
+    const tdm = createTDM(t);
+    handler.handleKey(makeEvent('j'), 'j', tdm);
+    handler.handleKey(makeEvent('k'), 'k', tdm);
+    expect((cur(tdm).schedule as any).getDisplayText()).toContain('2026-05-08');
+  });
+
+  it('priority：无 →j ! →j !! →j !!! →j 回无；k 反向', () => {
+    const tdm = createTDM(makeTask('priority-select'));
+    handler.handleKey(makeEvent('j'), 'j', tdm);
+    expect(cur(tdm).priority).toBe(TaskPriority.LOW);
+    handler.handleKey(makeEvent('j'), 'j', tdm);
+    expect(cur(tdm).priority).toBe(TaskPriority.MEDIUM);
+    handler.handleKey(makeEvent('j'), 'j', tdm);
+    expect(cur(tdm).priority).toBe(TaskPriority.HIGH);
+    handler.handleKey(makeEvent('j'), 'j', tdm);
+    expect(cur(tdm).priority).toBeUndefined();
+    handler.handleKey(makeEvent('k'), 'k', tdm);
+    expect(cur(tdm).priority).toBe(TaskPriority.HIGH);
+  });
+
+  it('tags-select：j/k 消费且不修改任务', () => {
+    const tdm = createTDM(makeTagTask(['a']));
+    expect(handler.handleKey(makeEvent('j'), 'j', tdm)).toBe(true);
+    expect(handler.handleKey(makeEvent('k'), 'k', tdm)).toBe(true);
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
   });
 });

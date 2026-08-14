@@ -11,12 +11,16 @@
  *   d 是删除前缀 —— dd 清除当前项（日程/优先级/全部标签，600ms 内连按，防误触）；
  *     仅 tags-select 另有 d + 序号 + Enter 删除对应编号标签（输入时高亮目标，Esc/非数字键取消）
  *   e 是重复前缀 —— ed/ew/em/ey 设置每天/每周/每月/每年重复
- *   j/k 放行命令层做任务级上下移动（配置展开也不改变 j/k 语义）；H/L 放行命令层横向切换 section；其余未知键一律消费，防止落到命令层触发 paste/delete/undo 等全局副作用
+ *   j/k 循环当前任务的值（schedule：无→今天→明天→下周；priority：无→!→!!→!!!）——
+ *     配置展开时焦点在当前任务，j/k 绝不切换任务
+ *   H/L 放行命令层横向切换 section；其余未知键一律消费，防止落到命令层触发 paste/delete/undo 等全局副作用
  */
 
 import { Store } from '../state/store';
 import { TaskPriority } from '../task';
 import { parseScheduleFromString } from '../../utils/schedule-helper';
+import { scheduleDate } from '../../utils/calendar';
+import { getCurrentDate, parseDate, formatDate } from '../../utils/date-formatter';
 import type { ScheduleRepeat } from '../schedule';
 
 /** e/c 前缀的 repeat 键位：d/w/m/y → daily/weekly/monthly/yearly */
@@ -213,8 +217,14 @@ export class ConfigKeyHandler {
         return true; // priority 只有 select 态，Enter 无操作
 
       default:
-        // j/k 放行命令层做任务级移动；H/L 放行命令层横向切换 section；其余未知键一律消费，避免落到命令层产生全局副作用
-        if (key === 'j' || key === 'k' || key === 'H' || key === 'L') return false;
+        // H/L 放行命令层横向切换 section；j/k 在面板内循环当前任务的值（配置焦点在当前任务，绝不切换任务）；
+        // 其余未知键一律消费，避免落到命令层产生全局副作用
+        if (key === 'H' || key === 'L') return false;
+        if (key === 'j' || key === 'k') {
+          event.preventDefault();
+          this.cycleCurrent(key, cs, taskDataManager, task.id);
+          return true;
+        }
         if (cs === 'schedule-select') this.handleSchedule(event, key, taskDataManager, task.id);
         else if (cs === 'priority-select') this.handlePriority(event, key, taskDataManager, task.id);
         // tags-select：无快捷选择，直接消费
@@ -265,6 +275,58 @@ export class ConfigKeyHandler {
       tdm.updateTaskProperty(taskId, 'priority', map[key]);
       tdm.setConfigState(taskId, 'priority-select'); // 选后留在 priority-select（CLAUDE.md 状态机：不改配置类型）
     }
+  }
+
+  /**
+   * j/k：循环当前 section 的值——配置展开时焦点在当前任务，j/k 是「当前任务的操作」，绝不切换任务。
+   * - schedule：无 → 今天 → 明天 → 下周（循环）；自定义日期不动（防止 j/k 覆盖手工输入）
+   * - priority：无 → ! → !! → !!! → 无（循环，可逆）
+   * - tags：无单值语义，消费不动作
+   */
+  private cycleCurrent(key: string, cs: string, tdm: Store, taskId: number): void {
+    const dir = key === 'j' ? 1 : -1;
+    const task = tdm.getTaskDataState().tasks.find((t: any) => t.id === taskId);
+    if (!task) return;
+
+    if (cs === 'schedule-select') {
+      const cycle = ['today', 'tomorrow', 'next_week'];
+      const kind = this.currentScheduleKind(task);
+      if (kind === 'custom') return; // 自定义日期：j/k 不覆盖
+      const next = kind === undefined
+        ? (dir === 1 ? cycle[0] : cycle[2]) // 无日程：j → 今天，k → 下周
+        : cycle[(cycle.indexOf(kind) + dir + cycle.length) % cycle.length];
+      const s = parseScheduleFromString(next);
+      if (s) tdm.updateTaskProperty(taskId, 'schedule', s);
+      return;
+    }
+
+    if (cs === 'priority-select') {
+      const cycle: Array<TaskPriority | undefined> = [undefined, TaskPriority.LOW, TaskPriority.MEDIUM, TaskPriority.HIGH];
+      const idx = cycle.indexOf(task.priority);
+      const next = cycle[(idx + dir + cycle.length) % cycle.length];
+      tdm.updateTaskProperty(taskId, 'priority', next);
+      return;
+    }
+    // tags-select：消费（保持当前任务焦点）
+  }
+
+  /** 当前日程属于哪个快捷档：today / tomorrow / next_week / custom；无日程返回 undefined */
+  private currentScheduleKind(task: any): string | undefined {
+    const d = scheduleDate(task);
+    if (!d) return undefined;
+    const today = getCurrentDate();
+    if (d === today) return 'today';
+    const tomorrow = parseDate(today)!;
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (d === formatDate(tomorrow)) return 'tomorrow';
+    // 下周一（与 parseScheduleFromString('next_week') 语义一致）
+    const now = parseDate(today)!;
+    const day = now.getDay();
+    const daysUntilNextMonday = (8 - (day === 0 ? 7 : day)) % 7 || 7;
+    const nextMonday = new Date(now);
+    nextMonday.setDate(now.getDate() + daysUntilNextMonday);
+    if (d === formatDate(nextMonday)) return 'next_week';
+    return 'custom';
   }
 
   /** 根据已输数字串计算 1 基序号，写入响应式状态驱动面板高亮；越界/空则不亮 */
