@@ -6,7 +6,7 @@ import { TaskListManager } from '../manager/task-list-manager';
 import { EditorMode } from '../editor';
 import { logger } from '../../utils/logger';
 import { createTodaySchedule, createSpecificDateTimeSchedule } from '../../utils/schedule-helper';
-import { getCurrentDate, formatDate } from '../../utils/date-formatter';
+import { getCurrentDate } from '../../utils/date-formatter';
 
 describe('Store — 加载后默认选中', () => {
   it('init 加载后无选中任务时自动选中第一个', async () => {
@@ -1254,27 +1254,47 @@ describe('Store — 日期视图（g c / H L / [ ]）', () => {
     expect(cv(s).granularity).toBe('month');
   });
 
-  it('[ ] 翻页：day ±1 天 / week ±7 天 / month ±1 月，焦点跟随锚点', () => {
+  it('[ ] 翻页：day ±1 天 / week ±7 天 / month ±1 月（同一天号，焦点跟随）', () => {
     const s = makeStore();
     s.openCalendarView(); // month, anchor=today
+    s.state.calendarView.anchor = '2026-05-08';
+    s.state.calendarView.selectedDate = '2026-05-08';
     s.shiftCalendarPage(1);
-    const d = new Date();
-    d.setMonth(d.getMonth() + 1);
-    expect(cv(s).anchor).toBe(formatDate(d));
-    expect(cv(s).selectedDate).toBe(formatDate(d)); // 焦点跟随锚点
+    expect(cv(s).anchor).toBe('2026-06-08');
+    expect(cv(s).selectedDate).toBe('2026-06-08');
+    s.shiftCalendarPage(-1);
+    expect(cv(s).anchor).toBe('2026-05-08');
 
     s.state.calendarView.granularity = 'week';
     s.shiftCalendarPage(1);
-    const w = new Date(d);
-    w.setDate(w.getDate() + 7);
-    expect(cv(s).anchor).toBe(formatDate(w));
-    expect(cv(s).selectedDate).toBe(formatDate(w));
+    expect(cv(s).anchor).toBe('2026-05-15');
+    expect(cv(s).selectedDate).toBe('2026-05-15');
 
     s.state.calendarView.granularity = 'day';
     s.shiftCalendarPage(-1);
-    const dd = new Date(w);
-    dd.setDate(dd.getDate() - 1);
-    expect(cv(s).anchor).toBe(formatDate(dd));
+    expect(cv(s).anchor).toBe('2026-05-14');
+  });
+
+  it('翻页以焦点日为基准：导航到别的日子后翻页保持同一天号', () => {
+    const s = makeStore();
+    s.openCalendarView();
+    s.state.calendarView.anchor = '2026-05-08';
+    s.state.calendarView.selectedDate = '2026-05-20'; // 用户 jklh/数字导航到 20 日
+    s.shiftCalendarPage(1);
+    expect(cv(s).anchor).toBe('2026-06-20'); // 跟随焦点日，不被锚点日（8 日）劫持
+    expect(cv(s).selectedDate).toBe('2026-06-20');
+  });
+
+  it('月末翻页收敛到目标月最后一天，绝不溢出到下下个月', () => {
+    const s = makeStore();
+    s.openCalendarView();
+    s.state.calendarView.anchor = '2026-08-31';
+    s.state.calendarView.selectedDate = '2026-08-31';
+    s.shiftCalendarPage(1); // 9 月只有 30 天
+    expect(cv(s).anchor).toBe('2026-09-30');
+    expect(cv(s).selectedDate).toBe('2026-09-30');
+    s.shiftCalendarPage(-1); // 回 8 月：30 日有效
+    expect(cv(s).anchor).toBe('2026-08-30');
   });
 
   it('closeCalendarView 退出', () => {
