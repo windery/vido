@@ -20,12 +20,12 @@ export const en = {
   mode: {
     titleEdit: '-- TITLE EDIT -- (⏎ save)',
     contentEdit: '-- INSERT --',
-    contentNav: '-- CONTENT-NAV -- (h j k l move · w b e word · i insert · x del · dd line · p paste · u undo · ? keys)',
+    contentNav: '-- CONTENT-NAV -- (hjkl move · i insert · ? keys)',
     config: '-- CONFIG --',
     // 键位详情在面板 footer/输入框 placeholder 展示，状态栏只报 section 名（徽标），不重复提示
-    configSchedule: 'H L sections · j k nav · ⏎ select · ? keys',
-    configPriority: 'H L sections · j k nav · ⏎ select · ? keys',
-    configTags: 'j k nav · ⏎ add · d n ⏎ delete · dd clear · ? keys',
+    configSchedule: 'j k nav · ⏎ select · ? keys',
+    configPriority: 'j k nav · ⏎ select · ? keys',
+    configTags: 'j k nav · ⏎ add · d n ⏎ delete · ? keys',
     configScheduleEdit: '⏎ save',
     configTagsEdit: '⏎ save',
     help: 'Press ? for help',
@@ -92,7 +92,7 @@ export const en = {
     pasted: 'Pasted: {title}',
   },
   help: {
-    title: 'Vido - Vim-style Todo Manager',
+    title: 'Help — Keybindings',
     footScroll: 'scroll',
     footNav: 'top/bottom',
     footClose: 'close',
