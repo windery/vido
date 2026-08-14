@@ -25,7 +25,7 @@ priority:    priority-select  (只有 select，1/2/3 直接选，选后留在 pr
 tags:        tags-select ──Enter──→ tags-edit ──Enter/Esc──→ tags-select
 
 H/L 在 select 状态间横向切换（同一任务的配置项）:  schedule-select ←→ priority-select ←→ tags-select
-j/k 循环当前 section 的值（schedule：无→今天→明天→下周；priority：无→!→!!→!!!；tags 无单值语义只消费）——配置展开时焦点锁定当前任务，j/k 绝不切换任务
+j/k 进入 nav 态（焦点锁定当前任务，绝不切换任务）：在选项间移动高亮、不直接生效；Enter 选中高亮项后退出 nav 回 select；Esc 退出 nav 回 select（再 Esc 关面板）
 Esc 关闭配置（edit 态先取消回 select，再 Esc 关闭）
 ```
 
@@ -33,7 +33,7 @@ Esc 关闭配置（edit 态先取消回 select，再 Esc 关闭）
 - `c` 导航前缀（600ms 窗口）：`cc` 收起面板（与 normal 模式 `cc` 组成对称开关，**绝不清除**）、`cs/cp/ct` 直达 日程/优先级/标签、`cd/cw/cm/cy` 清除对应 repeat
 - `d` 删除前缀：`dd` 清除当前项（日程/优先级/全部标签，schedule/priority 需 600ms 内连按、tags 需 600ms 内连按——慢速 d…d 不触发防误触）
 - `e` 重复前缀：`ed/ew/em/ey` 设置每天/每周/每月/每年重复
-- `j/k` 循环当前任务的值（**绝不切任务**）：schedule 无→今天→明天→下周（自定义日期不动，保护手工输入）；priority 无→!→!!→!!!（全循环可逆）；tags 消费
+- `j/k` 进入 **nav 态**（**绝不切任务**）：只在选项间移动高亮、**不直接生效**；`Enter` 选中高亮项（唯一生效路径，schedule 选项含 清除/自定义、priority 含 清除、tags 选项为各标签+Add+Clear）→ 退出 nav 回 select；`Esc` 退出 nav 回 select；不按 j/k 时保留原快捷流（1/2/3 直接选、Enter 打开输入）
 - `H/L` 横向切 section（同一任务）；其余未知键一律消费
 
 **tags-select 标签删除**（`d` 前缀操作符，仅 tags-select）：`d` 开启删除待确认 → 数字累加为 1 基序号（标签前显示编号，越界/空则不高亮）→ 目标标签高亮（琥珀虚线框 + `✕` 标记）→ `Enter` 确认删除该标签、`Esc`/非数字键取消（取消后按正常流程继续，如 `H/L` 切 section 放行命令层）；600ms 内连按 `dd` 清空全部标签。删除态离开 tags-select 或切换任务时自动清理。其余 section 的 `d` 一律消费，不落到命令层触发全局删除。
@@ -42,7 +42,7 @@ Esc 关闭配置（edit 态先取消回 select，再 Esc 关闭）
 1. select → Enter → edit（打开输入框）
 2. edit → Enter → select（保存，回到同类型的 select）
 3. edit → Esc → select（取消，回到同类型的 select，内容不保存）
-4. select → H/L → 切换到另一个类型的 select（j/k 循环当前 section 的值，绝不切任务）
+4. select → H/L → 切换到另一个类型的 select（j/k 只导航高亮、Enter 才选中生效，绝不切任务）
 5. 操作完成后不改配置类型——加完标签留在 tags-select，选完优先级留在 priority-select
 
 ### Operation Philosophy

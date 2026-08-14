@@ -66,27 +66,27 @@
                 @keydown.enter.stop="saveScheduleInput" @keydown.escape.stop="cancelScheduleInput" />
             </div>
             <div v-else class="config-pills">
-              <span class="config-pill"><kbd>1</kbd> {{ t('config.today') }}</span>
-              <span class="config-pill"><kbd>2</kbd> {{ t('config.tomorrow') }}</span>
-              <span class="config-pill"><kbd>3</kbd> {{ t('config.nextWeek') }}</span>
-              <span class="config-pill"><kbd>dd</kbd> {{ t('config.clear') }}</span>
-              <span class="config-pill config-pill-enter"><kbd>⏎</kbd> {{ t('config.custom') }}</span>
+              <span class="config-pill" :class="{ 'nav-active': navOn('schedule-select', 1) }"><kbd>1</kbd> {{ t('config.today') }}</span>
+              <span class="config-pill" :class="{ 'nav-active': navOn('schedule-select', 2) }"><kbd>2</kbd> {{ t('config.tomorrow') }}</span>
+              <span class="config-pill" :class="{ 'nav-active': navOn('schedule-select', 3) }"><kbd>3</kbd> {{ t('config.nextWeek') }}</span>
+              <span class="config-pill" :class="{ 'nav-active': navOn('schedule-select', 4) }"><kbd>dd</kbd> {{ t('config.clear') }}</span>
+              <span class="config-pill config-pill-enter" :class="{ 'nav-active': navOn('schedule-select', 5) }"><kbd>⏎</kbd> {{ t('config.custom') }}</span>
             </div>
           </template>
           <!-- Priority -->
           <template v-else-if="task.configState === 'priority-select'">
             <div class="config-pills">
-              <span class="config-pill priority-p1"><kbd>1</kbd> !!! {{ t('config.high') }}</span>
-              <span class="config-pill priority-p2"><kbd>2</kbd> !! {{ t('config.medium') }}</span>
-              <span class="config-pill priority-p3"><kbd>3</kbd> ! {{ t('config.low') }}</span>
-              <span class="config-pill"><kbd>dd</kbd> {{ t('config.clear') }}</span>
+              <span class="config-pill priority-p1" :class="{ 'nav-active': navOn('priority-select', 1) }"><kbd>1</kbd> !!! {{ t('config.high') }}</span>
+              <span class="config-pill priority-p2" :class="{ 'nav-active': navOn('priority-select', 2) }"><kbd>2</kbd> !! {{ t('config.medium') }}</span>
+              <span class="config-pill priority-p3" :class="{ 'nav-active': navOn('priority-select', 3) }"><kbd>3</kbd> ! {{ t('config.low') }}</span>
+              <span class="config-pill" :class="{ 'nav-active': navOn('priority-select', 4) }"><kbd>dd</kbd> {{ t('config.clear') }}</span>
             </div>
           </template>
           <!-- Tags -->
           <template v-else-if="task.configState === 'tags-select' || task.configState === 'tags-edit'">
             <div v-if="task.tags?.length" class="config-tags-display">
               <span v-for="(tag, i) in task.tags" :key="tag" class="config-tag"
-                  :class="{ 'config-tag-del': tagDeleteIndex === i + 1 }">
+                  :class="{ 'config-tag-del': tagDeleteIndex === i + 1, 'nav-active': navOn('tags-select', i + 1) }">
                 <span class="config-tag-idx">{{ i + 1 }}</span>
                 <span v-if="tagDeleteIndex === i + 1" class="config-tag-x">✕</span>
                 <span class="config-tag-name">#{{ tag }}</span>
@@ -102,8 +102,8 @@
                 @keydown.enter.stop="saveTagInput" @keydown.escape.stop="cancelTagInput" />
             </div>
             <div v-else class="config-pills" style="margin-top:6px">
-              <span class="config-pill config-pill-enter"><kbd>⏎</kbd> {{ t('config.add') }}</span>
-              <span class="config-pill"><kbd>dd</kbd> {{ t('config.clear') }}</span>
+              <span class="config-pill config-pill-enter" :class="{ 'nav-active': navOn('tags-select', (task.tags?.length || 0) + 1) }"><kbd>⏎</kbd> {{ t('config.add') }}</span>
+              <span class="config-pill" :class="{ 'nav-active': navOn('tags-select', (task.tags?.length || 0) + 2) }"><kbd>dd</kbd> {{ t('config.clear') }}</span>
             </div>
           </template>
           <div class="config-footer" v-html="t('config.footer')"></div>
@@ -141,7 +141,11 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 // 标签删除待确认序号（0 = 无目标），驱动 tags-select 面板高亮
-const { tagDeleteIndex } = useTaskState();
+const { tagDeleteIndex, configNavIndex } = useTaskState();
+
+/** 配置面板 nav 态高亮：section 匹配且序号命中（j/k 导航、Enter 选中） */
+const navOn = (section: string, index: number) =>
+    props.task.configState === section && configNavIndex.value === index;
 
 const titleEditRef = ref<HTMLInputElement | null>(null);
 
@@ -688,6 +692,13 @@ watchEffect(() => {
   color: var(--text);
 }
 
+/* nav 态高亮：j/k 导航到的选项（Enter 选中），磷光绿描边 + 淡底 */
+.config-pill.nav-active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent-bright);
+}
+
 .config-pill-enter {
   background: var(--accent-dim);
   color: var(--accent-bright);
@@ -764,6 +775,11 @@ watchEffect(() => {
 .config-tag-del {
   border: 1px dashed var(--p2);
   background: rgba(210, 153, 34, 0.16);
+}
+
+/* nav 态高亮（标签 chip）：磷光绿实线框，与删除待确认的琥珀虚线区分 */
+.config-tag.nav-active {
+  border-color: var(--accent);
 }
 
 .config-tags-hint {

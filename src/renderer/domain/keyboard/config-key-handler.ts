@@ -11,8 +11,9 @@
  *   d 是删除前缀 —— dd 清除当前项（日程/优先级/全部标签，600ms 内连按，防误触）；
  *     仅 tags-select 另有 d + 序号 + Enter 删除对应编号标签（输入时高亮目标，Esc/非数字键取消）
  *   e 是重复前缀 —— ed/ew/em/ey 设置每天/每周/每月/每年重复
- *   j/k 循环当前任务的值（schedule：无→今天→明天→下周；priority：无→!→!!→!!!）——
- *     配置展开时焦点在当前任务，j/k 绝不切换任务
+ *   j/k 进入 nav 态（焦点锁定当前任务，绝不切换任务）：在选项间移动高亮、不直接生效；
+ *     Enter 选中高亮项（唯一生效路径）→ 退回 select；Esc 退出 nav 回 select（再 Esc 关面板）。
+ *     不按 j/k 时保留原快捷流：1/2/3 直接选、Enter 打开输入（schedule/tags）
  *   H/L 放行命令层横向切换 section；其余未知键一律消费，防止落到命令层触发 paste/delete/undo 等全局副作用
  */
 
@@ -73,6 +74,32 @@ export class ConfigKeyHandler {
     // 残留的 dd 清除前缀（切换 section 或任务）清理，避免误清新项的配置
     if (this.dClearPending && (this.dClearSection !== cs || this.dClearTaskId !== task.id)) {
       this.cancelDClear();
+    }
+
+    // nav 态（j/k 进入，焦点锁定当前任务的配置项，绝不切换任务）：
+    // j/k 移动高亮，Enter 选中高亮项（唯一生效路径），Esc 只退出 nav 回 select，
+    // H/L 放行切 section，其余键取消 nav 后按正常流程继续
+    if ((state as any).configNavIndex > 0) {
+      if (key === 'j' || key === 'k') {
+        event.preventDefault();
+        this.moveNav(taskDataManager, task, cs, key === 'j' ? 1 : -1);
+        return true;
+      }
+      if (key === 'Enter') {
+        event.preventDefault();
+        this.activateNav(taskDataManager, task, cs, (state as any).configNavIndex);
+        return true;
+      }
+      if (key === 'Escape') {
+        event.preventDefault();
+        taskDataManager.setConfigNavIndex(0);
+        return true;
+      }
+      if (key === 'H' || key === 'L') {
+        taskDataManager.setConfigNavIndex(0);
+        return false;
+      }
+      taskDataManager.setConfigNavIndex(0); // 其余键取消 nav，继续正常流程
     }
 
     // d 待确认态（仅 tags-select 同一任务生效）：
@@ -217,12 +244,12 @@ export class ConfigKeyHandler {
         return true; // priority 只有 select 态，Enter 无操作
 
       default:
-        // H/L 放行命令层横向切换 section；j/k 在面板内循环当前任务的值（配置焦点在当前任务，绝不切换任务）；
+        // H/L 放行命令层横向切换 section；j/k 进入 nav 态（高亮导航，Enter 才选中生效）；
         // 其余未知键一律消费，避免落到命令层产生全局副作用
         if (key === 'H' || key === 'L') return false;
         if (key === 'j' || key === 'k') {
           event.preventDefault();
-          this.cycleCurrent(key, cs, taskDataManager, task.id);
+          this.enterNav(taskDataManager, task, cs, key === 'j' ? 1 : -1);
           return true;
         }
         if (cs === 'schedule-select') this.handleSchedule(event, key, taskDataManager, task.id);
@@ -277,37 +304,81 @@ export class ConfigKeyHandler {
     }
   }
 
-  /**
-   * j/k：循环当前 section 的值——配置展开时焦点在当前任务，j/k 是「当前任务的操作」，绝不切换任务。
-   * - schedule：无 → 今天 → 明天 → 下周（循环）；自定义日期不动（防止 j/k 覆盖手工输入）
-   * - priority：无 → ! → !! → !!! → 无（循环，可逆）
-   * - tags：无单值语义，消费不动作
-   */
-  private cycleCurrent(key: string, cs: string, tdm: Store, taskId: number): void {
-    const dir = key === 'j' ? 1 : -1;
-    const task = tdm.getTaskDataState().tasks.find((t: any) => t.id === taskId);
-    if (!task) return;
+  /** schedule-select 的 nav 选项（与面板 pill 顺序一致） */
+  private static readonly SCHEDULE_OPTIONS = ['today', 'tomorrow', 'next_week', 'clear', 'custom'] as const;
+  /** priority-select 的 nav 选项（与面板 pill 顺序一致） */
+  private static readonly PRIORITY_OPTIONS = ['high', 'medium', 'low', 'clear'] as const;
 
+  /** nav 选项总数（tags = 标签数 + add + clear） */
+  private navTotal(task: any, cs: string): number {
+    if (cs === 'tags-select') return (task.tags?.length || 0) + 2;
+    if (cs === 'schedule-select') return ConfigKeyHandler.SCHEDULE_OPTIONS.length;
+    return ConfigKeyHandler.PRIORITY_OPTIONS.length;
+  }
+
+  /** 当前值对应的 nav 序号（1 基；无值/自定义日期 → 第一项） */
+  private currentNavIndex(task: any, cs: string): number {
     if (cs === 'schedule-select') {
-      const cycle = ['today', 'tomorrow', 'next_week'];
       const kind = this.currentScheduleKind(task);
-      if (kind === 'custom') return; // 自定义日期：j/k 不覆盖
-      const next = kind === undefined
-        ? (dir === 1 ? cycle[0] : cycle[2]) // 无日程：j → 今天，k → 下周
-        : cycle[(cycle.indexOf(kind) + dir + cycle.length) % cycle.length];
-      const s = parseScheduleFromString(next);
-      if (s) tdm.updateTaskProperty(taskId, 'schedule', s);
-      return;
+      const map: Record<string, number> = { today: 1, tomorrow: 2, next_week: 3 };
+      return kind && map[kind] !== undefined ? map[kind] : 1;
     }
-
     if (cs === 'priority-select') {
-      const cycle: Array<TaskPriority | undefined> = [undefined, TaskPriority.LOW, TaskPriority.MEDIUM, TaskPriority.HIGH];
-      const idx = cycle.indexOf(task.priority);
-      const next = cycle[(idx + dir + cycle.length) % cycle.length];
-      tdm.updateTaskProperty(taskId, 'priority', next);
-      return;
+      const map: Record<string, number> = {
+        [TaskPriority.HIGH]: 1,
+        [TaskPriority.MEDIUM]: 2,
+        [TaskPriority.LOW]: 3,
+      };
+      return task.priority && map[task.priority] !== undefined ? map[task.priority] : 1;
     }
-    // tags-select：消费（保持当前任务焦点）
+    return 1;
+  }
+
+  /** j/k 进入 nav 态：以当前值位置为基准移动一步并高亮（只导航，不生效） */
+  private enterNav(tdm: Store, task: any, cs: string, dir: 1 | -1): void {
+    const total = this.navTotal(task, cs);
+    const base = this.currentNavIndex(task, cs);
+    tdm.setConfigNavIndex(((base - 1 + dir) % total + total) % total + 1);
+  }
+
+  /** nav 态内 j/k 移动高亮（循环） */
+  private moveNav(tdm: Store, task: any, cs: string, dir: 1 | -1): void {
+    const total = this.navTotal(task, cs);
+    const cur = (tdm.getTaskDataState() as any).configNavIndex || 1;
+    tdm.setConfigNavIndex(((cur - 1 + dir) % total + total) % total + 1);
+  }
+
+  /** Enter 选中 nav 高亮项（唯一生效路径），随后退出 nav 回 select 态 */
+  private activateNav(tdm: Store, task: any, cs: string, index: number): void {
+    if (cs === 'schedule-select') {
+      const opt = ConfigKeyHandler.SCHEDULE_OPTIONS[index - 1];
+      if (opt === 'clear') tdm.updateTaskProperty(task.id, 'schedule', undefined);
+      else if (opt === 'custom') tdm.setConfigState(task.id, 'schedule-edit');
+      else {
+        const s = parseScheduleFromString(opt);
+        if (s) tdm.updateTaskProperty(task.id, 'schedule', s);
+      }
+    } else if (cs === 'priority-select') {
+      const opt = ConfigKeyHandler.PRIORITY_OPTIONS[index - 1];
+      if (opt === 'clear') tdm.updateTaskProperty(task.id, 'priority', undefined);
+      else {
+        const map: Record<string, TaskPriority> = { high: TaskPriority.HIGH, medium: TaskPriority.MEDIUM, low: TaskPriority.LOW };
+        if (map[opt]) tdm.updateTaskProperty(task.id, 'priority', map[opt]);
+      }
+    } else if (cs === 'tags-select') {
+      const tags = task.tags || [];
+      if (index <= tags.length) {
+        // 高亮在某个标签上：Enter 删除该标签
+        tdm.updateTaskProperty(task.id, 'tags', tags.filter((_: string, i: number) => i !== index - 1));
+      } else if (index === tags.length + 1) {
+        // 高亮在 Add：Enter 打开标签输入（与默认 Enter 一致）
+        tdm.setConfigState(task.id, 'tags-edit');
+      } else {
+        // 高亮在 Clear：Enter 清空全部标签
+        tdm.updateTaskProperty(task.id, 'tags', []);
+      }
+    }
+    tdm.setConfigNavIndex(0);
   }
 
   /** 当前日程属于哪个快捷档：today / tomorrow / next_week / custom；无日程返回 undefined */

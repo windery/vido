@@ -16,8 +16,9 @@ function makeTask(configState: string | undefined): Task {
 
 function createTDM(task: Task): any {
   let current = task;
+  let navIndex = 0;
   return {
-    getTaskDataState: () => ({ tasks: [current] }),
+    getTaskDataState: () => ({ tasks: [current], configNavIndex: navIndex }),
     updateTaskProperty: vi.fn((_id: number, key: string, val: any) => {
       current = { ...current, [key]: val };
     }),
@@ -25,6 +26,10 @@ function createTDM(task: Task): any {
       current = makeTask(s);
     }),
     setTagDeleteIndex: vi.fn(),
+    setConfigNavIndex: vi.fn((n: number) => {
+      navIndex = n;
+    }),
+    _nav: () => navIndex,
   };
 }
 
@@ -317,7 +322,8 @@ describe('ConfigKeyHandler 标签删除（d + 序号 + Enter）', () => {
   });
 });
 
-describe('ConfigKeyHandler j/k 循环当前任务的值（绝不切任务）', () => {
+
+describe('ConfigKeyHandler j/k nav 导航（Enter 才选中生效，绝不切任务）', () => {
   let handler: ConfigKeyHandler;
 
   beforeEach(() => {
@@ -326,65 +332,124 @@ describe('ConfigKeyHandler j/k 循环当前任务的值（绝不切任务）', (
 
   const cur = (tdm: any) => tdm.getTaskDataState().tasks[0];
 
-  it('schedule：无日程时 j → 今天，k → 下周', () => {
+  it('j 进入 nav 只高亮不生效，Enter 才应用', () => {
     const tdm = createTDM(makeTask('schedule-select'));
-    handler.handleKey(makeEvent('j'), 'j', tdm);
-    expect((cur(tdm).schedule as any).quickTime?.date).toBe(getCurrentDate());
-
-    const tdm2 = createTDM(makeTask('schedule-select'));
-    handler.handleKey(makeEvent('k'), 'k', tdm2);
-    const d = parseDate(getCurrentDate())!;
-    const day = d.getDay();
-    const daysUntilNextMonday = (8 - (day === 0 ? 7 : day)) % 7 || 7;
-    d.setDate(d.getDate() + daysUntilNextMonday);
-    expect((cur(tdm2).schedule as any).quickTime?.date).toBe(formatDate(d));
-  });
-
-  it('schedule：今天 →j 明天 →j 下周 →j 回绕今天；k 反向', () => {
-    const tdm = createTDM(makeTask('schedule-select'));
-    handler.handleKey(makeEvent('j'), 'j', tdm); // 今天
-    handler.handleKey(makeEvent('j'), 'j', tdm); // 明天
+    handler.handleKey(makeEvent('j'), 'j', tdm); // 无日程基准=今天(1) → +1 = 明天(2)
+    expect(tdm._nav()).toBe(2);
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled(); // 导航不生效
+    handler.handleKey(makeEvent('Enter'), 'Enter', tdm);
+    expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'schedule', expect.anything());
+    expect(tdm._nav()).toBe(0); // 选中后退出 nav
     const tomorrow = parseDate(getCurrentDate())!;
     tomorrow.setDate(tomorrow.getDate() + 1);
     expect((cur(tdm).schedule as any).quickTime?.date).toBe(formatDate(tomorrow));
-    handler.handleKey(makeEvent('j'), 'j', tdm); // 下周
-    handler.handleKey(makeEvent('j'), 'j', tdm); // 回绕今天
-    expect((cur(tdm).schedule as any).quickTime?.date).toBe(getCurrentDate());
-    handler.handleKey(makeEvent('k'), 'k', tdm); // 今天 →k 下周
-    const d = parseDate(getCurrentDate())!;
-    const day = d.getDay();
-    const daysUntilNextMonday = (8 - (day === 0 ? 7 : day)) % 7 || 7;
-    d.setDate(d.getDate() + daysUntilNextMonday);
-    expect((cur(tdm).schedule as any).quickTime?.date).toBe(formatDate(d));
   });
 
-  it('schedule：自定义日期 j/k 不覆盖（保护手工输入）', () => {
+  it('nav 内 j/k 循环移动，Esc 只退出 nav 不关面板', () => {
+    const tdm = createTDM(makeTask('schedule-select'));
+    handler.handleKey(makeEvent('j'), 'j', tdm); // → 2
+    handler.handleKey(makeEvent('j'), 'j', tdm); // → 3
+    handler.handleKey(makeEvent('j'), 'j', tdm); // → 4 (clear)
+    expect(tdm._nav()).toBe(4);
+    handler.handleKey(makeEvent('Escape'), 'Escape', tdm);
+    expect(tdm._nav()).toBe(0);
+    expect(tdm.setConfigState).not.toHaveBeenCalled(); // 面板仍在，再 Esc 才关
+  });
+
+  it('Enter 选中 Clear 项清除日程', () => {
     const t = makeTask('schedule-select');
     t.schedule = createSpecificDateTimeSchedule('2026-05-08 10:00:00');
     const tdm = createTDM(t);
+    // 自定义日期基准=今天(1)：j×3 → 4 = clear
     handler.handleKey(makeEvent('j'), 'j', tdm);
-    handler.handleKey(makeEvent('k'), 'k', tdm);
-    expect((cur(tdm).schedule as any).getDisplayText()).toContain('2026-05-08');
+    handler.handleKey(makeEvent('j'), 'j', tdm);
+    handler.handleKey(makeEvent('j'), 'j', tdm);
+    expect(tdm._nav()).toBe(4);
+    handler.handleKey(makeEvent('Enter'), 'Enter', tdm);
+    expect(cur(tdm).schedule).toBeUndefined();
+    expect(tdm._nav()).toBe(0);
   });
 
-  it('priority：无 →j ! →j !! →j !!! →j 回无；k 反向', () => {
+  it('Enter 选中 Custom 项打开 schedule-edit（与默认 Enter 语义一致）', () => {
+    const tdm = createTDM(makeTask('schedule-select'));
+    for (let i = 0; i < 4; i++) handler.handleKey(makeEvent('j'), 'j', tdm); // → 5 = custom
+    expect(tdm._nav()).toBe(5);
+    handler.handleKey(makeEvent('Enter'), 'Enter', tdm);
+    expect(tdm.setConfigState).toHaveBeenCalledWith(1, 'schedule-edit');
+  });
+
+  it('不按 j/k 时 Enter 仍直接打开输入（原快捷流不受影响）', () => {
+    const tdm = createTDM(makeTask('schedule-select'));
+    handler.handleKey(makeEvent('Enter'), 'Enter', tdm);
+    expect(tdm.setConfigState).toHaveBeenCalledWith(1, 'schedule-edit');
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
+  });
+
+  it('priority：j 进入 nav 高亮下一项，Enter 选中生效', () => {
     const tdm = createTDM(makeTask('priority-select'));
-    handler.handleKey(makeEvent('j'), 'j', tdm);
-    expect(cur(tdm).priority).toBe(TaskPriority.LOW);
-    handler.handleKey(makeEvent('j'), 'j', tdm);
+    handler.handleKey(makeEvent('j'), 'j', tdm); // 无优先级基准=!!!(1) → +1 = !!(2)
+    expect(tdm._nav()).toBe(2);
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
+    handler.handleKey(makeEvent('Enter'), 'Enter', tdm);
     expect(cur(tdm).priority).toBe(TaskPriority.MEDIUM);
-    handler.handleKey(makeEvent('j'), 'j', tdm);
-    expect(cur(tdm).priority).toBe(TaskPriority.HIGH);
-    handler.handleKey(makeEvent('j'), 'j', tdm);
-    expect(cur(tdm).priority).toBeUndefined();
-    handler.handleKey(makeEvent('k'), 'k', tdm);
-    expect(cur(tdm).priority).toBe(TaskPriority.HIGH);
+    expect(tdm._nav()).toBe(0);
   });
 
-  it('tags-select：j/k 消费且不修改任务', () => {
+  it('priority：已有 P3 时 k 进入 nav 以当前值为基准上移', () => {
+    const t = makeTask('priority-select');
+    t.priority = TaskPriority.LOW;
+    const tdm = createTDM(t);
+    handler.handleKey(makeEvent('k'), 'k', tdm); // 基准 !(3) → -1 = !!(2)
+    expect(tdm._nav()).toBe(2);
+  });
+
+  it('priority：Enter 选中 Clear 项清除优先级', () => {
+    const t = makeTask('priority-select');
+    t.priority = TaskPriority.HIGH;
+    const tdm = createTDM(t);
+    handler.handleKey(makeEvent('k'), 'k', tdm); // 基准 1 → -1 回绕 = 4 (clear)
+    expect(tdm._nav()).toBe(4);
+    handler.handleKey(makeEvent('Enter'), 'Enter', tdm);
+    expect(cur(tdm).priority).toBeUndefined();
+  });
+
+  it('tags：j 高亮标签、Enter 删除该标签', () => {
+    const tdm = createTDM(makeTagTask(['work', 'home']));
+    handler.handleKey(makeEvent('j'), 'j', tdm); // 基准 tag1(1) → +1 = tag2(2)
+    expect(tdm._nav()).toBe(2);
+    handler.handleKey(makeEvent('Enter'), 'Enter', tdm);
+    expect(cur(tdm).tags).toEqual(['work']);
+    expect(tdm._nav()).toBe(0);
+  });
+
+  it('tags：nav 到 Add 后 Enter 打开 tags-edit；nav 到 Clear 后 Enter 清空', () => {
     const tdm = createTDM(makeTagTask(['a']));
-    expect(handler.handleKey(makeEvent('j'), 'j', tdm)).toBe(true);
-    expect(handler.handleKey(makeEvent('k'), 'k', tdm)).toBe(true);
+    handler.handleKey(makeEvent('j'), 'j', tdm); // 基准 tag1(1) → +1 = Add(2)
+    expect(tdm._nav()).toBe(2);
+    handler.handleKey(makeEvent('Enter'), 'Enter', tdm);
+    expect(tdm.setConfigState).toHaveBeenCalledWith(1, 'tags-edit');
+
+    const tdm2 = createTDM(makeTagTask(['a']));
+    handler.handleKey(makeEvent('j'), 'j', tdm2); // → Add(2)
+    handler.handleKey(makeEvent('j'), 'j', tdm2); // → Clear(3)
+    handler.handleKey(makeEvent('Enter'), 'Enter', tdm2);
+    expect(cur(tdm2).tags).toEqual([]);
+  });
+
+  it('nav 中按 d 取消 nav 并进入删除前缀流', () => {
+    const tdm = createTDM(makeTask('priority-select'));
+    handler.handleKey(makeEvent('j'), 'j', tdm); // nav = 2
+    handler.handleKey(makeEvent('d'), 'd', tdm);
+    expect(tdm._nav()).toBe(0); // nav 被取消，d 走正常删除前缀
+  });
+
+  it('j/k 全程不切任务（无 setConfigState 副作用、无数据变更）', () => {
+    const tdm = createTDM(makeTask('schedule-select'));
+    handler.handleKey(makeEvent('j'), 'j', tdm);
+    handler.handleKey(makeEvent('k'), 'k', tdm);
+    handler.handleKey(makeEvent('j'), 'j', tdm);
+    handler.handleKey(makeEvent('Escape'), 'Escape', tdm);
+    expect(tdm.setConfigState).not.toHaveBeenCalled();
     expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
   });
 });
