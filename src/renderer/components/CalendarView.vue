@@ -4,7 +4,7 @@
         <div class="calendar-header">
             <span class="cal-badge">{{ granularity.toUpperCase() }}</span>
             <span class="cal-range">{{ rangeLabel }}</span>
-            <span class="cal-hint">[ ] page &nbsp;·&nbsp; H/L view &nbsp;·&nbsp; j/k select &nbsp;·&nbsp; Enter open &nbsp;·&nbsp; Esc exit</span>
+            <span class="cal-hint">[ ] page &nbsp;·&nbsp; H/L view &nbsp;·&nbsp; j/k select &nbsp;·&nbsp; Enter open</span>
         </div>
 
         <!-- 按日期分组的任务 -->

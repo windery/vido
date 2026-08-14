@@ -16,7 +16,7 @@
         </div>
       </div>
       <div class="help-foot">
-        <kbd>j</kbd><kbd>k</kbd> {{ t('help.footScroll') }} · <kbd>gg</kbd>/<kbd>G</kbd> {{ t('help.footNav') }} · <kbd>Esc</kbd> {{ t('help.footClose') }}
+        <kbd>j</kbd><kbd>k</kbd> {{ t('help.footScroll') }} · <kbd>gg</kbd>/<kbd>G</kbd> {{ t('help.footNav') }} · <kbd>?</kbd> {{ t('help.footClose') }}
       </div>
     </div>
   </div>
