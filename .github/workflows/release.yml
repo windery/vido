@@ -138,23 +138,16 @@ jobs:
         with:
           path: artifacts
 
-      - name: Release notes (annotated tag message via API)
+      - name: Release notes (from repository file)
         run: |
-          # 发布说明 = 标注 tag 的整体摘要（人工撰写，只讲主要变更，不列逐条提交、不列安装包清单）
+          # 发布说明 = 仓库内 RELEASE_NOTES.md 的整体摘要（每次发版人工更新，
+          # 只讲主要变更，不列逐条提交、不列安装包清单）
           TAG="${GITHUB_REF#refs/tags/}"
-          for i in 1 2 3; do
-            curl -fsS -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/repos/${{ github.repository }}/git/ref/tags/$TAG" > ref.json && break
-            sleep 5
-          done
-          SHA=$(python3 -c "import json;print(json.load(open('ref.json'))['object']['sha'])")
-          TYPE=$(python3 -c "import json;print(json.load(open('ref.json'))['object']['type'])")
-          if [ "$TYPE" = "tag" ]; then
-            curl -fsS -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/repos/${{ github.repository }}/git/tags/$SHA" > tag.json
-            python3 -c "import json,sys;sys.stdout.write(json.load(open('tag.json')).get('message') or '')" > body.md
+          if [ -f RELEASE_NOTES.md ]; then
+            cp RELEASE_NOTES.md body.md
+          else
+            echo "v$TAG" > body.md
           fi
-          [ -s body.md ] || echo "v$TAG" > body.md
           echo "--- release notes ---"
           cat body.md
 

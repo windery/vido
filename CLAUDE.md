@@ -456,7 +456,7 @@ grep -E "(KeyboardManager|State transition)" ~/.vido-dev/log/vido-$(date +%Y-%m-
 
 ## Release 规范
 
-- 发布说明 = **整体描述主要变更**的简洁摘要（写在**标注 tag 的 message** 里，由 release.yml 直接作为 release body）；**不列逐条提交、不列安装包/产物清单**（GitHub 自动展示产物文件列表）。
+- 发布说明 = **整体描述主要变更**的简洁摘要，写在仓库根目录 **`RELEASE_NOTES.md`**（每次发版人工更新），release.yml 直接把它作为 release body；**不列逐条提交、不列安装包/产物清单**（GitHub 自动展示产物文件列表）。
 
 ## Development Notes
 
