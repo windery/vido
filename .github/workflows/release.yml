@@ -24,13 +24,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Intel Mac（x64）
-          - os: macos-13
-            label: macos-x64
-            args: --mac --x64
-          # Apple Silicon Mac（arm64，顺带合并 universal 双架构包）
+          # macOS：arm64 宿主交叉出 x64 + arm64 + universal（macos-13 Intel runner 已退役，不再使用）
           - os: macos-latest
-            label: macos-arm64+universal
+            label: macos-x64+arm64+universal
             args: --mac --arm64
           # Windows x64 + arm64
           - os: windows-latest
@@ -78,9 +74,15 @@ jobs:
           # CI 无签名证书：明确关闭自动发现，避免卡在签名步骤
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
-      # Apple Silicon runner 在 arm64 包之后追加 universal（x64+arm64 合一）包
+      # macOS 在 arm64 宿主上交叉构建 x64 与 universal（x64+arm64 合一）包
+      - name: Package x64 (macOS only)
+        if: runner.os == 'macOS'
+        run: pnpm exec electron-builder --mac --x64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
       - name: Package universal (macOS only)
-        if: matrix.label == 'macos-arm64+universal'
+        if: runner.os == 'macOS'
         run: pnpm exec electron-builder --mac --universal --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
