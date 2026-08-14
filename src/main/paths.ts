@@ -4,8 +4,10 @@
  * 开发环境（pnpm dev）与生产环境数据完全隔离：
  *   dev  → ~/.vido-dev/{data,log}
  *   prod → ~/.vido/{data,log}
- * 本地开发/调试绝不读写真实任务数据与日志。
+ * 后台测试模式（VIDO_BACKGROUND=1）进一步隔离到 ~/.vido-dev-test：
+ *   绝不读写正常 dev/F5 实例的任务数据与日志。
  */
+
 import * as os from 'node:os';
 import * as path from 'node:path';
 
@@ -14,8 +16,14 @@ export function isDev(): boolean {
   return process.env.NODE_ENV === 'development' || !!process.env.VITE_DEV_SERVER_URL;
 }
 
-/** 数据/日志根目录：dev → ~/.vido-dev，prod → ~/.vido */
+/** 是否后台测试模式（VIDO_BACKGROUND=1）：窗口隐藏 + 单实例锁豁免 + 数据/日志独立根目录 */
+export function isBackground(): boolean {
+  return process.env.VIDO_BACKGROUND === '1';
+}
+
+/** 数据/日志根目录：background → ~/.vido-dev-test，dev → ~/.vido-dev，prod → ~/.vido */
 export function getVidoRootDir(): string {
+  if (isBackground()) return path.join(os.homedir(), '.vido-dev-test');
   return path.join(os.homedir(), isDev() ? '.vido-dev' : '.vido');
 }
 

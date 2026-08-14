@@ -288,7 +288,7 @@ curl -X POST http://localhost:3002/api/sequence \
 
 **Claude Code Testing Process (MANDATORY)**:
 1. **Trigger**: Send API commands for keyboard operations
-2. **Check Logs**: `tail -30 ~/.vido-dev/log/vido-$(date +%Y-%m-%d).log`
+2. **Check Logs**: `tail -30 ~/.vido-dev-test/log/vido-$(date +%Y-%m-%d).log`（测试实例隔离目录；用户实例在 `~/.vido-dev/log/`，不要混淆）
 3. **Analyze**: Verify keyboard manager, events, state transitions
 4. **Fix**: Address issues based on log analysis
 
@@ -379,12 +379,17 @@ logger.error('ComponentName', 'error message', { error: errorObject });
 
 #### Automated Debugging Workflow
 
+**测试实例与用户实例完全隔离（铁律：绝不干扰用户 VS Code F5 / pnpm dev 启动的应用）**：
+- 测试实例以 `VIDO_BACKGROUND=1` 启动：**不持有单实例锁**（不会让用户应用抢锁失败而退出）、窗口隐藏不抢焦点
+- 数据/日志隔离在 `~/.vido-dev-test/`（绝不读写用户的 `~/.vido-dev/`）
+- 测试 API（端口 3002）**仅测试实例启用**；vite 端口用 `VIDO_PORT=5175`（不占用户的 5173/5174）
+- 清理只允许按环境变量精确匹配，**禁止 `pkill -f "electron"` / `pkill -f "vite"` 全局杀进程**（会误杀用户实例）
+- **测试完成后必须停掉测试实例**，不能留在后台
+
 ```bash
-# 1. Kill existing instances (user's VS Code F5 or previous runs), then start dev server in BACKGROUND
-pkill -f "node_modules/.pnpm/electron" 2>/dev/null
-pkill -f "vite" 2>/dev/null
-sleep 1
-VIDO_BACKGROUND=1 pnpm dev > /tmp/vido-dev.log 2>&1 &
+# 1. 清理仅自己的残留测试实例（精确匹配 VIDO_BACKGROUND=1），再启动测试实例
+./scripts/kill-background-vido.sh
+VIDO_BACKGROUND=1 VIDO_PORT=5175 pnpm dev > /tmp/vido-dev.log 2>&1 &
 
 # 2. Wait for test API
 until curl -s --noproxy '*' http://localhost:3002/api/health | grep -q ok; do sleep 2; done
@@ -394,11 +399,12 @@ curl -s --noproxy '*' -X POST http://localhost:3002/api/sequence \
   -H "Content-Type: application/json" \
   -d '{"keys": ["i", "l", "a", "x"]}'
 
-# 4. Verify via logs (add logger calls first if missing)
-tail -50 ~/.vido-dev/log/vido-$(date +%Y-%m-%d).log | grep "TagName"
-```
+# 4. Verify via logs (add logger calls first if missing) —— 测试实例日志在隔离目录
+tail -50 ~/.vido-dev-test/log/vido-$(date +%Y-%m-%d).log | grep "TagName"
 
-**注意**: 编辑 `src/main/**` 会触发 vite-plugin-electron 重启 Electron。后台测试要重启时，用上面的 `pkill` 清掉旧实例再起，避免残留窗口抢焦点。
+# 5. 测试完成：停掉测试实例（释放资源，用户应用随时可正常启动）
+./scripts/kill-background-vido.sh
+```
 
 #### Log Analysis Priority
 
@@ -411,7 +417,7 @@ Every **data mutation** (create/delete/toggle/update/paste/sort/undo/redo/search
 
 ### Log Analysis
 
-**Location**: dev/测试 `~/.vido-dev/log/vido-YYYY-MM-DD.log`；生产 `~/.vido/log/vido-YYYY-MM-DD.log`（环境隔离，见 `src/main/paths.ts`）
+**Location**: 测试实例 `~/.vido-dev-test/log/`；dev（用户）`~/.vido-dev/log/`；生产 `~/.vido/log/`（环境隔离，见 `src/main/paths.ts`）
 
 **Analysis Commands**:
 ```bash

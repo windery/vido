@@ -218,11 +218,19 @@ export function startTestServer(win: BrowserWindow | null) {
       }
     });
 
-    testServer.listen(3002, () => {
+    const server = testServer.listen(3002, () => {
       logger.info(
         'TestServer',
         '集成测试API服务器已启动: http://localhost:3002'
       );
+    });
+    // 端口被占（残留测试实例）时降级为警告，绝不拖垮应用启动
+    server.on('error', (err: NodeJS.ErrnoException) => {
+      if (err.code === 'EADDRINUSE') {
+        logger.warn('TestServer', '端口 3002 被占用（可能有残留测试实例），测试 API 不可用');
+      } else {
+        logger.error('TestServer', '测试服务器启动失败', { error: err });
+      }
     });
   }
 }

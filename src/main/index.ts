@@ -44,7 +44,10 @@ if (process.platform === 'win32') {
 // Set application name for Windows 10+ notifications
 if (process.platform === 'win32') app.setAppUserModelId(app.getName());
 
-if (!app.requestSingleInstanceLock()) {
+// 单实例锁：**后台测试实例不持有锁**——若测试实例持锁，用户正常启动的
+// Vido（VS Code F5 / pnpm dev）会因抢锁失败而直接退出，表现为"无法启动"。
+// 正常（非后台）实例保持单实例互斥语义。
+if (!BACKGROUND && !app.requestSingleInstanceLock()) {
   app.quit();
   process.exit(0);
 }
@@ -149,8 +152,9 @@ async function createWindow() {
   });
   // win.webContents.on('will-navigate', (event, url) => { }) #344
 
-  // 启动测试服务器
-  startTestServer(win);
+  // 启动测试服务器：仅后台测试模式启用（测试专用端口 3002，
+  // 不得占用正常 dev/F5 实例的端口，也不得在其上暴露测试接口）
+  if (BACKGROUND) startTestServer(win);
 }
 
 app
