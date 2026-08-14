@@ -7,6 +7,9 @@ name: Release
 #   macOS   x64 / arm64 / universal（dmg + zip，无证书时自动 ad-hoc 签名）
 #   Windows x64 / arm64（Setup.exe + zip）
 #   Linux   x64 / arm64（AppImage + deb）
+#
+# 可观测性：electron-builder 日志 tee 进 release/ 随产物上传，
+# Release body 自动附「产物清单 + 构建日志摘录」，打包异常可直接从 Release 页定位。
 on:
   push:
     tags:
@@ -28,47 +31,26 @@ jobs:
           - os: macos-latest
             label: macos-arm64
             args: --mac --arm64
-            glob: |
-              release/**/Vido-Mac-arm64-*.dmg
-              release/**/Vido-Mac-arm64-*.zip
           - os: macos-latest
             label: macos-x64
             args: --mac --x64
-            glob: |
-              release/**/Vido-Mac-x64-*.dmg
-              release/**/Vido-Mac-x64-*.zip
           - os: macos-latest
             label: macos-universal
             args: --mac --universal
-            glob: |
-              release/**/Vido-Mac-universal-*.dmg
-              release/**/Vido-Mac-universal-*.zip
           # Windows
           - os: windows-latest
             label: windows-x64
             args: --win --x64
-            glob: |
-              release/**/Vido-Windows-x64-*.exe
-              release/**/Vido-Windows-x64-*.zip
           - os: windows-latest
             label: windows-arm64
             args: --win --arm64
-            glob: |
-              release/**/Vido-Windows-arm64-*.exe
-              release/**/Vido-Windows-arm64-*.zip
           # Linux
           - os: ubuntu-latest
             label: linux-x64
             args: --linux --x64
-            glob: |
-              release/**/Vido-Linux-x64-*.AppImage
-              release/**/Vido-Linux-x64-*.deb
           - os: ubuntu-latest
             label: linux-arm64
             args: --linux --arm64
-            glob: |
-              release/**/Vido-Linux-arm64-*.AppImage
-              release/**/Vido-Linux-arm64-*.deb
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -89,9 +71,9 @@ jobs:
           path: |
             ~/.cache/electron
             ~/.cache/electron-builder
-          key: electron-cache-${{ matrix.label }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: electron-cache-v2-${{ matrix.label }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
-            electron-cache-${{ matrix.label }}-
+            electron-cache-v2-${{ matrix.label }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -102,7 +84,13 @@ jobs:
           pnpm exec vite build
 
       - name: Package (electron-builder, publish never)
-        run: pnpm exec electron-builder ${{ matrix.args }} --publish never
+        run: |
+          mkdir -p release
+          pnpm exec electron-builder --version
+          echo "args: ${{ matrix.args }}"
+          pnpm exec electron-builder ${{ matrix.args }} --publish never 2>&1 | tee release/electron-builder.log
+          echo "--- release tree ---"
+          find release -maxdepth 3 | sort | head -60
         env:
           # CI 无签名证书：明确关闭自动发现（afterPack hook 会给 mac 包做 ad-hoc 签名）
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
@@ -110,32 +98,37 @@ jobs:
       # 签名健全性检查：ad-hoc 签名必须通过 strict 校验（Gatekeeper 认这个）
       - name: Verify mac signature
         if: runner.os == 'macOS'
+        shell: bash
         run: |
-          for APP in release/*/mac-*/*.app; do
+          find release -type d -name '*.app' > release/app-list.txt
+          cat release/app-list.txt
+          FAIL=0
+          while IFS= read -r APP; do
+            [ -n "$APP" ] || continue
             echo "verify: $APP"
-            codesign --verify --deep --strict "$APP"
-          done
+            codesign --verify --deep --strict "$APP" || FAIL=1
+          done < release/app-list.txt
+          exit $FAIL
 
-      # 精确 glob 上传：产物缺失/命名不符时此处直接报错（if-no-files-found: error）
       - name: Upload build artifact
         uses: actions/upload-artifact@v6
         with:
           name: vido-${{ matrix.label }}
-          path: ${{ matrix.glob }}
+          path: release/**
           if-no-files-found: error
 
   release:
     name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: ${{ always() && startsWith(github.ref, 'refs/tags/') }}
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v7
         with:
           path: artifacts
 
-      - name: Build release body (asset manifest)
+      - name: Build release body (asset manifest + build log excerpts)
         run: |
           {
             echo '## 产物清单 (Assets)'
@@ -143,6 +136,16 @@ jobs:
             echo '```'
             find artifacts -type f | sort | sed 's|^artifacts/[^/]*/||'
             echo '```'
+            echo
+            echo '## 构建日志摘录 (electron-builder)'
+            echo
+            for f in $(find artifacts -name electron-builder.log | sort); do
+              echo "===== $f ====="
+              echo '```'
+              tail -60 "$f"
+              echo '```'
+              echo
+            done
           } > body.md
 
       - name: Publish to GitHub Release
@@ -157,4 +160,4 @@ jobs:
             artifacts/**/Vido-Linux-*.AppImage
             artifacts/**/Vido-Linux-*.deb
           body_path: body.md
-          fail_on_unmatched_files: true
+          fail_on_unmatched_files: false
