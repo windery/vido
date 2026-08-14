@@ -141,24 +141,19 @@ jobs:
       - name: Release notes (annotated tag message via API)
         run: |
           # 发布说明 = 标注 tag 的整体摘要（人工撰写，只讲主要变更，不列逐条提交、不列安装包清单）
-          # 走 GitHub API 取标注 tag 的 message，不依赖 checkout 的 tag 对象抓取
           TAG="${GITHUB_REF#refs/tags/}"
-          python3 - "$TAG" > body.md <<'PY'
-          import json, os, sys, urllib.request
-          tag = sys.argv[1]
-          repo = os.environ['GITHUB_REPOSITORY']
-          token = os.environ['GITHUB_TOKEN']
-          def get(path):
-              req = urllib.request.Request(
-                  f'https://api.github.com/repos/{repo}/git/{path}',
-                  headers={'Authorization': f'Bearer {token}'})
-              with urllib.request.urlopen(req) as r:
-                  return json.load(r)
-          ref = get(f'refs/tags/{tag}')
-          sha = ref['object']['sha']
-          obj = get(f'tags/{sha}') if ref['object']['type'] == 'tag' else {'message': ''}
-          open('/dev/stdout', 'w').write(obj.get('message', '') or f'v{tag}')
-          PY
+          for i in 1 2 3; do
+            curl -fsS -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/git/ref/tags/$TAG" > ref.json && break
+            sleep 5
+          done
+          SHA=$(python3 -c "import json;print(json.load(open('ref.json'))['object']['sha'])")
+          TYPE=$(python3 -c "import json;print(json.load(open('ref.json'))['object']['type'])")
+          if [ "$TYPE" = "tag" ]; then
+            curl -fsS -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/git/tags/$SHA" > tag.json
+            python3 -c "import json,sys;sys.stdout.write(json.load(open('tag.json')).get('message') or '')" > body.md
+          fi
           [ -s body.md ] || echo "v$TAG" > body.md
           echo "--- release notes ---"
           cat body.md
