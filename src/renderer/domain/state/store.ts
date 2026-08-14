@@ -545,8 +545,8 @@ export class Store {
 
   /**
    * 网格内 jkhl 二维移动（vim 语义）：
-   * - month：h/l ±1 天、j/k ±7 天（同行/同列），移出网格时显示月份翻到目标所在月
-   * - week：展示整月网格但仅当前周可切换——h/l 在周内左右移（跨周自动翻周），j/k 上下翻周；显示月份跟随活跃周
+   * - month：仅当月天数网格（1 号对齐星期列）——h/l ±1 天、j/k ±7 天即行列移动，移出当月时显示月份翻到目标所在月
+   * - week：展示当月网格但仅当前周可切换——h/l 在周内左右移（跨周自动翻周），j/k 上下翻周；显示月份跟随活跃周
    * - day：h/l ±1 天、j/k ±7 天
    */
   moveCalendarDirection(dir: 'up' | 'down' | 'left' | 'right'): void {
@@ -594,18 +594,17 @@ export class Store {
       return;
     }
 
-    // month：42 格网格内移动（h/l 同行 ±1、j/k 同列 ±7），移出网格翻到目标所在月
-    const cells = calendarGridCells('month', cv.anchor);
-    const cur = cv.selectedDate && cells.includes(cv.selectedDate) ? cv.selectedDate : cv.anchor;
-    const idx = Math.max(0, cells.indexOf(cur));
-    const nIdx = idx + step;
-    if (nIdx >= 0 && nIdx < cells.length) {
-      cv.selectedDate = cells[nIdx];
+    // month：仅当月天数网格（1 号对齐星期列）——h/l ±1 天、j/k ±7 天即行列移动，
+    // 日期算术天然对齐星期列；移出当月 → 显示月份翻到目标所在月
+    const inMonth = cv.selectedDate && cv.selectedDate.slice(0, 7) === cv.anchor.slice(0, 7);
+    const curD = parseDate(inMonth ? cv.selectedDate! : cv.anchor) ?? new Date();
+    curD.setDate(curD.getDate() + step);
+    const target = formatDate(curD);
+    if (target.slice(0, 7) === cv.anchor.slice(0, 7)) {
+      cv.selectedDate = target;
     } else {
-      const curD = parseDate(cur) || new Date();
-      curD.setDate(curD.getDate() + step);
-      cv.anchor = formatDate(curD); // 锚点=目标日 → 显示月份翻到目标所在月
-      cv.selectedDate = cv.anchor;
+      cv.anchor = target; // 锚点=目标日 → 显示月份翻到目标所在月
+      cv.selectedDate = target;
     }
     cv.selectedTaskId = this.calendarTasksOn(cv.selectedDate)[0]?.id;
     this.changed();

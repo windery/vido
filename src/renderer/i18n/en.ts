@@ -203,6 +203,7 @@ export const en = {
           { key: '[ / ]', desc: 'Previous / next page' },
           { key: 'H / L', desc: 'Switch granularity: day / week / month' },
         ],
+        notes: ['Month/week grid shows only current-month days (1st aligned to its weekday, no prev/next-month cells)'],
       },
       {
         title: 'CONFIG — SCHEDULE',

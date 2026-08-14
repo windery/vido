@@ -115,7 +115,8 @@ export function weekdayName(dateStr: string): string {
 
 /**
  * 日期组件网格的日期序列（j/k 按此顺序移动日焦点）：
- * day = 锚点当天；week = 锚点所在周 7 天（周日~周六）；month = 6×7 共 42 格（含邻月淡化格，周日开头）
+ * day = 锚点当天；week = 锚点所在周 7 天（周日~周六）；
+ * month = **仅当月天数**（1..N，1 号对齐其星期列，上/下月日期不占格）
  */
 export function calendarGridCells(
   granularity: CalendarGranularity,
@@ -134,8 +135,8 @@ export function calendarGridCells(
   }
   const year = a.getFullYear();
   const month = a.getMonth();
-  const offset = new Date(year, month, 1).getDay();
-  return Array.from({ length: 42 }, (_, i) =>
-    formatDate(new Date(year, month, 1 - offset + i))
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  return Array.from({ length: daysInMonth }, (_, i) =>
+    formatDate(new Date(year, month, 1 + i))
   );
 }

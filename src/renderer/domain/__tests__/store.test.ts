@@ -1375,16 +1375,22 @@ describe('Store — 日历视图网格交互（j/k 移日焦点 · Enter 开详�
     expect(cv(s).selectedTaskId).toBe(1);
   });
 
-  it('month 移出网格：显示月份翻到目标所在月', () => {
+  it('month 移出当月：显示月份翻到目标所在月（邻月不占格，直接翻月）', () => {
     const s = makeCalStore();
-    s.openCalendarView();
-    s.state.calendarView.selectedDate = '2026-06-06'; // 5 月网格最后一格（6×7）
-    s.moveCalendarDirection('down'); // +7 → 06-13 移出网格
-    expect(cv(s).anchor).toBe('2026-06-13');
-    expect(cv(s).selectedDate).toBe('2026-06-13');
-    s.moveCalendarDirection('up'); // -7 → 06-06（6 月网格内，无需翻月）
-    expect(cv(s).anchor).toBe('2026-06-13');
-    expect(cv(s).selectedDate).toBe('2026-06-06');
+    s.openCalendarView(); // anchor 05-08
+    s.state.calendarView.selectedDate = '2026-05-31';
+    s.moveCalendarDirection('right'); // → 06-01 翻到 6 月
+    expect(cv(s).anchor).toBe('2026-06-01');
+    expect(cv(s).selectedDate).toBe('2026-06-01');
+    s.moveCalendarDirection('left'); // → 05-31 翻回 5 月
+    expect(cv(s).anchor).toBe('2026-05-31');
+    expect(cv(s).selectedDate).toBe('2026-05-31');
+    s.moveCalendarDirection('down'); // 05-31 +7 = 06-07 翻到 6 月
+    expect(cv(s).anchor).toBe('2026-06-07');
+    expect(cv(s).selectedDate).toBe('2026-06-07');
+    s.moveCalendarDirection('up'); // 06-07 -7 = 05-31 翻回 5 月
+    expect(cv(s).anchor).toBe('2026-05-31');
+    expect(cv(s).selectedDate).toBe('2026-05-31');
   });
 
   it('week 视图：h/l 周内左右移（跨周翻周），j/k 上下翻周', () => {

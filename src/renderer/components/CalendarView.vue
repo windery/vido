@@ -26,17 +26,17 @@
             </div>
         </div>
 
-        <!-- week：整月网格展示，仅当前周（切换范围）正常显示，范围外日期置灰；翻到下月的周时月份随之切换 -->
+        <!-- week：当月网格展示（仅当月天数，上/下月不占格），仅当前周（切换范围）正常显示，范围外日期置灰 -->
         <div v-else-if="granularity === 'week'">
             <div class="cal-weekdays">
                 <span v-for="w in WEEKDAYS" :key="w" class="cal-weekday-label">{{ w }}</span>
             </div>
             <div class="cal-grid cal-month">
-                <div v-for="c in monthCells" :key="c.date" class="cal-cell"
+                <div v-for="(c, i) in monthCells" :key="c.date" class="cal-cell"
+                    :style="i === 0 ? { gridColumnStart: firstCellColumn } : undefined"
                     :class="{
                         'is-today': c.date === todayStr,
                         'is-out': !weekDates.includes(c.date),
-                        'is-dim': !c.inMonth && !weekDates.includes(c.date),
                         'is-focused': c.date === selectedDate,
                     }">
                     <div class="cal-cell-head">
@@ -54,14 +54,15 @@
             </div>
         </div>
 
-        <!-- month：6×7 网格，邻月日期淡化 -->
+        <!-- month：仅当月天数网格（1 号对齐星期列，上/下月不占格） -->
         <div v-else>
             <div class="cal-weekdays">
                 <span v-for="w in WEEKDAYS" :key="w" class="cal-weekday-label">{{ w }}</span>
             </div>
             <div class="cal-grid cal-month">
-                <div v-for="c in monthCells" :key="c.date" class="cal-cell"
-                    :class="{ 'is-today': c.date === todayStr, 'is-dim': !c.inMonth, 'is-focused': c.date === selectedDate }">
+                <div v-for="(c, i) in monthCells" :key="c.date" class="cal-cell"
+                    :style="i === 0 ? { gridColumnStart: firstCellColumn } : undefined"
+                    :class="{ 'is-today': c.date === todayStr, 'is-focused': c.date === selectedDate }">
                     <div class="cal-cell-head">
                         <span class="cal-cell-date">{{ c.date.slice(8) }}</span>
                     </div>
@@ -83,7 +84,7 @@
 import { computed, watch, nextTick } from 'vue';
 import type { Task } from '../domain/task';
 import { collectTasksInRange, getCalendarRange, weekdayName, calendarGridCells } from '../utils/calendar';
-import { formatDate } from '../utils/date-formatter';
+import { formatDate, parseDate } from '../utils/date-formatter';
 
 const props = defineProps<{
     tasks: Task[];
@@ -118,16 +119,17 @@ const detailDate = computed(() =>
     props.granularity === 'day' ? props.anchor : (props.selectedDate ?? props.anchor)
 );
 
-/** week：锚点所在周（周日~周六）的 7 个日期 */
+/** week：锚点所在周（周日~周六）的 7 个日期（用于判定切换范围） */
 const weekDates = computed(() => calendarGridCells('week', props.anchor));
 
-/** month：6×7 网格（周日开头，邻月日期标记 inMonth=false 淡化） */
-const monthCells = computed(() =>
-    calendarGridCells('month', props.anchor).map((date) => ({
-        date,
-        inMonth: date.slice(0, 7) === props.anchor.slice(0, 7),
-    }))
-);
+/** month/week 网格：仅当月天数（上/下月不占格）；1 号对齐其星期列（gridColumnStart） */
+const monthCells = computed(() => calendarGridCells('month', props.anchor).map((date) => ({ date })));
+
+/** 当月 1 号的星期列（1=Sun .. 7=Sat） */
+const firstCellColumn = computed(() => {
+    const a = parseDate(props.anchor);
+    return a ? a.getDay() + 1 : 1;
+});
 
 // 选中变化时把目标行滚入视口（vim-instant：同一帧、最小滚动）
 watch(
