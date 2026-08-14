@@ -200,7 +200,12 @@ export class ConfigKeyHandler {
         event.preventDefault();
         this.cancelTagDelete(taskDataManager);
         taskDataManager.setConfigNavIndex(0);
-        taskDataManager.toggleHelp('config');
+        // help 按配置子态拆分：schedule / priority / tags 各自展示自己的键位
+        taskDataManager.toggleHelp(
+          cs === 'priority-select' ? 'config-priority'
+          : cs === 'tags-select' || cs === 'tags-edit' ? 'config-tags'
+          : 'config-schedule'
+        );
         return true;
 
       case 'Escape':

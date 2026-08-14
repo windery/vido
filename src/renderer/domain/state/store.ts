@@ -24,8 +24,8 @@ export interface AppState {
   lastlineContent: string;
   lastlineVisible: boolean;
   isHelpVisible: boolean;
-  /** help 面板范围：normal=主线 / all=全部 / config=配置 / content=内容编辑 / calendar=日历 / command=命令 */
-  helpScope: 'normal' | 'all' | 'config' | 'content' | 'calendar' | 'command';
+  /** help 面板范围：normal=主线 / all=全部 / config-{schedule,priority,tags}=配置子态 / content=内容编辑 / calendar=日历 / command=命令 */
+  helpScope: 'normal' | 'all' | 'config-schedule' | 'config-priority' | 'config-tags' | 'content' | 'calendar' | 'command';
   flashMessage: string | null;
   /** 未保存变更（状态行 [+] 指示器，vim 语义） */
   dirty: boolean;
@@ -667,7 +667,7 @@ export class Store {
     return { success: true };
   }
   /** 打开/关闭 help 面板；打开时按调用场景设置范围（配置/内容/日历/命令/常规/全部） */
-  toggleHelp(scope: 'normal' | 'all' | 'config' | 'content' | 'calendar' | 'command' = 'normal'): void {
+  toggleHelp(scope: 'normal' | 'all' | 'config-schedule' | 'config-priority' | 'config-tags' | 'content' | 'calendar' | 'command' = 'normal'): void {
     if (this.state.isHelpVisible) {
       this.state.isHelpVisible = false;
     } else {

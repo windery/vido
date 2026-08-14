@@ -454,7 +454,7 @@ describe('ConfigKeyHandler j/k nav 导航（Enter 才选中生效，绝不切任
     handler.handleKey(makeEvent('j'), 'j', tdm); // 进入 nav
     const ok = handler.handleKey(makeEvent('?'), '?', tdm);
     expect(ok).toBe(true);
-    expect(tdm.toggleHelp).toHaveBeenCalledWith('config');
+    expect(tdm.toggleHelp).toHaveBeenCalledWith('config-tags');
     expect(tdm._nav()).toBe(0);
     expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(0);
   });
