@@ -138,14 +138,45 @@ jobs:
         with:
           path: artifacts
 
-      - name: Release notes (annotated tag message)
+      - name: Release notes (annotated tag message via API)
         run: |
           # 发布说明 = 标注 tag 的整体摘要（人工撰写，只讲主要变更，不列逐条提交、不列安装包清单）
+          # 走 GitHub API 取标注 tag 的 message，不依赖 checkout 的 tag 对象抓取
           TAG="${GITHUB_REF#refs/tags/}"
-          git tag -l --format='%(contents)' "$TAG" > body.md
-          if [ ! -s body.md ]; then echo "v$TAG" > body.md; fi
+          python3 - "$TAG" <<'PY'
+import json, os, sys, urllib.request
+tag = sys.argv[1]
+repo = os.environ['GITHUB_REPOSITORY']
+token = os.environ['GITHUB_TOKEN']
+def get(path):
+    req = urllib.request.Request(
+        f'https://api.github.com/repos/{repo}/git/{path}',
+        headers={'Authorization': f'Bearer {token}', 'Accept': 'application/vnd.github+json'})
+    with urllib.request.urlopen(req) as r:
+        return json.load(r)
+ref = get(f'refs/tags/{tag}')
+sha = ref['object']['sha']
+obj = get(f'tags/{sha}') if ref['object']['type'] == 'tag' else {'message': ''}
+open('body.md', 'w').write(obj.get('message', '') or f'v{tag}')
+PY
+          [ -s body.md ] || echo "v$TAG" > body.md
           echo "--- release notes ---"
           cat body.md
+
+      - name: Delete stale release (same tag, if any)
+        run: |
+          # 删 tag 再重建时，GitHub 可能残留同名旧 release 实体导致 body 永不更新；发布前先清掉
+          TAG="${GITHUB_REF#refs/tags/}"
+          REL_ID=$(curl -sS -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG" \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || true)
+          if [ -n "$REL_ID" ] && [ "$REL_ID" != "None" ]; then
+            echo "deleting stale release $REL_ID"
+            curl -sS -X DELETE -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/$REL_ID" > /dev/null || true
+          else
+            echo "no stale release"
+          fi
 
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2
