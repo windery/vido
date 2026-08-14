@@ -21,5 +21,6 @@ export function useTaskStateGetters() {
     configNavIndex: computed(() => stateRef.value.configNavIndex || 0),
     dirty: computed(() => !!stateRef.value.dirty),
     calendarVisible: computed(() => !!stateRef.value.calendarView?.visible),
+    calendarView: computed(() => stateRef.value.calendarView),
   };
 }

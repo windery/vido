@@ -29,7 +29,7 @@ export const en = {
     configScheduleEdit: '⏎ save',
     configTagsEdit: '⏎ save',
     help: 'Press ? for help',
-    calendar: '-- CALENDAR --',
+    calendar: '{weekday} {date}',
     search: '-- SEARCH --',
     command: '-- COMMAND -- (:w save · :q quit · ? all keys)',
     lastLine: '-- LAST-LINE --',

@@ -500,11 +500,13 @@ export class Store {
     } else {
       this.state.calendarView.selectedTaskId = this.calendarTasksOn(anchor)[0]?.id;
     }
+    this.changed();
     logger.info('Store', 'open calendar view', { anchor, granularity: 'month' });
   }
 
   closeCalendarView(): void {
     this.state.calendarView.visible = false;
+    this.changed();
     logger.info('Store', 'close calendar view');
   }
 

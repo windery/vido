@@ -22,7 +22,7 @@
         {{ t('mode.contentNav') }}
       </span>
       <span v-else-if="calendarVisible" class="help-text">
-        {{ t('mode.calendar') }}
+        {{ calendarStatusText }}
       </span>
       <span v-else-if="selectedTask?.configState" class="help-text">
         {{ configModeText }}
@@ -43,10 +43,11 @@
 import { computed } from 'vue';
 import { EditorMode } from '../domain/editor';
 import { useTaskState } from '../composables/use-task-state';
+import { weekdayName } from '../utils/calendar';
 import { t } from '../i18n';
 
 // 使用新的统一状态管理架构
-const { editorMode, lastlineContent, selectedTask, tasks, filteredTasks, cursorPosition, flashMessage, dirty, calendarVisible, configNavIndex } = useTaskState();
+const { editorMode, lastlineContent, selectedTask, tasks, filteredTasks, cursorPosition, flashMessage, dirty, calendarVisible, calendarView, configNavIndex } = useTaskState();
 
 // 搜索过滤激活（lastlineContent 以 / 开头且有词）
 const searchTerm = computed(() => {
@@ -78,6 +79,14 @@ const configModeText = computed(() => {
   }
 });
 
+// 日历视图：状态栏中央实时显示焦点日期（jklh/数字/翻页时跟随变化；day 粒度取锚点日）
+const calendarStatusText = computed(() => {
+  const cv = calendarView.value;
+  if (!cv?.visible) return '';
+  const date = cv.granularity === 'day' ? cv.anchor : (cv.selectedDate ?? cv.anchor);
+  return t('mode.calendar', { weekday: weekdayName(date), date });
+});
+
 // 光标位置：内容导航 / 编辑时显示「行 · 列」
 const posInfo = computed(() => {
   if (editorMode.value === EditorMode.CONTENT_NAVIGATION || editorMode.value === EditorMode.CONTENT_EDIT) {
@@ -99,7 +108,8 @@ const getModeText = (mode: EditorMode) => {
   }
   switch (mode) {
     case EditorMode.COMMAND:
-      return 'NORMAL';
+      // 日历视图内徽标显示 CALENDAR（视图态），而非普通列表的 NORMAL
+      return calendarVisible.value ? 'CALENDAR' : 'NORMAL';
     case EditorMode.TITLE_EDIT:
       return 'TITLE-EDIT';
     case EditorMode.CONTENT_EDIT:
