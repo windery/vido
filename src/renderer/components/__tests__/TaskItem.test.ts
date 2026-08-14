@@ -76,11 +76,11 @@ describe('TaskItem 信息符号渲染', () => {
 });
 
 describe('TaskItem 配置面板标题条', () => {
-  it('schedule-select：图标 @ + 标题「日程」', () => {
+  it('schedule-select：图标 ◷ + 标题「日程」', () => {
     const wrapper = mountItem(makeTask({ configState: 'schedule-select' }));
     const header = wrapper.find('.config-header');
     expect(header.exists()).toBe(true);
-    expect(header.find('.config-header-icon').text()).toBe('@');
+    expect(header.find('.config-header-icon').text()).toBe('◷');
     expect(header.find('.config-header-icon').classes()).toContain('cfg-schedule');
     expect(header.text()).toContain('Schedule');
     expect(header.find('.config-header-phase').text()).toBe('');

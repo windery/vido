@@ -42,7 +42,9 @@ export const en = {
     schedule: 'Schedule',
     priority: 'Priority',
     tags: 'Tags',
-    schedulePlaceholder: '20260306  or  15:33  or  202603061533',
+    schedulePlaceholder: 'tomorrow · friday · 2026-03-06 · 15:33 · every monday',
+    /** schedule 自定义输入的格式文档（v-html，kbd 展示写法） */
+    scheduleFormats: '<kbd>today</kbd> <kbd>tomorrow</kbd> <kbd>next week</kbd> <kbd>monday</kbd> <kbd>every monday</kbd> · <kbd>2026-03-06</kbd> <kbd>2026-03-06 14:30</kbd> <kbd>15:33</kbd> · <kbd>Tab</kbd> complete',
     today: 'Today',
     tomorrow: 'Tomorrow',
     nextWeek: 'Next week',

@@ -50,7 +50,7 @@
 
         <!-- Config panel -->
         <div v-if="task.configState" class="config-panel">
-          <!-- 面板标题：明确当前正在配置什么（@ 日程 / ! 优先级 / # 标签） -->
+          <!-- 面板标题：明确当前正在配置什么（◷ 日程 / ! 优先级 / # 标签） -->
           <div class="config-header">
             <span class="config-header-icon" :class="configHeaderInfo.cls">{{ configHeaderInfo.icon }}</span>
             <span class="config-header-title">{{ configHeaderInfo.title }}</span>
@@ -58,12 +58,19 @@
           </div>
           <!-- Schedule -->
           <template v-if="task.configState === 'schedule-select' || task.configState === 'schedule-edit'">
-            <div v-if="task.configState === 'schedule-edit'" class="config-input-row">
-              <span class="config-input-icon">@</span>
-              <input ref="scheduleInputRef" v-model="scheduleInputValue" class="config-input" spellcheck="false"
-                :placeholder="t('config.schedulePlaceholder')"
-                @compositionstart="configComposing = true" @compositionend="configComposing = false"
-                @keydown.enter.stop="saveScheduleInput" @keydown.escape.stop="cancelScheduleInput" />
+            <div v-if="task.configState === 'schedule-edit'">
+              <div class="config-input-row">
+                <span class="config-input-icon">◷</span>
+                <input ref="scheduleInputRef" v-model="scheduleInputValue" class="config-input" spellcheck="false"
+                  :placeholder="t('config.schedulePlaceholder')"
+                  @compositionstart="configComposing = true" @compositionend="configComposing = false"
+                  @keydown.tab.prevent="completeScheduleKeyword"
+                  @keydown.enter.stop="saveScheduleInput" @keydown.escape.stop="cancelScheduleInput" />
+              </div>
+              <!-- 格式展示：可接受的写法（程序员友好的文档式提示） -->
+              <div class="config-input-hint" v-html="t('config.scheduleFormats')"></div>
+              <!-- 实时预览：解析成功即显示最终日程，让输入所见即所得 -->
+              <div v-if="schedulePreview" class="config-input-preview">→ {{ schedulePreview }}</div>
             </div>
             <div v-else class="config-pills">
               <span class="config-pill" :class="{ 'nav-active': navOn('schedule-select', 1) }"><kbd>1</kbd> {{ t('config.today') }}</span>
@@ -113,7 +120,8 @@
 import { ref, nextTick, watchEffect, computed } from 'vue';
 import { Task, TaskState, TaskPriority } from '../domain/task';
 import { REPEAT_LABEL } from '../domain/schedule';
-import { getScheduleDisplay, isScheduleExpired, parseScheduleFromString } from '../utils/schedule-helper';
+import { getScheduleDisplay, getScheduleDisplayText, isScheduleExpired, parseScheduleFromString } from '../utils/schedule-helper';
+import { getCurrentDate } from '../utils/date-formatter';
 import TaskContent from './TaskContent.vue';
 import { useTaskState } from '../composables/use-task-state';
 import { t } from '../i18n';
@@ -222,6 +230,34 @@ watchEffect(() => {
   }
 });
 
+/** 实时预览：当前输入可解析时展示最终日程文案（所见即所得） */
+const schedulePreview = computed(() => {
+  const val = scheduleInputValue.value.trim();
+  if (!val) return '';
+  const s = parseScheduleFromString(val);
+  return s ? getScheduleDisplayText(s) : '';
+});
+
+/** Tab 补全：关键字循环（today → tomorrow → next week → 周几 → every 周几…），空输入先给 today */
+const SCHEDULE_KEYWORDS = ['today', 'tomorrow', 'next week', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'every monday', 'every day', 'every week', 'every month', 'every year', 'clear'];
+
+const completeScheduleKeyword = () => {
+  const cur = scheduleInputValue.value.trim().toLowerCase();
+  if (!cur) {
+    scheduleInputValue.value = 'today';
+    return;
+  }
+  const matches = SCHEDULE_KEYWORDS.filter((k) => k.startsWith(cur));
+  if (matches.length > 0) {
+    scheduleInputValue.value = matches[0];
+    return;
+  }
+  // 数字开头：补全为今天日期（YYYY-MM-DD）
+  if (/^\d/.test(cur)) {
+    scheduleInputValue.value = getCurrentDate();
+  }
+};
+
 const saveScheduleInput = () => {
   // 输入法选字确认的 Enter 不保存
   if (configComposing.value) return;
@@ -320,9 +356,9 @@ const configHeaderInfo = computed(() => {
     const cs = props.task.configState;
     switch (cs) {
         case 'schedule-select':
-            return { icon: '@', cls: 'cfg-schedule', title: t('config.schedule'), phase: '' };
+            return { icon: '◷', cls: 'cfg-schedule', title: t('config.schedule'), phase: '' };
         case 'schedule-edit':
-            return { icon: '@', cls: 'cfg-schedule', title: t('config.schedule'), phase: 'EDIT' };
+            return { icon: '◷', cls: 'cfg-schedule', title: t('config.schedule'), phase: 'EDIT' };
         case 'priority-select':
             return { icon: '!', cls: 'cfg-priority', title: t('config.priority'), phase: '' };
         case 'tags-select':
@@ -604,6 +640,32 @@ watchEffect(() => {
 .config-input::placeholder {
   color: var(--text-3);
   font-style: italic;
+}
+
+/* 格式展示行：可接受的写法（文档式等宽提示，kbd 高亮） */
+.config-input-hint {
+  margin: 6px 0 0 26px;
+  font-size: 10px;
+  color: var(--text-3);
+  font-family: var(--mono);
+  line-height: 1.8;
+}
+
+.config-input-hint :deep(kbd) {
+  font-size: 9px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--config-kbd-bg);
+  color: var(--config-kbd-fg);
+  margin: 0 2px;
+}
+
+/* 实时预览：解析成功即展示最终日程（磷光绿，所见即所得） */
+.config-input-preview {
+  margin: 4px 0 0 26px;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--accent-bright);
 }
 
 .config-input:focus {
