@@ -17,8 +17,6 @@
                     <span class="mirror-text">{{ caretPrefix }}</span><span class="block-caret">{{ caretChar }}</span>
                 </div>
             </div>
-            <!-- 导航态次级操作提示：就近展示（help 面板只保留主线操作） -->
-            <div v-if="isNav()" class="nav-hint">{{ t('content.navHint') }}</div>
         </div>
 
         <div v-else class="content-display">
@@ -215,16 +213,6 @@ onMounted(() => {
     caret-color: transparent;
 }
 
-/* 导航态次级操作提示行：内容区内的就地提示（等宽、淡灰、细分隔线） */
-.nav-hint {
-    margin-top: 8px;
-    padding-top: 6px;
-    border-top: 1px solid var(--border-soft);
-    font-size: 10px;
-    line-height: 1.7;
-    color: var(--text-3);
-    user-select: none;
-}
 
 /* vim 块光标镜像层：透明文本占位 + 块 span 覆盖光标处字符，与 textarea 同排版、随滚动同步 */
 .caret-mirror {

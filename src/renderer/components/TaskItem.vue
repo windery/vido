@@ -93,7 +93,6 @@
               </span>
             </div>
             <span v-else class="config-empty-hint">{{ t('config.noTags') }}</span>
-            <div v-if="task.tags?.length" class="config-tags-hint">{{ t('config.tagDeleteHint') }}</div>
             <div v-if="task.configState === 'tags-edit'" class="config-input-row">
               <span class="config-input-icon">#</span>
               <input ref="tagInputRef" v-model="tagInputValue" class="config-input" spellcheck="false"
@@ -106,7 +105,6 @@
               <span class="config-pill" :class="{ 'nav-active': navOn('tags-select', (task.tags?.length || 0) + 2) }"><kbd>dd</kbd> {{ t('config.clear') }}</span>
             </div>
           </template>
-          <div class="config-footer" v-html="t('config.footer')"></div>
         </div>
     </div>
 </template>
@@ -725,17 +723,6 @@ watchEffect(() => {
 .priority-p3 { color: var(--pill-p3-fg); background: var(--pill-p3-bg); }
 .priority-p3:hover { background: var(--pill-p3-hover); }
 
-.config-footer {
-  margin-top: 7px;
-  padding-top: 6px;
-  border-top: 1px solid var(--config-footer-border);
-  font-size: 10px;
-  font-family: var(--ui);
-  color: var(--text-3);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
 
 .config-tags-display {
   display: flex;
@@ -782,12 +769,6 @@ watchEffect(() => {
   border-color: var(--accent);
 }
 
-.config-tags-hint {
-  margin-top: 6px;
-  color: var(--text-3);
-  font-size: 10px;
-  font-family: var(--mono);
-}
 
 .config-empty-hint {
   color: var(--text-3);
@@ -796,15 +777,6 @@ watchEffect(() => {
   align-self: center;
 }
 
-.config-footer :deep(kbd) {
-  font-family: 'SF Mono', 'Monaco', monospace;
-  font-size: 9px;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: var(--config-kbd-bg);
-  color: var(--config-kbd-fg);
-  margin: 0 1px;
-}
 
 .expired-indicator {
     color: var(--p1);

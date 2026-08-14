@@ -147,9 +147,10 @@ describe('TaskItem 标签配置：编号与删除高亮', () => {
     expect(chips.every((c) => !c.classes().includes('config-tag-del'))).toBe(true);
   });
 
-  it('删除提示行显示', () => {
+  it('按键提示不占任务行（提示统一在状态栏底部中间）', () => {
     const wrapper = mountItem(makeTask({ configState: 'tags-select', tags: ['a'] }));
-    expect(wrapper.find('.config-tags-hint').text()).toContain('delete');
+    expect(wrapper.find('.config-tags-hint').exists()).toBe(false);
+    expect(wrapper.find('.config-footer').exists()).toBe(false);
   });
 });
 
