@@ -1,6 +1,6 @@
 <template>
     <div class="calendar-view">
-        <!-- 头部：粒度徽章 + 范围（键位不常驻提示，按 ? 查询，与配置面板一致） -->
+        <!-- 头部：粒度徽章居左；年月范围**居中放大**（磷光绿加粗，一眼锁定当前展示范围） -->
         <div class="calendar-header">
             <span class="cal-badge">{{ granularity.toUpperCase() }}</span>
             <span class="cal-range">{{ rangeLabel }}</span>
@@ -155,6 +155,7 @@ watch(
 .calendar-header {
     display: flex;
     align-items: center;
+    position: relative;
     gap: 12px;
     padding: 6px 10px;
     border-bottom: 1px solid var(--border-soft);
@@ -172,9 +173,16 @@ watch(
     border-radius: 3px;
 }
 
+/* 年月范围：头部正中、放大加粗磷光绿——当前展示范围一眼锁定 */
 .cal-range {
-    color: var(--text-bright);
-    font-weight: 600;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
 }
 
 /* 周几表头行（week/month 网格上方） */

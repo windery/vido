@@ -43,11 +43,10 @@
 import { computed } from 'vue';
 import { EditorMode } from '../domain/editor';
 import { useTaskState } from '../composables/use-task-state';
-import { weekdayName } from '../utils/calendar';
 import { t } from '../i18n';
 
 // 使用新的统一状态管理架构
-const { editorMode, lastlineContent, selectedTask, tasks, filteredTasks, cursorPosition, flashMessage, dirty, calendarVisible, calendarView, configNavIndex } = useTaskState();
+const { editorMode, lastlineContent, selectedTask, tasks, filteredTasks, cursorPosition, flashMessage, dirty, calendarVisible, configNavIndex } = useTaskState();
 
 // 搜索过滤激活（lastlineContent 以 / 开头且有词）
 const searchTerm = computed(() => {
@@ -79,23 +78,17 @@ const configModeText = computed(() => {
   }
 });
 
-// 日历视图：状态栏中央显示主要按键（与 schedule config 同风格，? help 收尾）；焦点日期移到右侧实时显示
+// 日历视图：状态栏中央显示主要按键（与 schedule config 同风格，? help 收尾）；
+// 年月已由日历头部正中展示，状态栏不再重复提示日期
 const calendarStatusText = computed(() => (calendarVisible.value ? t('mode.calendar') : ''));
 
-const calendarDateText = computed(() => {
-  const cv = calendarView.value;
-  if (!cv?.visible) return '';
-  const date = cv.granularity === 'day' ? cv.anchor : (cv.selectedDate ?? cv.anchor);
-  return t('mode.calendarDate', { weekday: weekdayName(date), date });
-});
-
-// 光标位置：内容导航 / 编辑时显示「行 · 列」；日历视图显示焦点日期
+// 光标位置：内容导航 / 编辑时显示「行 · 列」
 const posInfo = computed(() => {
   if (editorMode.value === EditorMode.CONTENT_NAVIGATION || editorMode.value === EditorMode.CONTENT_EDIT) {
     const pos = cursorPosition.value;
     if (pos) return t('status.pos', { l: pos.line + 1, c: pos.column });
   }
-  return calendarDateText.value;
+  return '';
 });
 
 const getModeText = (mode: EditorMode) => {
