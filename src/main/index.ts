@@ -63,15 +63,14 @@ let win: BrowserWindow | null = null;
 const preload = path.join(__dirname, '../preload/index.mjs');
 const indexHtml = path.join(RENDERER_DIST, 'index.html');
 
-// 强制让主窗口获得 OS 焦点。macOS 从终端启动时不会自动激活新应用，
-// 只调 win.focus() 不够，需要 app.focus({ steal: true }) 显式激活才能抢回焦点。
-// 后台测试模式下跳过，避免弹窗抢焦点干扰用户工作。
+// 聚焦主窗口的 web 内容。**绝不调用 win.focus() / app.focus({ steal: true }) 抢 OS 焦点**：
+// dev 下代码修改会触发 vite HMR 全量重载（did-finish-load）或主进程重启（ready-to-show），
+// 抢焦点会打断用户当前正在使用的其他应用——热更新可以，抢焦点不行。
+// 后台测试模式下直接跳过。
 function focusMainWindow(): void {
   if (BACKGROUND) return;
   if (!win) return;
-  win.focus();
   win.webContents.focus();
-  app.focus({ steal: true });
 }
 
 async function createWindow() {

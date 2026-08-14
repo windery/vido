@@ -226,20 +226,23 @@ watch(
     overflow: hidden;
 }
 
-/* 今天：磷光绿日期 + 淡绿描边 */
-.cal-cell.is-today {
-    border-color: rgba(89, 217, 138, 0.4);
+/* 今天：**不用绿色高亮边框**（与选中框撞车）——只把日期号染磷光绿加粗 + • 圆点标记 */
+.cal-cell.is-today .cal-cell-date {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.cal-cell.is-today .cal-cell-date::after {
+    content: '•';
+    margin-left: 2px;
+    font-size: 9px;
+    color: var(--accent);
 }
 
 /* 日焦点（j/k 移动）：磷光绿实线描边 + 淡底 */
 .cal-cell.is-focused {
     border-color: var(--accent);
     background: rgba(89, 217, 138, 0.06);
-}
-
-.cal-cell.is-today .cal-cell-date {
-    color: var(--accent);
-    font-weight: 700;
 }
 
 /* 邻月日期：更淡更不明显 */

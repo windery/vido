@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import CalendarView from '../CalendarView.vue';
+import { formatDate } from '../../utils/date-formatter';
 
 const baseProps = {
   tasks: [],
@@ -49,5 +50,17 @@ describe('CalendarView — 仅当月天数网格（上/下月不占格）', () =
     });
     expect(wrapper.findAll('.cal-cell').length).toBe(1); // cal-single 单格
     expect(wrapper.find('.cal-grid').exists()).toBe(false);
+  });
+
+  it('今天标记 is-today（不再用高亮边框，与选中日焦点区分）', () => {
+    const today = formatDate(new Date());
+    const wrapper = mount(CalendarView, {
+      props: { ...baseProps, anchor: today, selectedDate: today },
+    });
+    const todayCell = wrapper.findAll('.cal-cell').find((c) => c.classes().includes('is-today'));
+    expect(todayCell).toBeTruthy();
+    // 今天 ≠ 选中焦点：两个状态独立（样式上今天无边框、焦点有边框）
+    const focused = wrapper.findAll('.cal-cell').find((c) => c.classes().includes('is-focused'));
+    expect(focused).toBeTruthy();
   });
 });
