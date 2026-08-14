@@ -5,18 +5,22 @@
  * Gatekeeper 会直接判「已损坏」，且系统设置里不会出现「仍要打开」按钮；
  * ad-hoc 签名后变为「身份不明的开发者」，用户可以右键打开 / 隐私与安全性放行。
  *
- * 实现：用 @electron/osx-sign（Electron 官方签名工具，按框架→Helper→主程序
- * 的正确顺序签名，保证 codesign --verify 通过）。仅 darwin；仅当 .app 当前
- * 无有效签名时才 ad-hoc 签名，配置了正式证书（Developer ID）时自动让路。
+ * 实现：手动按 codesign 要求的依赖顺序签名（框架内层 Helper → 框架 →
+ * 各 Helper.app → 主应用），保证 `codesign --verify --deep --strict` 通过。
+ * 不用 @electron/osx-sign：它在部分 CI runner 上会挂起/静默失败。
+ * 仅 darwin；仅当 .app 当前无正式签名（无 TeamIdentifier）时才执行，
+ * 配置了 Developer ID 证书时自动让路。
  */
+const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
-const osxSign = require('@electron/osx-sign');
 
-function signAsync(options) {
-  return new Promise((resolve, reject) => {
-    osxSign.sign(options, (err) => (err ? reject(err) : resolve()));
-  });
+function sign(target) {
+  execFileSync(
+    'codesign',
+    ['--force', '--sign', '-', '--timestamp=none', target],
+    { stdio: 'inherit' }
+  );
 }
 
 exports.default = async function afterPack(context) {
@@ -26,6 +30,7 @@ exports.default = async function afterPack(context) {
     context.appOutDir,
     `${context.packager.appInfo.productFilename}.app`
   );
+  if (!fs.existsSync(appPath)) return;
 
   // 注意：Electron 官方二进制自带 linker-signed（adhoc）签名，codesign -dv 会成功，
   // 但它没有 bundle 级 _CodeSignature 密封，Gatekeeper 照样判「已损坏」。
@@ -47,12 +52,34 @@ exports.default = async function afterPack(context) {
   }
 
   console.log(`  • ad-hoc signing (无证书): ${appPath}`);
-  await signAsync({
-    app: appPath,
-    platform: 'darwin',
-    identity: '-',
-    identityValidation: false,
-    hardenedRuntime: false,
-    'gatekeeper-assess': false,
-  });
+  const contents = path.join(appPath, 'Contents');
+  const frameworksDir = path.join(contents, 'Frameworks');
+  const framework = path.join(frameworksDir, 'Electron Framework.framework');
+  const versionDir = path.join(framework, 'Versions', 'A');
+
+  // 1) 顶层依赖框架（Mantle / ReactiveObjC / Squirrel 等，先签被依赖方）
+  if (fs.existsSync(frameworksDir)) {
+    for (const f of fs.readdirSync(frameworksDir)) {
+      if (f.endsWith('.framework') && f !== 'Electron Framework.framework') {
+        sign(path.join(frameworksDir, f));
+      }
+    }
+  }
+  // 2) Electron Framework 内层 Helper（chrome_crashpad_handler 等）
+  const helpersDir = path.join(versionDir, 'Helpers');
+  if (fs.existsSync(helpersDir)) {
+    for (const f of fs.readdirSync(helpersDir)) {
+      sign(path.join(helpersDir, f));
+    }
+  }
+  // 3) Electron Framework.framework 本体
+  if (fs.existsSync(framework)) sign(framework);
+  // 4) 各 Helper.app（Vido Helper / GPU / Plugin / Renderer）
+  if (fs.existsSync(frameworksDir)) {
+    for (const f of fs.readdirSync(frameworksDir)) {
+      if (f.endsWith('.app')) sign(path.join(frameworksDir, f));
+    }
+  }
+  // 5) 主应用（最后签名，密封整个 bundle）
+  sign(appPath);
 };

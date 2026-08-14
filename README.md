@@ -33,6 +33,7 @@ pnpm build:unpack           # 只出未打包目录（快速冒烟验证）
 ```
 
 产物在 `release/<version>/`，命名 `Vido-<平台>-<架构>-<版本>.<ext>`。
+（Linux x64 遵循发行版惯例：AppImage 用 `x86_64`、deb 用 `amd64`；arm64 全部统一为 `arm64`。）
 
 **平台限制**（本地单机交叉构建的固有限制）：
 - macOS 上构建 Windows：需要 Wine（`brew install --cask wine-stable`）来写 exe 资源/图标；缺 Wine 会报错 → 直接走 CI 最省事。

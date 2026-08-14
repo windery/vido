@@ -85,6 +85,7 @@ jobs:
 
       - name: Package (electron-builder, publish never)
         run: |
+          set -o pipefail  # electron-builder 失败必须让 step 失败（tee 不掩盖退出码）
           mkdir -p release
           pnpm exec electron-builder --version
           echo "args: ${{ matrix.args }}"
