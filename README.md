@@ -7,7 +7,7 @@
   1 !!! › 买牛奶                    #errand ⚑
   2 !!  › 写周报             ◷ 2026-08-14
   3 !   › 读《程序员修炼之道》  ▰▰▰▱ 3/4
--- NORMAL -- (j k move · o new · i content · ? keys)
+-- NORMAL -- (j k move · o new · i content · ? help)
 ```
 
 Vido 是一个桌面 Todo 应用（macOS / Windows / Linux），交互层完全遵循 vim 范式：模态编辑、键序列（`dd`、`yy`、`gg`）、数字前缀、零鼠标依赖。

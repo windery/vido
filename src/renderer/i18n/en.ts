@@ -20,16 +20,17 @@ export const en = {
   mode: {
     titleEdit: '-- TITLE EDIT -- (⏎ save)',
     contentEdit: '-- INSERT --',
-    contentNav: '-- CONTENT-NAV -- (hjkl move · i insert · ^V block · p paste · ? keys)',
+    contentNav: '-- CONTENT-NAV -- (hjkl move · i insert · ^V block · p paste · ? help)',
     config: '-- CONFIG --',
     // 键位详情在面板 footer/输入框 placeholder 展示，状态栏只报 section 名（徽标），不重复提示
-    configSchedule: 'j k nav · ⏎ select · x clear · ? keys',
-    configPriority: 'j k nav · ⏎ select · x clear · ? keys',
-    configTags: '1-9 tag · x delete · ⏎ add · ? keys',
+    configSchedule: 'j k nav · ⏎ select · x clear · ? help',
+    configPriority: 'j k nav · ⏎ select · x clear · ? help',
+    configTags: '1-9 tag · x delete · ⏎ add · ? help',
     configScheduleEdit: '⏎ save',
     configTagsEdit: '⏎ save',
     help: 'Press ? for help',
-    calendar: '{weekday} {date}',
+    calendar: 'jkhl move · 1-31 day · [ ] page · ? help',
+    calendarDate: '{weekday} {date}',
     search: '-- SEARCH --',
     command: '-- COMMAND -- (:w save · :q quit · ? all keys)',
     lastLine: '-- LAST-LINE --',
@@ -60,7 +61,7 @@ export const en = {
   },
   content: {
     placeholder: '# Task content (markdown supported)',
-    navHint: 'h j k l move · w b e word · i insert · x del · dd line · p paste · u undo · ? keys',
+    navHint: 'h j k l move · w b e word · i insert · x del · dd line · p paste · u undo · ? help',
   },
   lastline: {
     commandPlaceholder: 'type command, Tab to complete · ↑/↓ history',

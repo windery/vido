@@ -79,21 +79,23 @@ const configModeText = computed(() => {
   }
 });
 
-// 日历视图：状态栏中央实时显示焦点日期（jklh/数字/翻页时跟随变化；day 粒度取锚点日）
-const calendarStatusText = computed(() => {
+// 日历视图：状态栏中央显示主要按键（与 schedule config 同风格，? help 收尾）；焦点日期移到右侧实时显示
+const calendarStatusText = computed(() => (calendarVisible.value ? t('mode.calendar') : ''));
+
+const calendarDateText = computed(() => {
   const cv = calendarView.value;
   if (!cv?.visible) return '';
   const date = cv.granularity === 'day' ? cv.anchor : (cv.selectedDate ?? cv.anchor);
-  return t('mode.calendar', { weekday: weekdayName(date), date });
+  return t('mode.calendarDate', { weekday: weekdayName(date), date });
 });
 
-// 光标位置：内容导航 / 编辑时显示「行 · 列」
+// 光标位置：内容导航 / 编辑时显示「行 · 列」；日历视图显示焦点日期
 const posInfo = computed(() => {
   if (editorMode.value === EditorMode.CONTENT_NAVIGATION || editorMode.value === EditorMode.CONTENT_EDIT) {
     const pos = cursorPosition.value;
     if (pos) return t('status.pos', { l: pos.line + 1, c: pos.column });
   }
-  return '';
+  return calendarDateText.value;
 });
 
 const getModeText = (mode: EditorMode) => {
