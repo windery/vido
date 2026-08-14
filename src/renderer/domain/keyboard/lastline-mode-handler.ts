@@ -95,7 +95,7 @@ export class LastLineModeHandler implements ModeHandler {
         this.executeQuit();
         return true;
       case 'help':
-        taskDataManager.toggleHelp();
+        taskDataManager.toggleHelp('command');
         return true;
       case 'sort':
         taskDataManager.sortTasks(args[0] || 'title');

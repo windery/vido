@@ -25,6 +25,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { t, helpSections } from '../i18n';
+import { useTaskState } from '../composables/use-task-state';
 
 interface Props {
   visible: boolean;
@@ -32,7 +33,15 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const sections = computed(() => props.visible ? helpSections() : []);
+const { helpScope } = useTaskState();
+
+// 按打开场景过滤：常规态只显示主线键，次级配置显示对应键位，无选中任务显示全部
+const sections = computed(() => {
+  if (!props.visible) return [];
+  const all = helpSections();
+  if (helpScope.value === 'all') return all;
+  return all.filter((sec) => sec.scope === helpScope.value);
+});
 </script>
 
 <style scoped>

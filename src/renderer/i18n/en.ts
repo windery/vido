@@ -9,6 +9,8 @@ export interface HelpSection {
   title: string;
   commands: HelpItem[];
   notes?: string[];
+  /** help 面板过滤范围：normal / command / content / calendar / config（all = 全部） */
+  scope?: string;
 }
 
 export const en = {
@@ -54,7 +56,7 @@ export const en = {
   },
   content: {
     placeholder: '# Task content (markdown supported)',
-    navHint: 'h j k l move · w b e word · i insert · x del · dd line · p paste · u undo · ? all keys',
+    navHint: 'h j k l move · w b e word · i insert · x del · dd line · p paste · u undo · ? keys',
   },
   lastline: {
     commandPlaceholder: 'type command, Tab to complete · ↑/↓ history',
@@ -95,6 +97,7 @@ export const en = {
     sections: [
       {
         title: 'NORMAL MODE',
+        scope: 'normal',
         commands: [
           { key: 'j / k', desc: 'Move up / down' },
           { key: 'gg / G', desc: 'First / last task' },
@@ -122,6 +125,7 @@ export const en = {
       },
       {
         title: 'COMMANDS',
+        scope: 'command',
         commands: [
           { key: ':w / :wq', desc: 'Save / save & quit' },
           { key: ':q', desc: 'Quit' },
@@ -142,6 +146,7 @@ export const en = {
       },
       {
         title: 'SCHEDULE COMMANDS',
+        scope: 'command',
         commands: [
           { key: ':schedule', desc: 'Today' },
           { key: ':schedule tomorrow', desc: 'Tomorrow' },
@@ -159,6 +164,7 @@ export const en = {
       },
       {
         title: 'CONTENT EDIT MODE',
+        scope: 'content',
         commands: [
           { key: 'h j k l', desc: 'Move cursor' },
           { key: 'w / b / e', desc: 'Word forward / back / end' },
@@ -180,6 +186,7 @@ export const en = {
       },
       {
         title: 'CALENDAR VIEW',
+        scope: 'calendar',
         commands: [
           { key: 'g c', desc: 'Open (anchor: selected task date / today)' },
           { key: 'H / L', desc: 'Switch granularity: day / week / month' },
@@ -190,6 +197,7 @@ export const en = {
       },
       {
         title: 'CONFIG MODE',
+        scope: 'config',
         commands: [
           { key: 'cc', desc: 'Toggle panel (schedule default)' },
           { key: 'cs / cp / ct', desc: 'Jump to schedule / priority / tags' },

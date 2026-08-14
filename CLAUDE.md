@@ -45,6 +45,8 @@ Esc 关闭配置（edit 态先取消回 select，再 Esc 关闭）
 4. select → H/L → 切换到另一个类型的 select（j/k 只导航高亮、Enter 才选中生效，绝不切任务）
 5. 操作完成后不改配置类型——加完标签留在 tags-select，选完优先级留在 priority-select
 
+**Help 分级（? 按场景过滤）**: 常规态（有选中任务）→ 只显示 NORMAL MODE 主线键；次级配置内按 ? → 只显示该场景键位（配置/内容编辑/日历/命令 `:help`）；无选中任务（空列表）→ 显示全部键位。场景内提示语统一以 `? keys` 收尾。直觉键（Esc）不做提示。
+
 ### Operation Philosophy
 
 **Vim is an interaction paradigm, paired with a Terminal Purist visual language.**

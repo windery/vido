@@ -42,6 +42,7 @@ describe('ContentNavigationModeHandler', () => {
         lastlineVisible: false,
       }),
       transition: vi.fn(() => ({ success: true })),
+      toggleHelp: vi.fn(),
       moveCursorUp: vi.fn(),
       moveCursorDown: vi.fn(),
       moveCursorLeft: vi.fn(),
@@ -213,6 +214,18 @@ describe('ContentNavigationModeHandler', () => {
     it('transitions out of content navigation', () => {
       handler.handleKey(makeEvent('Escape'), 'Escape', mockTDM, false);
       expect(mockTDM.transition).toHaveBeenCalledWith('Escape');
+    });
+  });
+
+  describe('? — 打开完整键位参考（不退出导航）', () => {
+    it('calls toggleHelp', () => {
+      handler.handleKey(makeEvent('?'), '?', mockTDM, false);
+      expect(mockTDM.toggleHelp).toHaveBeenCalledWith('content');
+    });
+
+    it('does not transition out of navigation', () => {
+      handler.handleKey(makeEvent('?'), '?', mockTDM, false);
+      expect(mockTDM.transition).not.toHaveBeenCalled();
     });
   });
 

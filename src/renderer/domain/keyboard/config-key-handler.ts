@@ -195,6 +195,14 @@ export class ConfigKeyHandler {
         }, 600);
         return true;
 
+      case '?':
+        // 面板内按 ? 打开完整键位参考（清理待确认态，面板保持展开）
+        event.preventDefault();
+        this.cancelTagDelete(taskDataManager);
+        taskDataManager.setConfigNavIndex(0);
+        taskDataManager.toggleHelp('config');
+        return true;
+
       case 'Escape':
         event.preventDefault();
         this.cancelTagDelete(taskDataManager);

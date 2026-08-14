@@ -29,6 +29,7 @@ function createTDM(task: Task): any {
     setConfigNavIndex: vi.fn((n: number) => {
       navIndex = n;
     }),
+    toggleHelp: vi.fn(),
     _nav: () => navIndex,
   };
 }
@@ -445,6 +446,17 @@ describe('ConfigKeyHandler j/k nav 导航（Enter 才选中生效，绝不切任
     expect(tdm2._nav()).toBe(3);
     handler.handleKey(makeEvent('Enter'), 'Enter', tdm2);
     expect(cur(tdm2).tags).toEqual([]);
+  });
+
+  it('? 打开完整键位参考，并清理 nav/删除待确认态（面板保持展开）', () => {
+    const tdm = createTDM(makeTagTask(['a', 'b']));
+    handler.handleKey(makeEvent('d'), 'd', tdm); // 删除待确认
+    handler.handleKey(makeEvent('j'), 'j', tdm); // 进入 nav
+    const ok = handler.handleKey(makeEvent('?'), '?', tdm);
+    expect(ok).toBe(true);
+    expect(tdm.toggleHelp).toHaveBeenCalledWith('config');
+    expect(tdm._nav()).toBe(0);
+    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(0);
   });
 
   it('nav 中按 d 取消 nav 且无副作用（priority 无删除语义）', () => {

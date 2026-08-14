@@ -241,6 +241,7 @@ describe('CommandModeHandler — 日历视图按键', () => {
         tasks,
       })),
       moveCalendarSelection: vi.fn(),
+      toggleHelp: vi.fn(),
       cycleCalendarGranularity: vi.fn(),
       shiftCalendarPage: vi.fn(),
       closeCalendarView: vi.fn(),
@@ -259,5 +260,7 @@ describe('CommandModeHandler — 日历视图按键', () => {
     expect(tdm.selectCalendarTask).toHaveBeenCalled();
     h.handleKey(makeEvent('Escape'), 'Escape', tdm, false);
     expect(tdm.closeCalendarView).toHaveBeenCalled();
+    h.handleKey(makeEvent('?'), '?', tdm, false);
+    expect(tdm.toggleHelp).toHaveBeenCalledWith('calendar');
   });
 });

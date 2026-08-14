@@ -178,8 +178,9 @@ export class CommandModeHandler implements ModeHandler {
         return true;
 
       case '?':
+        // 无选中任务（空列表）→ 全部键位；常规态 → 主线键位
         event.preventDefault();
-        taskDataManager.toggleHelp();
+        taskDataManager.toggleHelp((currentState as any).selectedTaskId ? 'normal' : 'all');
         this.resetAll();
         return true;
 
@@ -442,6 +443,10 @@ export class CommandModeHandler implements ModeHandler {
         event.preventDefault();
         taskDataManager.closeCalendarView();
         this.blurInputFields();
+        return true;
+      case '?':
+        event.preventDefault();
+        taskDataManager.toggleHelp('calendar');
         return true;
       case 'Enter':
         event.preventDefault();

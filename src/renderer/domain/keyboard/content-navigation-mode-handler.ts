@@ -51,6 +51,12 @@ export class ContentNavigationModeHandler implements ModeHandler {
         this.blurInputFields();
         return true;
 
+      // ? 打开完整键位参考（readonly textarea 聚焦时也生效；导航态保持）
+      case '?':
+        event.preventDefault();
+        taskDataManager.toggleHelp('content');
+        return true;
+
       // ============ 进入编辑 ============
       case 'i':
         event.preventDefault();

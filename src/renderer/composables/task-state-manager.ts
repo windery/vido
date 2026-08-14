@@ -29,6 +29,7 @@ function buildState(): any {
     selectedTaskId: store.manager.list.selected?.id,
     cursorPosition: store.state.cursorPosition,
     isHelpVisible: store.state.isHelpVisible,
+    helpScope: store.state.helpScope,
     lastlineContent: store.state.lastlineContent,
     lastlineVisible: store.state.lastlineVisible,
     flashMessage: store.state.flashMessage,
