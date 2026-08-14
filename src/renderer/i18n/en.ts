@@ -30,7 +30,7 @@ export const en = {
     configTagsEdit: '⏎ save',
     help: 'Press ? for help',
     calendar: 'jkhl move · 1-31 day · [ ] page · ? help',
-    calendarWeek: 'jkhl move · 1-7 wd · [ ] page · ? help',
+    calendarWeek: 'jkhl move · 1-7 col · [ ] page · ? help',
     calendarDay: 'jkhl move · [ ] page · ? help',
     search: '-- SEARCH --',
     command: '-- COMMAND -- (:w save · :q quit · ? help)',

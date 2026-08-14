@@ -217,9 +217,9 @@ watch(
     min-height: 74px;
 }
 
-/* week：7 列日计划表，单行高格子，给任务留足纵向空间 */
+/* week：7 列日计划表。min-height 只兜底空周不塌陷；内容多时网格行随最高列自然长高（同行等高） */
 .cal-week .cal-cell {
-    min-height: 150px;
+    min-height: 96px;
 }
 
 /* 单日：整宽单元 */
