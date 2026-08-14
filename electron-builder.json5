@@ -1,37 +1,62 @@
 // @see https://www.electron.build/configuration/configuration
+//
+// 全平台全架构打包：
+//   macOS   x64 / arm64 / universal（dmg + zip）
+//   Windows x64 / arm64（nsis 安装包 + zip 免安装）
+//   Linux   x64 / arm64（AppImage + deb）
+//
+// 本地构建默认当前平台/当前架构（如 arm64 Mac 上 `pnpm build:mac` 出 arm64 包）；
+// 指定架构用对应脚本（build:mac:x64 / build:win:arm64 / …），
+// universal 双架构合一包用 `pnpm build:mac:universal`。
+// 全部平台一次出齐推荐走 GitHub Actions（push v* 标签，见 .github/workflows/release.yml）。
+//
+// 签名策略：本项目不强制签名——本地/CI 均以 CSC_IDENTITY_AUTO_DISCOVERY=false 出未签名包。
+// 持有证书时移除该环境变量并恢复 hardenedRuntime: true 即可签名（mac 分发建议加 notarize）。
 {
   $schema: 'https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json',
-  appId: 'YourAppID',
+  appId: 'com.windery.vido',
   asar: true,
   productName: 'Vido',
   directories: {
     output: 'release/${version}',
   },
   files: ['dist', 'dist-electron'],
+
   mac: {
     icon: 'build/icon.icns',
-    target: ['dmg'],
-    artifactName: '${productName}-Mac-${version}-Installer.${ext}',
+    category: 'public.app-category.productivity',
+    target: ['dmg', 'zip'],
+    // 未签名包：关闭 hardened runtime 与 gatekeeper assess，避免本地/CI 打包被签名检查卡死；
+    // 正式分发（签名 + notarize）时应改回 hardenedRuntime: true
+    hardenedRuntime: false,
+    gatekeeperAssess: false,
+    artifactName: '${productName}-Mac-${arch}-${version}.${ext}',
   },
+
   win: {
-    icon: 'build/icon.ico',
+    // electron-builder 会自动把 ≥256px 的 png 转成 ico（build/icon.ico 并不存在，勿改回）
+    icon: 'build/icon.png',
     target: [
-      {
-        target: 'nsis',
-        arch: ['x64'],
-      },
+      { target: 'nsis', arch: ['x64', 'arm64'] },
+      { target: 'zip', arch: ['x64', 'arm64'] },
     ],
-    artifactName: '${productName}-Windows-${version}-Setup.${ext}',
+    artifactName: '${productName}-Windows-${arch}-${version}.${ext}',
   },
+
   nsis: {
     oneClick: false,
     perMachine: false,
     allowToChangeInstallationDirectory: true,
     deleteAppDataOnUninstall: false,
   },
+
   linux: {
     icon: 'build/icon.png',
-    target: ['AppImage'],
-    artifactName: '${productName}-Linux-${version}.${ext}',
+    category: 'Utility',
+    target: [
+      { target: 'AppImage', arch: ['x64', 'arm64'] },
+      { target: 'deb', arch: ['x64', 'arm64'] },
+    ],
+    artifactName: '${productName}-Linux-${arch}-${version}.${ext}',
   },
 }

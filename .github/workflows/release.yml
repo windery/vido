@@ -1,7 +1,12 @@
 name: Release
 
-# 推送 v* 标签（如 v0.1.0）时自动在 macOS / Windows / Linux 上打包，
-# 并统一发布到 GitHub Release。也可在 Actions 页手动触发测试。
+# 推送 v* 标签（如 v0.1.0）时自动打包全平台全架构并发布到 GitHub Release；
+# 也可在 Actions 页手动触发（workflow_dispatch）。
+#
+# 产物矩阵：
+#   macOS   x64 / arm64 / universal（dmg + zip）
+#   Windows x64 / arm64（Setup.exe + zip）
+#   Linux   x64 / arm64（AppImage + deb）
 on:
   push:
     tags:
@@ -13,15 +18,28 @@ permissions:
 
 jobs:
   build:
-    name: Build (${{ matrix.os }})
+    name: Build (${{ matrix.label }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          # Intel Mac（x64）
+          - os: macos-13
+            label: macos-x64
+            args: --mac --x64
+          # Apple Silicon Mac（arm64，顺带合并 universal 双架构包）
           - os: macos-latest
+            label: macos-arm64+universal
+            args: --mac --arm64
+          # Windows x64 + arm64
           - os: windows-latest
+            label: windows-x64+arm64
+            args: --win
+          # Linux x64 + arm64
           - os: ubuntu-latest
+            label: linux-x64+arm64
+            args: --linux
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,6 +54,16 @@ jobs:
           corepack enable
           corepack prepare pnpm@10.23.0 --activate
 
+      - name: Cache Electron & electron-builder downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: electron-cache-${{ matrix.label }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            electron-cache-${{ matrix.label }}-
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -45,15 +73,22 @@ jobs:
           pnpm exec vite build
 
       - name: Package (electron-builder, publish never)
-        run: pnpm exec electron-builder --publish never
+        run: pnpm exec electron-builder ${{ matrix.args }} --publish never
         env:
           # CI 无签名证书：明确关闭自动发现，避免卡在签名步骤
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      # Apple Silicon runner 在 arm64 包之后追加 universal（x64+arm64 合一）包
+      - name: Package universal (macOS only)
+        if: matrix.label == 'macos-arm64+universal'
+        run: pnpm exec electron-builder --mac --universal --publish never
+        env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: vido-${{ matrix.os }}
+          name: vido-${{ matrix.label }}
           path: release/**
           if-no-files-found: error
 
@@ -71,9 +106,20 @@ jobs:
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          # 只上传三个平台的安装包（避免 glob 误匹配 NSIS/unpacked 中间产物）
+          # 只上传安装产物（glob 精确到平台+架构，避免误收 unpacked 等中间产物）
           files: |
-            artifacts/**/Vido-Mac-*-Installer.dmg
-            artifacts/**/Vido-Windows-*-Setup.exe
-            artifacts/**/Vido-Linux-*.AppImage
+            artifacts/**/Vido-Mac-x64-*.dmg
+            artifacts/**/Vido-Mac-x64-*.zip
+            artifacts/**/Vido-Mac-arm64-*.dmg
+            artifacts/**/Vido-Mac-arm64-*.zip
+            artifacts/**/Vido-Mac-universal-*.dmg
+            artifacts/**/Vido-Mac-universal-*.zip
+            artifacts/**/Vido-Windows-x64-*.exe
+            artifacts/**/Vido-Windows-x64-*.zip
+            artifacts/**/Vido-Windows-arm64-*.exe
+            artifacts/**/Vido-Windows-arm64-*.zip
+            artifacts/**/Vido-Linux-x64-*.AppImage
+            artifacts/**/Vido-Linux-x64-*.deb
+            artifacts/**/Vido-Linux-arm64-*.AppImage
+            artifacts/**/Vido-Linux-arm64-*.deb
           generate_release_notes: true
