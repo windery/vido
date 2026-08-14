@@ -63,4 +63,9 @@ describe('CalendarView — 仅当月天数网格（上/下月不占格）', () =
     const focused = wrapper.findAll('.cal-cell').find((c) => c.classes().includes('is-focused'));
     expect(focused).toBeTruthy();
   });
+
+  it('头部不常驻快捷键提示（按 ? 查询，与配置面板一致）', () => {
+    const wrapper = mount(CalendarView, { props: baseProps });
+    expect(wrapper.find('.cal-hint').exists()).toBe(false);
+  });
 });

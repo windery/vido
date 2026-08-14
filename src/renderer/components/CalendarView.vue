@@ -1,10 +1,9 @@
 <template>
     <div class="calendar-view">
-        <!-- 头部：粒度徽章 + 范围 + 基本键位（详细按 ?） -->
+        <!-- 头部：粒度徽章 + 范围（键位不常驻提示，按 ? 查询，与配置面板一致） -->
         <div class="calendar-header">
             <span class="cal-badge">{{ granularity.toUpperCase() }}</span>
             <span class="cal-range">{{ rangeLabel }}</span>
-            <span class="cal-hint">jkhl move &nbsp;·&nbsp; 1-31 day &nbsp;·&nbsp; [ ] page &nbsp;·&nbsp; H/L view &nbsp;·&nbsp; ? keys</span>
         </div>
 
         <!-- 当日详情（day 粒度 / 网格内 Enter 打开）：完整任务列表 -->
@@ -175,12 +174,6 @@ watch(
 .cal-range {
     color: var(--text-bright);
     font-weight: 600;
-}
-
-.cal-hint {
-    margin-left: auto;
-    font-size: 11px;
-    color: var(--text-3);
 }
 
 /* 周几表头行（week/month 网格上方） */
