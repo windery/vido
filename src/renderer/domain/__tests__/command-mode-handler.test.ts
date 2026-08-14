@@ -229,38 +229,67 @@ describe('CommandModeHandler — vim 滚动与词搜索', () => {
 });
 
 describe('CommandModeHandler — 日历视图按键', () => {
-  it('日历激活时 j/k 选任务、Enter 打开、Esc 退出、[ ] 翻页', () => {
+  function makeCalTDM(extra: Record<string, any> = {}): any {
     const tasks = makeTasks(2);
-    const tdm: any = {
+    return {
       getState: vi.fn(() => ({
         editorMode: 0,
         selectedTaskId: 1,
         lastlineContent: '',
         isHelpVisible: false,
-        calendarView: { visible: true, granularity: 'week', anchor: '' },
+        calendarView: { visible: true, granularity: 'week', anchor: '', dayDetail: false },
         tasks,
       })),
-      moveCalendarSelection: vi.fn(),
+      moveCalendarFocus: vi.fn(),
+      moveCalendarDaySelection: vi.fn(),
+      openCalendarDayDetail: vi.fn(),
+      closeCalendarDayDetail: vi.fn(),
       toggleHelp: vi.fn(),
       cycleCalendarGranularity: vi.fn(),
       shiftCalendarPage: vi.fn(),
       closeCalendarView: vi.fn(),
       selectCalendarTask: vi.fn(),
+      ...extra,
     };
+  }
+
+  it('网格内：j/k 移日焦点、Enter 打开详情、Esc 退出、[ ] 翻页、? 帮助', () => {
+    const tdm = makeCalTDM();
     const h = new CommandModeHandler();
     h.handleKey(makeEvent('j'), 'j', tdm, false);
-    expect(tdm.moveCalendarSelection).toHaveBeenCalledWith(1);
+    expect(tdm.moveCalendarFocus).toHaveBeenCalledWith(1);
     h.handleKey(makeEvent('k'), 'k', tdm, false);
-    expect(tdm.moveCalendarSelection).toHaveBeenCalledWith(-1);
+    expect(tdm.moveCalendarFocus).toHaveBeenCalledWith(-1);
     h.handleKey(makeEvent('H'), 'H', tdm, false);
     expect(tdm.cycleCalendarGranularity).toHaveBeenCalledWith(-1);
     h.handleKey(makeEvent(']'), ']', tdm, false);
     expect(tdm.shiftCalendarPage).toHaveBeenCalledWith(1);
     h.handleKey(makeEvent('Enter'), 'Enter', tdm, false);
-    expect(tdm.selectCalendarTask).toHaveBeenCalled();
+    expect(tdm.openCalendarDayDetail).toHaveBeenCalled();
+    expect(tdm.selectCalendarTask).not.toHaveBeenCalled();
     h.handleKey(makeEvent('Escape'), 'Escape', tdm, false);
     expect(tdm.closeCalendarView).toHaveBeenCalled();
     h.handleKey(makeEvent('?'), '?', tdm, false);
     expect(tdm.toggleHelp).toHaveBeenCalledWith('calendar');
+  });
+
+  it('详情内：j/k 选任务、Enter 打开任务、Esc 返回网格', () => {
+    const tdm = makeCalTDM();
+    (tdm.getState as any).mockImplementation(() => ({
+      editorMode: 0,
+      selectedTaskId: 1,
+      lastlineContent: '',
+      isHelpVisible: false,
+      calendarView: { visible: true, granularity: 'week', anchor: '', dayDetail: true },
+      tasks: makeTasks(2),
+    }));
+    const h = new CommandModeHandler();
+    h.handleKey(makeEvent('j'), 'j', tdm, false);
+    expect(tdm.moveCalendarDaySelection).toHaveBeenCalledWith(1);
+    h.handleKey(makeEvent('Enter'), 'Enter', tdm, false);
+    expect(tdm.selectCalendarTask).toHaveBeenCalled();
+    h.handleKey(makeEvent('Escape'), 'Escape', tdm, false);
+    expect(tdm.closeCalendarDayDetail).toHaveBeenCalled();
+    expect(tdm.closeCalendarView).not.toHaveBeenCalled();
   });
 });

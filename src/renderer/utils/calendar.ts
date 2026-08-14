@@ -112,3 +112,30 @@ export function weekdayName(dateStr: string): string {
   const d = parseDate(dateStr);
   return d ? DAY_NAMES[d.getDay()] : '';
 }
+
+/**
+ * 日期组件网格的日期序列（j/k 按此顺序移动日焦点）：
+ * day = 锚点当天；week = 锚点所在周 7 天（周日~周六）；month = 6×7 共 42 格（含邻月淡化格，周日开头）
+ */
+export function calendarGridCells(
+  granularity: CalendarGranularity,
+  anchor: string
+): string[] {
+  const a = parseDate(anchor) || new Date();
+  if (granularity === 'day') return [anchor];
+  if (granularity === 'week') {
+    const start = new Date(a);
+    start.setDate(a.getDate() - a.getDay());
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return formatDate(d);
+    });
+  }
+  const year = a.getFullYear();
+  const month = a.getMonth();
+  const offset = new Date(year, month, 1).getDay();
+  return Array.from({ length: 42 }, (_, i) =>
+    formatDate(new Date(year, month, 1 - offset + i))
+  );
+}

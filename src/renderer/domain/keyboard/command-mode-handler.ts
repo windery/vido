@@ -408,40 +408,51 @@ export class CommandModeHandler implements ModeHandler {
     this.keySequenceTimeout = setTimeout(() => this.resetSequenceState(), 1000);
   }
 
-  /** 日期视图按键：H/L 切粒度、[ ] 翻页、j/k 选任务、Enter 打开任务、Esc 退出 */
+  /** 日期视图按键：网格内 j/k 移日焦点、Enter 打开当日详情；详情内 j/k 选任务、Enter 打开任务、Esc 返回网格；
+   *  H/L 切粒度、[ ] 翻页（详情内先返回网格）；Esc 网格退出视图；? 打开日历键位帮助 */
   private handleCalendarKey(
     event: KeyboardEvent,
     key: string,
     taskDataManager: Store
   ): boolean {
+    const cv = (taskDataManager.getState() as any).calendarView;
+    const inDetail = !!cv?.dayDetail || cv?.granularity === 'day';
     switch (key) {
       case 'H':
         event.preventDefault();
+        if (cv?.dayDetail) taskDataManager.closeCalendarDayDetail();
         taskDataManager.cycleCalendarGranularity(-1);
         return true;
       case 'L':
         event.preventDefault();
+        if (cv?.dayDetail) taskDataManager.closeCalendarDayDetail();
         taskDataManager.cycleCalendarGranularity(1);
         return true;
       case '[':
         event.preventDefault();
+        if (cv?.dayDetail) taskDataManager.closeCalendarDayDetail();
         taskDataManager.shiftCalendarPage(-1);
         return true;
       case ']':
         event.preventDefault();
+        if (cv?.dayDetail) taskDataManager.closeCalendarDayDetail();
         taskDataManager.shiftCalendarPage(1);
         return true;
       case 'j':
         event.preventDefault();
-        taskDataManager.moveCalendarSelection(1);
+        if (inDetail) taskDataManager.moveCalendarDaySelection(1);
+        else taskDataManager.moveCalendarFocus(1);
         return true;
       case 'k':
         event.preventDefault();
-        taskDataManager.moveCalendarSelection(-1);
+        if (inDetail) taskDataManager.moveCalendarDaySelection(-1);
+        else taskDataManager.moveCalendarFocus(-1);
         return true;
       case 'Escape':
         event.preventDefault();
-        taskDataManager.closeCalendarView();
+        // 详情子视图 → 返回网格；否则退出日历（day 粒度没有网格，Esc 直接退出）
+        if (cv?.dayDetail) taskDataManager.closeCalendarDayDetail();
+        else taskDataManager.closeCalendarView();
         this.blurInputFields();
         return true;
       case '?':
@@ -450,8 +461,12 @@ export class CommandModeHandler implements ModeHandler {
         return true;
       case 'Enter':
         event.preventDefault();
-        taskDataManager.selectCalendarTask();
-        this.scrollToSelectedTask();
+        if (inDetail) {
+          taskDataManager.selectCalendarTask();
+          this.scrollToSelectedTask();
+        } else {
+          taskDataManager.openCalendarDayDetail();
+        }
         return true;
       default:
         return true; // 视图内其余键一律消费，不落到命令层

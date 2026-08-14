@@ -13,7 +13,7 @@ import { logger } from '../../utils/logger';
 import { migrateSchedule } from '../../utils/schedule-helper';
 import { Schedule, ScheduleRepeat, ScheduleType } from '../schedule';
 import { getCurrentDate, formatDate, parseDate } from '../../utils/date-formatter';
-import { collectTasksInRange } from '../../utils/calendar';
+import { collectTasksInRange, calendarGridCells } from '../../utils/calendar';
 import { t } from '../../i18n';
 
 export interface AppState {
@@ -33,13 +33,15 @@ export interface AppState {
   tagDeleteIndex: number;
   /** 配置面板 nav 态选项序号（1 基；0 = 未进入 nav）：j/k 高亮导航、Enter 选中高亮项 */
   configNavIndex: number;
-  /** 日期视图（g c 进入）：visible + 粒度（day/week/month）+ 锚点日期 + 视图内选中项（日期+任务对，repeat 任务按出现定位） */
+  /** 日期视图（g c 进入）：visible + 粒度（day/week/month）+ 锚点日期 + 网格日焦点（selectedDate）与选中任务；
+   *  dayDetail：网格内 Enter 打开的当日详情子视图（Esc 返回网格） */
   calendarView: {
     visible: boolean;
     granularity: 'day' | 'week' | 'month';
     anchor: string;
     selectedDate?: string;
     selectedTaskId?: number;
+    dayDetail: boolean;
   };
 }
 
@@ -181,7 +183,7 @@ export class Store {
       dirty: false,
       tagDeleteIndex: 0,
       configNavIndex: 0,
-      calendarView: { visible: false, granularity: 'week', anchor: '', selectedDate: undefined, selectedTaskId: undefined },
+      calendarView: { visible: false, granularity: 'week', anchor: '', selectedDate: undefined, selectedTaskId: undefined, dayDetail: false },
     });
   }
 
@@ -473,7 +475,7 @@ export class Store {
       const d = (sd as any).getShortText ? sd.getShortText() : '';
       if (d && /^\d{4}-\d{2}-\d{2}/.test(d)) anchor = d.slice(0, 10);
     }
-    this.state.calendarView = { visible: true, granularity: 'week', anchor, selectedDate: undefined, selectedTaskId: undefined };
+    this.state.calendarView = { visible: true, granularity: 'week', anchor, selectedDate: undefined, selectedTaskId: undefined, dayDetail: false };
     // 预选：当前选中任务在范围内的首次出现，否则范围内第一个条目（Enter 即可直接打开）
     const entries = this.calendarEntries();
     if (entries.length > 0) {
@@ -495,6 +497,7 @@ export class Store {
     const idx = order.indexOf(cur);
     const next = order[(idx + dir + order.length) % order.length];
     this.state.calendarView.granularity = next;
+    this.state.calendarView.dayDetail = false; // 切粒度回到网格
     this.syncCalendarSelection();
     this.changed();
   }
@@ -506,26 +509,68 @@ export class Store {
     else if (cv.granularity === 'week') d.setDate(d.getDate() + 7 * dir);
     else d.setMonth(d.getMonth() + dir);
     cv.anchor = formatDate(d);
+    cv.dayDetail = false; // 翻页回到网格
     this.syncCalendarSelection();
     this.changed();
   }
 
-  /** j / k：在视图内条目间移动选择（所见即所选；未选中时从首/尾开始） */
-  moveCalendarSelection(dir: 1 | -1): void {
+  /** 某日期在视图内的任务（repeat 展开、搜索过滤后） */
+  private calendarTasksOn(date: string): Task[] {
+    const term = this.getSearchTerm();
+    const base = term
+      ? this.manager.list.items.filter((t) => taskMatchesSearch(t, term))
+      : this.manager.list.items;
+    const days = collectTasksInRange(base, this.state.calendarView.granularity, this.state.calendarView.anchor);
+    return days.find((d) => d.date === date)?.tasks ?? [];
+  }
+
+  /** 网格内 j/k：移动日焦点（沿日期组件格序，含邻月淡化格），自动选中该日第一个任务 */
+  moveCalendarFocus(dir: 1 | -1): void {
     const cv = this.state.calendarView;
-    const entries = this.calendarEntries();
-    if (entries.length === 0) {
-      cv.selectedDate = undefined;
+    const cells = calendarGridCells(cv.granularity, cv.anchor);
+    if (cells.length === 0) return;
+    let idx = cells.indexOf(cv.selectedDate ?? '');
+    if (idx < 0) idx = 0;
+    const next = cells[(idx + dir + cells.length) % cells.length];
+    cv.selectedDate = next;
+    cv.selectedTaskId = this.calendarTasksOn(next)[0]?.id;
+    this.changed();
+  }
+
+  /** 当日详情内 j/k：在聚焦日的任务间移动选择 */
+  moveCalendarDaySelection(dir: 1 | -1): void {
+    const cv = this.state.calendarView;
+    const date = cv.granularity === 'day' ? cv.anchor : (cv.selectedDate ?? cv.anchor);
+    const tasks = this.calendarTasksOn(date);
+    cv.selectedDate = date;
+    if (tasks.length === 0) {
       cv.selectedTaskId = undefined;
       this.changed();
       return;
     }
-    const idx = entries.findIndex((e) => e.task.id === cv.selectedTaskId && e.date === cv.selectedDate);
-    const nextIdx = idx < 0
-      ? (dir > 0 ? 0 : entries.length - 1)
-      : (idx + dir + entries.length) % entries.length;
-    cv.selectedDate = entries[nextIdx].date;
-    cv.selectedTaskId = entries[nextIdx].task.id;
+    const idx = tasks.findIndex((t) => t.id === cv.selectedTaskId);
+    const nextIdx = idx < 0 ? 0 : (idx + dir + tasks.length) % tasks.length;
+    cv.selectedTaskId = tasks[nextIdx].id;
+    this.changed();
+  }
+
+  /** 网格内 Enter：打开聚焦日的任务详情列表 */
+  openCalendarDayDetail(): void {
+    const cv = this.state.calendarView;
+    const date = cv.granularity === 'day' ? cv.anchor : (cv.selectedDate ?? cv.anchor);
+    cv.selectedDate = date;
+    const tasks = this.calendarTasksOn(date);
+    if (cv.selectedTaskId === undefined || !tasks.some((t) => t.id === cv.selectedTaskId)) {
+      cv.selectedTaskId = tasks[0]?.id;
+    }
+    cv.dayDetail = true;
+    this.changed();
+    logger.info('Store', 'open calendar day detail', { date, tasks: tasks.length });
+  }
+
+  /** 详情内 Esc：返回日期网格 */
+  closeCalendarDayDetail(): void {
+    this.state.calendarView.dayDetail = false;
     this.changed();
   }
 

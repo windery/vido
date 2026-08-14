@@ -7,24 +7,68 @@
             <span class="cal-hint">[ ] page &nbsp;·&nbsp; H/L view &nbsp;·&nbsp; ? keys</span>
         </div>
 
-        <!-- 按日期分组的任务：month 只显示有任务的日期（紧凑），day/week 显示全范围 -->
-        <div class="calendar-body">
-            <div v-for="day in days" :key="day.date" class="cal-day">
-                <div class="cal-day-head">
-                    <span class="cal-weekday">{{ weekdayName(day.date) }}</span>
-                    <span class="cal-date" :class="{ 'is-today': day.date === todayStr }">{{ day.date }}</span>
-                    <span v-if="day.date === todayStr" class="cal-today-flag">TODAY</span>
+        <!-- 当日详情（day 粒度 / 网格内 Enter 打开）：完整任务列表 -->
+        <div v-if="showDetail" class="cal-single">
+            <div class="cal-cell" :class="{ 'is-today': detailDate === todayStr }">
+                <div class="cal-cell-head">
+                    <span class="cal-cell-weekday">{{ weekdayName(detailDate) }}</span>
+                    <span class="cal-cell-date">{{ detailDate }}</span>
+                    <span v-if="detailDate === todayStr" class="cal-today-flag">TODAY</span>
                 </div>
-                <div class="cal-day-tasks">
-                    <div v-for="t in day.tasks" :key="t.id" class="cal-task"
-                        :class="{ done: t.completed, selected: day.date === selectedDate && t.id === selectedTaskId }">
+                <div class="cal-cell-tasks">
+                    <div v-for="t in cellTasks(detailDate)" :key="t.id" class="cal-task"
+                        :class="{ done: t.completed, selected: detailDate === selectedDate && t.id === selectedTaskId }">
                         <span class="cal-task-dot">{{ t.completed ? '✓' : '○' }}</span>
                         <span class="cal-task-title">{{ t.title }}</span>
                     </div>
+                    <div v-if="cellTasks(detailDate).length === 0" class="cal-cell-empty">No tasks</div>
                 </div>
             </div>
-            <div v-if="days.length === 0" class="cal-empty">
-                No tasks in this {{ granularity }}
+        </div>
+
+        <!-- week：单行 7 格日期组件 -->
+        <div v-else-if="granularity === 'week'">
+            <div class="cal-weekdays">
+                <span v-for="w in WEEKDAYS" :key="w" class="cal-weekday-label">{{ w }}</span>
+            </div>
+            <div class="cal-grid cal-week">
+                <div v-for="d in weekDates" :key="d" class="cal-cell"
+                    :class="{ 'is-today': d === todayStr, 'is-focused': d === selectedDate }">
+                    <div class="cal-cell-head">
+                        <span class="cal-cell-date">{{ d.slice(5) }}</span>
+                    </div>
+                    <div class="cal-cell-tasks">
+                        <div v-for="t in cellTasks(d).slice(0, 6)" :key="t.id" class="cal-task"
+                            :class="{ done: t.completed, selected: d === selectedDate && t.id === selectedTaskId }">
+                            <span class="cal-task-dot">{{ t.completed ? '✓' : '○' }}</span>
+                            <span class="cal-task-title">{{ t.title }}</span>
+                        </div>
+                        <div v-if="cellTasks(d).length > 6" class="cal-overflow">+{{ cellTasks(d).length - 6 }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- month：6×7 网格，邻月日期淡化 -->
+        <div v-else>
+            <div class="cal-weekdays">
+                <span v-for="w in WEEKDAYS" :key="w" class="cal-weekday-label">{{ w }}</span>
+            </div>
+            <div class="cal-grid cal-month">
+                <div v-for="c in monthCells" :key="c.date" class="cal-cell"
+                    :class="{ 'is-today': c.date === todayStr, 'is-dim': !c.inMonth, 'is-focused': c.date === selectedDate }">
+                    <div class="cal-cell-head">
+                        <span class="cal-cell-date">{{ c.date.slice(8) }}</span>
+                    </div>
+                    <div class="cal-cell-tasks">
+                        <div v-for="t in cellTasks(c.date).slice(0, 3)" :key="t.id" class="cal-task"
+                            :class="{ done: t.completed, selected: c.date === selectedDate && t.id === selectedTaskId }">
+                            <span class="cal-task-dot">{{ t.completed ? '✓' : '○' }}</span>
+                            <span class="cal-task-title">{{ t.title }}</span>
+                        </div>
+                        <div v-if="cellTasks(c.date).length > 3" class="cal-overflow">+{{ cellTasks(c.date).length - 3 }}</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -33,7 +77,7 @@
 <script setup lang="ts">
 import { computed, watch, nextTick } from 'vue';
 import type { Task } from '../domain/task';
-import { collectTasksInRange, getCalendarRange, weekdayName } from '../utils/calendar';
+import { collectTasksInRange, getCalendarRange, weekdayName, calendarGridCells } from '../utils/calendar';
 import { formatDate } from '../utils/date-formatter';
 
 const props = defineProps<{
@@ -42,18 +86,42 @@ const props = defineProps<{
     anchor: string;
     selectedDate?: string;
     selectedTaskId?: number;
+    /** 网格内 Enter 打开的当日详情子视图（Esc 返回网格） */
+    dayDetail?: boolean;
 }>();
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const todayStr = formatDate(new Date());
 
 const rangeLabel = computed(() => getCalendarRange(props.granularity, props.anchor).label);
 
-// month 粒度只显示有任务的日期（紧凑）；day/week 显示全范围
-const days = computed(() => {
-    const all = collectTasksInRange(props.tasks, props.granularity, props.anchor);
-    if (props.granularity !== 'month') return all;
-    return all.filter((d) => d.tasks.length > 0);
+/** date → 当日任务（含 repeat 展开） */
+const tasksByDate = computed(() => {
+    const map = new Map<string, Task[]>();
+    const days = collectTasksInRange(props.tasks, props.granularity, props.anchor);
+    for (const d of days) map.set(d.date, d.tasks);
+    return map;
 });
+
+const cellTasks = (date: string): Task[] => tasksByDate.value.get(date) ?? [];
+
+/** 详情视图判定：day 粒度本身即详情；week/month 由网格内 Enter（dayDetail）打开 */
+const showDetail = computed(() => props.granularity === 'day' || !!props.dayDetail);
+const detailDate = computed(() =>
+    props.granularity === 'day' ? props.anchor : (props.selectedDate ?? props.anchor)
+);
+
+/** week：锚点所在周（周日~周六）的 7 个日期 */
+const weekDates = computed(() => calendarGridCells('week', props.anchor));
+
+/** month：6×7 网格（周日开头，邻月日期标记 inMonth=false 淡化） */
+const monthCells = computed(() =>
+    calendarGridCells('month', props.anchor).map((date) => ({
+        date,
+        inMonth: date.slice(0, 7) === props.anchor.slice(0, 7),
+    }))
+);
 
 // 选中变化时把目标行滚入视口（vim-instant：同一帧、最小滚动）
 watch(
@@ -107,63 +175,119 @@ watch(
     color: var(--text-3);
 }
 
-.cal-day {
+/* 周几表头行（week/month 网格上方） */
+.cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    padding: 0 2px;
+}
+
+.cal-weekday-label {
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.05em;
+    padding: 2px 0;
+}
+
+/* 网格：week 单行 / month 6 行 */
+.cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.cal-month .cal-cell {
+    min-height: 74px;
+}
+
+.cal-week .cal-cell {
+    min-height: 120px;
+}
+
+/* 单日：整宽单元 */
+.cal-single .cal-cell {
+    min-height: 120px;
+}
+
+.cal-cell {
     border: 1px solid var(--border-soft);
     border-radius: 4px;
-    margin-bottom: 2px;
+    padding: 4px 6px;
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
 }
 
-.cal-day-head {
+/* 今天：磷光绿日期 + 淡绿描边 */
+.cal-cell.is-today {
+    border-color: rgba(89, 217, 138, 0.4);
+}
+
+/* 日焦点（j/k 移动）：磷光绿实线描边 + 淡底 */
+.cal-cell.is-focused {
+    border-color: var(--accent);
+    background: rgba(89, 217, 138, 0.06);
+}
+
+.cal-cell.is-today .cal-cell-date {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* 邻月日期：更淡更不明显 */
+.cal-cell.is-dim {
+    opacity: 0.35;
+}
+
+.cal-cell-head {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 10px;
-    background: rgba(255, 255, 255, 0.02);
-    border-bottom: 1px solid var(--border-soft);
-    font-size: 12px;
+    gap: 6px;
+    font-size: 11px;
 }
 
-.cal-weekday {
+.cal-cell-weekday {
     color: var(--text-2);
-    width: 32px;
 }
 
-.cal-date {
-    color: var(--text-bright);
+.cal-cell-date {
+    color: var(--text-2);
     font-weight: 600;
-}
-
-.cal-date.is-today {
-    color: var(--accent);
+    font-variant-numeric: tabular-nums;
 }
 
 .cal-today-flag {
     color: var(--accent);
-    font-size: 10px;
+    font-size: 9px;
     letter-spacing: 0.06em;
     border: 1px solid rgba(89, 217, 138, 0.3);
     padding: 0 4px;
     border-radius: 3px;
 }
 
-.cal-day-tasks {
-    padding: 2px 0;
+.cal-cell-tasks {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
 }
 
 .cal-task {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 2px 10px;
-    font-size: 13px;
-    line-height: 1.6;
+    gap: 5px;
+    padding: 1px 3px;
+    font-size: 11px;
+    line-height: 1.5;
+    border-radius: 2px;
 }
 
-/* 选中行：绿渐变高亮（j/k/Enter 流程的唯一视觉反馈） */
 .cal-task.selected {
     background: var(--active-grad);
     color: var(--text-bright);
-    border-radius: 3px;
 }
 
 .cal-task.selected .cal-task-dot {
@@ -181,8 +305,8 @@ watch(
 
 .cal-task-dot {
     color: var(--text-2);
-    font-size: 11px;
-    width: 12px;
+    font-size: 10px;
+    width: 10px;
     flex-shrink: 0;
 }
 
@@ -191,12 +315,18 @@ watch(
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
 }
 
-.cal-empty {
-    padding: 24px;
-    text-align: center;
+.cal-overflow {
+    font-size: 9px;
     color: var(--text-3);
-    font-size: 12px;
+    padding: 0 3px;
+}
+
+.cal-cell-empty {
+    font-size: 11px;
+    color: var(--text-faint);
+    padding: 2px 3px;
 }
 </style>

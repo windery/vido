@@ -12,7 +12,8 @@
                 <!-- 日期视图（g c 进入） -->
                 <CalendarView v-if="calendarVisible" :tasks="filteredTasks"
                     :granularity="calendarGranularity" :anchor="calendarAnchor"
-                    :selected-date="calendarSelectedDate" :selected-task-id="calendarSelectedTaskId" />
+                    :selected-date="calendarSelectedDate" :selected-task-id="calendarSelectedTaskId"
+                    :day-detail="store.state.calendarView.dayDetail" />
 
                 <!-- Empty Buffer -->
                 <EmptyBuffer v-else-if="filteredTasks.length === 0" :is-searching="isSearching" :search-term="searchTerm" />

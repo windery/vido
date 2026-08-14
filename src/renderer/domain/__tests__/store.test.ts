@@ -1195,7 +1195,7 @@ describe('Store — selectedTaskId 与选中任务一致（create/delete/paste/s
   });
 });
 
-describe('Store — 日历视图任务选择（j/k/Enter + 翻页校正）', () => {
+describe('Store — 日历视图网格交互（j/k 移日焦点 · Enter 开详情 · Esc 返回）', () => {
   function makeCalStore(): Store {
     const store = new Store();
     const mk = (id: number, title: string, schedule?: any) => {
@@ -1220,60 +1220,77 @@ describe('Store — 日历视图任务选择（j/k/Enter + 翻页校正）', () 
     const s = makeCalStore();
     s.openCalendarView();
     expect((s.getState() as any).calendarView?.visible).toBe(true);
+    expect(cv(s).dayDetail).toBe(false);
   });
 
-  it('open 预选当前任务在范围内的首次出现', () => {
+  it('open 预选当前任务在范围内的首次出现（日焦点=该日期）', () => {
     const s = makeCalStore();
     s.openCalendarView();
     expect(cv(s).anchor).toBe('2026-05-08'); // 选中任务 A 的日程日期
-    expect(cv(s).selectedTaskId).toBe(1);
     expect(cv(s).selectedDate).toBe('2026-05-08');
+    expect(cv(s).selectedTaskId).toBe(1);
   });
 
-  it('j/k 在视图条目间移动（日期+任务对，所见即所选）', () => {
+  it('网格内 j/k 移动日焦点，自动选中该日第一个任务', () => {
     const s = makeCalStore();
-    s.openCalendarView();
-    expect(cv(s).selectedTaskId).toBe(1);
-    s.moveCalendarSelection(1); // A → B
-    expect(cv(s).selectedTaskId).toBe(2);
+    s.openCalendarView(); // 焦点 05-08（任务 A）
+    s.moveCalendarFocus(1); // → 05-09（任务 B）
     expect(cv(s).selectedDate).toBe('2026-05-09');
-    s.moveCalendarSelection(1); // B → 回卷 A
-    expect(cv(s).selectedTaskId).toBe(1);
-    s.moveCalendarSelection(-1); // A → B
+    expect(cv(s).selectedTaskId).toBe(2);
+    s.moveCalendarFocus(1); // → 回绕周日 05-03（无任务）
+    expect(cv(s).selectedDate).toBe('2026-05-03');
+    expect(cv(s).selectedTaskId).toBeUndefined();
+    s.moveCalendarFocus(-1); // → 05-09
+    expect(cv(s).selectedDate).toBe('2026-05-09');
     expect(cv(s).selectedTaskId).toBe(2);
   });
 
-  it('Enter（selectCalendarTask）退出视图并选中该任务', () => {
+  it('Enter 打开当日详情，详情内 j/k 选任务，Enter 选中退出视图', () => {
     const s = makeCalStore();
-    s.openCalendarView();
-    s.moveCalendarSelection(1); // 选中 B
+    s.openCalendarView(); // 焦点 05-08
+    s.moveCalendarFocus(1); // 焦点 05-09（B）
+    s.openCalendarDayDetail();
+    expect(cv(s).dayDetail).toBe(true);
+    expect(cv(s).selectedTaskId).toBe(2);
+    s.moveCalendarDaySelection(-1); // 详情内只有 B，回卷仍 B
+    expect(cv(s).selectedTaskId).toBe(2);
     s.selectCalendarTask();
     expect(cv(s).visible).toBe(false);
     expect(s.manager.list.selected?.id).toBe(2);
   });
 
-  it('翻页后选中项校正：同任务跟随，不可见则清空', () => {
+  it('详情内 Esc 返回网格；网格内 Esc 退出视图', () => {
     const s = makeCalStore();
-    s.openCalendarView(); // week: 05-03 ~ 05-09
-    s.moveCalendarSelection(1); // 选中 B@05-09
-    s.shiftCalendarPage(1); // 05-10 ~ 05-16：A/B 均不可见
+    s.openCalendarView();
+    s.openCalendarDayDetail();
+    expect(cv(s).dayDetail).toBe(true);
+    s.closeCalendarDayDetail();
+    expect(cv(s).dayDetail).toBe(false);
+    expect(cv(s).visible).toBe(true); // 仍在日历
+    s.closeCalendarView();
+    expect(cv(s).visible).toBe(false);
+  });
+
+  it('翻页/切粒度退出详情并校正选中项', () => {
+    const s = makeCalStore();
+    s.openCalendarView();
+    s.openCalendarDayDetail();
+    s.shiftCalendarPage(1); // week +7：A/B 不可见
+    expect(cv(s).dayDetail).toBe(false);
+    expect(cv(s).selectedTaskId).toBeUndefined();
+    s.openCalendarDayDetail();
+    s.cycleCalendarGranularity(-1); // week → day（anchor 05-15，无任务）
+    expect(cv(s).dayDetail).toBe(false);
     expect(cv(s).selectedTaskId).toBeUndefined();
   });
 
-  it('切粒度后选中项校正：同任务跟随到新粒度内的首次出现', () => {
-    const s = makeCalStore();
-    s.openCalendarView(); // week
-    s.moveCalendarSelection(1); // B
-    s.cycleCalendarGranularity(-1); // week → day（锚点仍 05-08，只有 A）
-    expect(cv(s).selectedTaskId).toBe(1); // B 不在 day 粒度内 → 落范围内首项
-  });
-
-  it('视图内无任务时 j/k 清空选中项且不崩溃', () => {
+  it('视图内无任务时网格 j/k 仍移动日焦点且不崩溃', () => {
     const s = makeCalStore();
     s.openCalendarView();
     for (let i = 0; i < 10; i++) s.shiftCalendarPage(1); // 翻到无任务页
-    s.moveCalendarSelection(1);
+    s.moveCalendarFocus(1);
     expect(cv(s).selectedTaskId).toBeUndefined();
+    expect(cv(s).selectedDate).toBeTruthy();
   });
 });
 

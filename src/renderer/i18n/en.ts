@@ -195,8 +195,9 @@ export const en = {
           { key: 'g c', desc: 'Open (anchor: selected task date / today)' },
           { key: 'H / L', desc: 'Switch granularity: day / week / month' },
           { key: '[ / ]', desc: 'Previous / next page' },
-          { key: 'j / k', desc: 'Select task in view' },
-          { key: 'Enter', desc: 'Open selected task' },
+          { key: 'j / k', desc: 'Grid: move day focus · day view: select task' },
+          { key: 'Enter', desc: 'Grid: open day detail · day view: open task' },
+          { key: 'Esc', desc: 'Day detail: back to grid' },
         ],
       },
       {
