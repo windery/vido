@@ -12,7 +12,8 @@
  *   j/k/0/$ 进入 nav 态（焦点锁定当前任务，绝不切换任务）：j → 第一个候选项、k → 最后一个、
  *     0 → 第一个、$ → 最后一个；nav 内 j/k 逐项移动、0/$ 直达首/尾、Enter 选中高亮项（唯一生效路径）→ 退回 select；
  *     Esc 退出 nav 回 select（再 Esc 关面板）。不按 j/k 时保留原快捷流：1/2/3 直接选、Enter 打开输入（schedule/tags）
- *   tags-select 数字直达：1-9 直接跳转到第 N 个标签（nav 高亮），x 删除高亮标签（无高亮则清空全部）
+ *   tags-select 数字直达：1-9 跳转到第 N 个标签（nav 高亮，x 删除高亮标签、无高亮清空全部）；
+ *     连按数字在 600ms 窗口内累加成多位序号（3→33），编号不存在则取消高亮（显示与操作一致）
  *   H/L 放行命令层横向切换 section；其余未知键一律消费，防止落到命令层触发 paste/delete/undo 等全局副作用
  */
 
@@ -39,6 +40,10 @@ export class ConfigKeyHandler {
   /** repeat 设置前缀（ed/ew/em/ey）：e 后跟 d/w/m/y */
   private ePending = false;
   private eTimeout: ReturnType<typeof setTimeout> | null = null;
+  /** 数字直达缓冲：tags-select 内连按数字在 600ms 窗口累加成多位序号（如 3→33） */
+  private numBuffer = '';
+  private numTimeout: ReturnType<typeof setTimeout> | null = null;
+  private numPendingAt = 0;
 
   handleKey(
     event: KeyboardEvent,
@@ -53,6 +58,11 @@ export class ConfigKeyHandler {
 
     // edit 态由输入框独占，此处不拦截
     if (isConfigEditState(cs)) return false;
+
+    // 数字直达缓冲：任何非 1-9 键或离开 tags-select 都中断多位数字序列（33 不是两次 3）
+    if (cs !== 'tags-select' || key < '1' || key > '9') {
+      this.resetNumBuffer();
+    }
 
     // nav 态（j/k/0/$ 进入，焦点锁定当前任务的配置项，绝不切换任务）：
     // j/k 逐项移动、0/$ 直达首/尾，Enter 选中高亮项（唯一生效路径），Esc 只退出 nav 回 select，
@@ -213,12 +223,22 @@ export class ConfigKeyHandler {
           this.jumpNav(taskDataManager, task, cs, 'last');
           return true;
         }
-        // tags-select 数字直达：1-9 跳到第 N 个标签（nav 高亮，x 删除高亮标签）；越界无动作
+        // tags-select 数字直达：连按数字在 600ms 窗口内累加成多位序号（3→33），
+        // 编号存在则高亮该标签，不存在则取消高亮（显示与操作一致）；越界无动作
         if (cs === 'tags-select' && key >= '1' && key <= '9') {
           event.preventDefault();
-          const n = parseInt(key, 10);
-          if (n <= (task.tags?.length || 0)) {
+          const now = Date.now();
+          if (now - this.numPendingAt > 600) this.numBuffer = '';
+          this.numBuffer += key;
+          this.numPendingAt = now;
+          if (this.numTimeout) clearTimeout(this.numTimeout);
+          this.numTimeout = setTimeout(() => this.resetNumBuffer(), 600);
+          const n = parseInt(this.numBuffer, 10);
+          const tags = task.tags || [];
+          if (n >= 1 && n <= tags.length) {
             taskDataManager.setConfigNavIndex(n);
+          } else {
+            taskDataManager.setConfigNavIndex(0); // 编号不存在：取消高亮
           }
           return true;
         }
@@ -242,6 +262,16 @@ export class ConfigKeyHandler {
     if (this.cTimeout) {
       clearTimeout(this.cTimeout);
       this.cTimeout = null;
+    }
+  }
+
+  /** 清空数字直达缓冲（超时/非数字键/离开 tags-select 时调用） */
+  private resetNumBuffer(): void {
+    this.numBuffer = '';
+    this.numPendingAt = 0;
+    if (this.numTimeout) {
+      clearTimeout(this.numTimeout);
+      this.numTimeout = null;
     }
   }
 

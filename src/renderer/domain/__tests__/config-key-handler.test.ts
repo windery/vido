@@ -162,14 +162,55 @@ describe('ConfigKeyHandler state machine', () => {
     expect(tdm._nav()).toBe(0);
   });
 
-  it('数字直达后再按其他数字：切换高亮目标，不误删', () => {
+  it('连续数字累加成多位序号：2→3 组成 23（不存在）取消高亮', () => {
     const tdm = createTDM(makeTagTask(['a', 'b', 'c']));
     handler.handleKey(makeEvent('2'), '2', tdm);
     expect(tdm._nav()).toBe(2);
     handler.handleKey(makeEvent('3'), '3', tdm);
+    expect(tdm._nav()).toBe(0); // 23 不存在 → 取消高亮，不残留 2 或 3
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
+  });
+
+  it('输入 33（不存在）取消 3 的高亮：显示与操作一致', () => {
+    const tdm = createTDM(makeTagTask(['a', 'b', 'c']));
+    handler.handleKey(makeEvent('3'), '3', tdm);
     expect(tdm._nav()).toBe(3);
+    handler.handleKey(makeEvent('3'), '3', tdm);
+    expect(tdm._nav()).toBe(0); // 33 不存在 → 取消高亮
     handler.handleKey(makeEvent('x'), 'x', tdm);
-    expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'tags', ['a', 'b']);
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalledWith(1, 'tags', ['a', 'b']); // 不会误删 3
+  });
+
+  it('多位序号命中：12 个标签时 1→2 高亮第 12 个', () => {
+    const tags = Array.from({ length: 12 }, (_, i) => `t${i + 1}`);
+    const tdm = createTDM(makeTagTask(tags));
+    handler.handleKey(makeEvent('1'), '1', tdm);
+    expect(tdm._nav()).toBe(1);
+    handler.handleKey(makeEvent('2'), '2', tdm);
+    expect(tdm._nav()).toBe(12);
+    handler.handleKey(makeEvent('x'), 'x', tdm);
+    expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'tags', tags.filter((_, i) => i !== 11));
+  });
+
+  it('超时后数字重新开始（600ms 窗口）', () => {
+    vi.useFakeTimers();
+    const tdm = createTDM(makeTagTask(['a', 'b', 'c']));
+    handler.handleKey(makeEvent('3'), '3', tdm);
+    expect(tdm._nav()).toBe(3);
+    vi.advanceTimersByTime(700);
+    handler.handleKey(makeEvent('3'), '3', tdm);
+    expect(tdm._nav()).toBe(3); // 新序列：仍是 3，不组成 33
+    vi.useRealTimers();
+  });
+
+  it('非数字键中断数字序列', () => {
+    const tdm = createTDM(makeTagTask(['a', 'b', 'c']));
+    handler.handleKey(makeEvent('3'), '3', tdm);
+    expect(tdm._nav()).toBe(3);
+    handler.handleKey(makeEvent('j'), 'j', tdm); // 中断：nav 内 j 循环移动 → 4（Add）
+    expect(tdm._nav()).toBe(4);
+    handler.handleKey(makeEvent('3'), '3', tdm); // 新序列：3（不是 33）
+    expect(tdm._nav()).toBe(3);
   });
 
   it('越界数字无动作（消费不删除不高亮）', () => {
