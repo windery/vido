@@ -32,7 +32,7 @@
             </div>
             <div class="cal-grid cal-month">
                 <div v-for="c in weekViewCells" :key="c" class="cal-cell"
-                    :style="{ gridColumnStart: weekColumn(c) }"
+                    :style="{ gridColumnStart: weekCellPos(c).gridColumnStart, gridRowStart: weekCellPos(c).gridRowStart }"
                     :class="{
                         'is-today': c === todayStr,
                         'is-week': weekDates.includes(c),
@@ -131,15 +131,26 @@ const firstCellColumn = computed(() => {
     return a ? a.getDay() + 1 : 1;
 });
 
-/** week 视图：当月天数 + 活跃周跨月的邻月日（月初/月末补全完整一周），按日期排序、每格按星期列定位 */
+/** week 视图：当月天数 + 活跃周跨月的邻月日（月初/月末补全完整一周），按日期排序 */
 const weekViewCells = computed(() => {
     const month = props.anchor.slice(0, 7);
     const extras = weekDates.value.filter((d) => d.slice(0, 7) !== month);
     return [...extras, ...calendarGridCells('month', props.anchor)].sort();
 });
 
-/** 日期 → 星期列（1=Sun .. 7=Sat）：week 视图每格显式定位，保证跨月周连续排列 */
-const weekColumn = (date: string): number => (parseDate(date)?.getDay() ?? 0) + 1;
+/**
+ * week 视图每格**显式行列定位**：首格落在其星期列的第 1 行，其后按日期顺序每 7 天换行。
+ * 只给 gridColumnStart 会被 CSS 网格稀疏布局按「最早空闲行」散排，活跃周会被拆成多行——
+ * 行列都给死后，连续 7 天的活跃周必然是同一条连续的横排。
+ */
+const weekCellPos = (date: string): { gridColumnStart: number; gridRowStart: number } => {
+    const first = parseDate(weekViewCells.value[0] ?? props.anchor);
+    const d = parseDate(date);
+    const diffDays = first && d ? Math.round((d.getTime() - first.getTime()) / 86400000) : 0;
+    // 行 = 首格星期偏移 + 距首格天数，按 7 天一周取整：连续 7 天必然同一行
+    const row = Math.floor(((first?.getDay() ?? 0) + diffDays) / 7) + 1;
+    return { gridColumnStart: (d?.getDay() ?? 0) + 1, gridRowStart: row };
+};
 
 // 选中变化时把目标行滚入视口（vim-instant：同一帧、最小滚动）
 watch(

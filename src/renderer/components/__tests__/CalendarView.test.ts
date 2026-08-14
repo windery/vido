@@ -40,7 +40,11 @@ describe('CalendarView — 仅当月天数网格（上/下月不占格）', () =
     });
     const cells1 = w1.findAll('.cal-cell');
     expect(cells1.length).toBe(36);
-    expect(cells1.filter((c) => c.classes().includes('is-week')).length).toBe(7); // 完整一周全部高亮
+    const week1 = cells1.filter((c) => c.classes().includes('is-week'));
+    expect(week1.length).toBe(7); // 完整一周全部高亮
+    // 活跃周 = 连续 7 天 → 必须落在同一行（gridRowStart 一致），绝不被拆成多行
+    const rows1 = new Set(week1.map((c) => (c.element as HTMLElement).style.gridRowStart));
+    expect(rows1.size).toBe(1);
 
     // 反向：显示 9 月（anchor 09-02），活跃周同样 08-30..09-05 → 9 月 30 格 + 8/30、8/31 共 32 格
     const w2 = mount(CalendarView, {
@@ -48,7 +52,10 @@ describe('CalendarView — 仅当月天数网格（上/下月不占格）', () =
     });
     const cells2 = w2.findAll('.cal-cell');
     expect(cells2.length).toBe(32);
-    expect(cells2.filter((c) => c.classes().includes('is-week')).length).toBe(7);
+    const week2 = cells2.filter((c) => c.classes().includes('is-week'));
+    expect(week2.length).toBe(7);
+    const rows2 = new Set(week2.map((c) => (c.element as HTMLElement).style.gridRowStart));
+    expect(rows2.size).toBe(1);
   });
 
   it('week 视图渲染当月全部天数，仅当前周正常、范围外置灰', () => {
