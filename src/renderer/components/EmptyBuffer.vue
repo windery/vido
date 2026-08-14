@@ -1,9 +1,10 @@
 <template>
-    <!-- 空态：居中一条提示（详细命令见 ? 帮助）；搜索无结果给 vim E486 错误样式 -->
+    <!-- 空态：居中提示「No tasks / Press ? for help」；搜索无结果给 vim E486 错误样式 -->
     <div class="empty-buffer">
         <div v-if="isSearching" class="vim-error">E486: Pattern not found: {{ searchTerm }}</div>
         <div v-else class="empty-hint">
-            <span class="wk">o</span><span class="wd">new task</span>
+            <div class="no-tasks">No tasks</div>
+            <div class="help-line">Press <span class="wk">?</span> for help</div>
         </div>
     </div>
 </template>
@@ -25,23 +26,29 @@ defineProps<Props>();
     align-items: center;
     justify-content: center;
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-    font-size: 13px;
 }
 
-/* 唯一提示：键名磷光绿 + 描述淡灰 */
+/* 空态提示：两行居中——无任务 + 按 ? 获取帮助 */
 .empty-hint {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+}
+
+.no-tasks {
+    font-size: 14px;
+    color: var(--text-dim);
+}
+
+.help-line {
+    font-size: 12px;
+    color: var(--text-dim);
 }
 
 .wk {
     color: var(--accent-bright);
     font-weight: 600;
-}
-
-.wd {
-    color: var(--text-dim);
 }
 
 /* vim 错误信息：红底反白块（ANSI 红语义：无匹配） */
