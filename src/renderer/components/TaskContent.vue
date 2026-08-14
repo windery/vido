@@ -17,7 +17,7 @@
                     :style="{ transform: `translateY(${-scrollTop}px)` }">
                     <span class="mirror-text">
                         <template v-for="(row, i) in blockRows" :key="i">
-                            <template v-if="i > 0">&#10;</template>
+                            <template v-if="i > 0">{{ '\n' }}</template>
                             <span v-if="row.pre" class="bm-trans">{{ row.pre }}</span><span v-if="row.sel" class="bm-sel">{{ row.sel }}</span><span class="bm-trans">{{ row.post }}</span>
                         </template>
                     </span>

@@ -81,6 +81,8 @@ describe('TaskContent — Ctrl+V 可视块选区覆盖层', () => {
       expect(wrapper.find('.block-mirror').exists()).toBe(true);
       const sels = wrapper.findAll('.bm-sel').map((s) => s.text());
       expect(sels).toEqual(['lin', 'lin']); // 'line1'/'line2' 前 3 字符
+      // 多行结构：镜像层按行渲染（含真实换行），高亮绝不被压到第一行
+      expect(wrapper.find('.block-mirror').element.textContent).toContain('\n');
     } finally {
       store.state.visualBlock = { active: false, anchorLine: 0, anchorCol: 0 };
     }
