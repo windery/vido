@@ -16,6 +16,20 @@ export function getScheduleShortText(schedule: Schedule): string {
   return schedule.getShortText();
 }
 
+/** 提取日程的时刻（HH:MM）；无时间信息返回 ''。供日历任务格等紧凑展示使用（显示文本对过期日程不携带时间） */
+export function getScheduleTime(schedule: Schedule): string {
+  const raw =
+    schedule.type === ScheduleType.RANGE
+      ? schedule.rangeTime?.startDateTime
+      : schedule.quickTime?.time;
+  if (raw) {
+    const d = parseDateTime(raw);
+    if (d) return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  }
+  const m = schedule.getDisplayText().match(/(\d{1,2}:\d{2})/);
+  return m ? m[1] : '';
+}
+
 export function createTodaySchedule(): Schedule {
   return new Schedule(ScheduleType.QUICK, {
     quickTime: { date: getCurrentDate() },

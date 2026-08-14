@@ -37,6 +37,8 @@
                     <div class="cal-cell-tasks">
                         <div v-for="t in cellTasks(c.date).slice(0, 6)" :key="t.id" class="cal-task"
                             :class="{ done: t.completed, selected: c.date === selectedDate && t.id === selectedTaskId }">
+                            <span v-if="t.priority" class="cal-pri" :class="priClass(t.priority)">{{ priMark(t.priority) }}</span>
+                            <span v-if="cellTime(t)" class="cal-time">◷{{ cellTime(t) }}</span>
                             <span class="cal-task-dot">{{ t.completed ? '✓' : '○' }}</span>
                             <span class="cal-task-title">{{ t.title }}</span>
                         </div>
@@ -61,6 +63,8 @@
                     <div class="cal-cell-tasks">
                         <div v-for="t in cellTasks(c.date).slice(0, 3)" :key="t.id" class="cal-task"
                             :class="{ done: t.completed, selected: c.date === selectedDate && t.id === selectedTaskId }">
+                            <span v-if="t.priority" class="cal-pri" :class="priClass(t.priority)">{{ priMark(t.priority) }}</span>
+                            <span v-if="cellTime(t)" class="cal-time">◷{{ cellTime(t) }}</span>
                             <span class="cal-task-dot">{{ t.completed ? '✓' : '○' }}</span>
                             <span class="cal-task-title">{{ t.title }}</span>
                         </div>
@@ -75,7 +79,9 @@
 <script setup lang="ts">
 import { computed, watch, nextTick } from 'vue';
 import type { Task } from '../domain/task';
+import { TaskPriority } from '../domain/task';
 import { collectTasksInRange, getCalendarRange, weekdayName, calendarGridCells } from '../utils/calendar';
+import { getScheduleTime } from '../utils/schedule-helper';
 import { formatDate, parseDate } from '../utils/date-formatter';
 
 const props = defineProps<{
@@ -104,6 +110,23 @@ const tasksByDate = computed(() => {
 });
 
 const cellTasks = (date: string): Task[] => tasksByDate.value.get(date) ?? [];
+
+/** 任务格优先级标记：ANSI 红/黄/绿 !!! / !! / !（与任务列表一致） */
+const PRI_MARK: Record<TaskPriority, string> = {
+    [TaskPriority.HIGH]: '!!!',
+    [TaskPriority.MEDIUM]: '!!',
+    [TaskPriority.LOW]: '!',
+};
+const PRI_CLASS: Record<TaskPriority, string> = {
+    [TaskPriority.HIGH]: 'pri-p1',
+    [TaskPriority.MEDIUM]: 'pri-p2',
+    [TaskPriority.LOW]: 'pri-p3',
+};
+const priMark = (p: TaskPriority): string => PRI_MARK[p];
+const priClass = (p: TaskPriority): string => PRI_CLASS[p];
+
+/** 任务格时间标记：◷ + HH:MM（直接从日程数据提取，过期日程显示文本不带时间） */
+const cellTime = (t: Task): string => (t.schedule ? getScheduleTime(t.schedule) : '');
 
 /** 详情视图判定：day 粒度本身即详情；week/month 由网格内 Enter（dayDetail）打开 */
 const showDetail = computed(() => props.granularity === 'day' || !!props.dayDetail);
@@ -136,13 +159,15 @@ const weekCells = computed(() => {
     });
 });
 
-// 选中变化时把目标行滚入视口（vim-instant：同一帧、最小滚动）
+// 选中/翻页/切粒度变化时：目标任务行与高亮日格滚入视口（vim-instant：同一帧、最小滚动）
 watch(
-    () => `${props.selectedDate}:${props.selectedTaskId}`,
+    () => `${props.granularity}:${props.anchor}:${props.selectedDate}:${props.selectedTaskId}`,
     () => {
         nextTick(() => {
-            const el = document.querySelector('.cal-task.selected');
-            el?.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+            const taskEl = document.querySelector('.cal-task.selected');
+            taskEl?.scrollIntoView?.({ behavior: 'auto', block: 'nearest' });
+            const cellEl = document.querySelector('.cal-cell.is-focused');
+            cellEl?.scrollIntoView?.({ behavior: 'auto', block: 'nearest' });
         });
     }
 );
@@ -341,6 +366,23 @@ watch(
     color: var(--text-2);
     font-size: 10px;
     width: 10px;
+    flex-shrink: 0;
+}
+
+/* 任务格内联标记：优先级 ANSI 色 + 日程时间（与任务列表语义一致） */
+.cal-pri {
+    font-size: 9px;
+    flex-shrink: 0;
+    letter-spacing: -0.5px;
+}
+
+.cal-pri.pri-p1 { color: var(--p1); }
+.cal-pri.pri-p2 { color: var(--p2); }
+.cal-pri.pri-p3 { color: var(--p3); }
+
+.cal-time {
+    color: var(--text-3);
+    font-size: 9px;
     flex-shrink: 0;
 }
 

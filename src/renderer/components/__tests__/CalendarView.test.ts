@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import CalendarView from '../CalendarView.vue';
+import { Task, TaskPriority } from '../../domain/task';
+import { createSpecificDateTimeSchedule } from '../../utils/schedule-helper';
 import { formatDate } from '../../utils/date-formatter';
 
 const baseProps = {
@@ -82,5 +84,22 @@ describe('CalendarView — 仅当月天数网格（上/下月不占格）', () =
   it('头部不常驻快捷键提示（按 ? 查询，与配置面板一致）', () => {
     const wrapper = mount(CalendarView, { props: baseProps });
     expect(wrapper.find('.cal-hint').exists()).toBe(false);
+  });
+
+  it('任务格显示优先级与日程时间标记（!!! / ◷10:00）', () => {
+    const t = new Task(1);
+    t.title = 'A';
+    t.priority = TaskPriority.HIGH;
+    t.schedule = createSpecificDateTimeSchedule('2026-05-08 10:00:00');
+    const wrapper = mount(CalendarView, { props: { ...baseProps, tasks: [t] } });
+    const row = wrapper.find('.cal-task');
+    expect(row.find('.cal-pri').text()).toBe('!!!');
+    expect(row.find('.cal-time').text()).toBe('◷10:00');
+    // 无优先级/无时间的任务不渲染标记
+    const t2 = new Task(2);
+    t2.title = 'B';
+    const w2 = mount(CalendarView, { props: { ...baseProps, anchor: '2026-05-08', tasks: [t2] } });
+    expect(w2.find('.cal-task .cal-pri').exists()).toBe(false);
+    expect(w2.find('.cal-task .cal-time').exists()).toBe(false);
   });
 });

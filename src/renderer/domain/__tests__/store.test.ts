@@ -959,6 +959,28 @@ describe('Store — Ctrl+V 可视块模式', () => {
     expect(cur(s).content).toBe('abcd\nefgh\nbc\nfg');
   });
 
+  it('块模式 p/P 替换：删除块并用文本原位替换（空文本=仅删除）', () => {
+    const s = makeNavStore('abcd\nefgh');
+    s.moveCursorRight(); // (0,1)
+    s.startVisualBlock();
+    s.moveCursorDown(); // (1,1) → 块 = 行 0..1 × 列 1..1
+    s.replaceVisualBlock('X\nY');
+    // 删列 1 → 'acd\negh'；在 (0,1) 字符式粘贴 'X\nY' → 'aX'、'Ycd'、'egh'
+    expect(cur(s).content).toBe('aX\nYcd\negh');
+    expect(s.state.visualBlock.active).toBe(false);
+    expect(cur(s).cursorLine).toBe(1);
+    expect(cur(s).cursorColumn).toBe(1); // 光标在末段粘贴内容末尾（'Y' 后）
+
+    // 空文本 = 仅删除块
+    const s2 = makeNavStore('abcd\nefgh');
+    s2.moveCursorRight();
+    s2.startVisualBlock();
+    s2.moveCursorDown();
+    s2.replaceVisualBlock('');
+    expect(cur(s2).content).toBe('acd\negh');
+    expect(s2.state.visualBlock.active).toBe(false);
+  });
+
   it('短行不足块起列：该行不删字符', () => {
     const s = makeNavStore('abcd\nx');
     s.startVisualBlock(); // 锚点 (0,0)

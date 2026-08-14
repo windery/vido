@@ -820,6 +820,26 @@ export class Store {
   /** c：删除可视块后进入插入（编辑态转换由 handler 负责） */
   changeVisualBlock(): void { this.deleteVisualBlock(); }
 
+  /** 内部 yank 缓冲访问器（块模式 p/P 替换时回退用） */
+  getContentClipboard(): { text: string; isLine: boolean } | null {
+    return this.contentClipboard ? { ...this.contentClipboard } : null;
+  }
+
+  /**
+   * 块模式 p/P（vim 语义：用粘贴文本**替换**块选区）：
+   * 删除块（光标落块左上角）→ 在原位字符式粘贴文本；空文本 = 仅删除。
+   * 不把被删块写入 yank/系统剪贴板（保持原粘贴内容不被打断）。
+   */
+  replaceVisualBlock(text: string): void {
+    const vb = this.state.visualBlock;
+    if (!vb.active) return;
+    const id = this.manager.list.selected?.id;
+    this.mutate(() => this.manager.deleteBlock(vb.anchorLine, vb.anchorCol));
+    this.endVisualBlock();
+    if (text) this.pasteTextRaw(text, false);
+    logger.info('Store', 'replace block', { taskId: id, chars: text.length });
+  }
+
   // ============ 子任务缩进（tab / Shift+Tab） ============
 
   indentSelectedTask(): void {

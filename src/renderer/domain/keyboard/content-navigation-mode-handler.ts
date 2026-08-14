@@ -336,6 +336,13 @@ export class ContentNavigationModeHandler implements ModeHandler {
         tdm.copyVisualBlock();
         return true;
 
+      // vim 语义：块选中时 p/P 用粘贴内容**替换**块（系统剪贴板优先，回退内部 yank）
+      case 'p':
+      case 'P':
+        event.preventDefault();
+        this.pasteOverBlock(tdm);
+        return true;
+
       case 'c':
         event.preventDefault();
         tdm.changeVisualBlock();
@@ -379,6 +386,25 @@ export class ContentNavigationModeHandler implements ModeHandler {
   private pasteInternal(tdm: Store, before: boolean): void {
     if (before) tdm.pasteBefore();
     else tdm.pasteAfter();
+  }
+
+  /** 块模式 p/P：删除块后用粘贴文本原位替换（系统剪贴板优先，无/空则回退内部 yank；空文本 = 仅删除块） */
+  private pasteOverBlock(tdm: Store): void {
+    const fallback = () => {
+      const cb = tdm.getContentClipboard();
+      tdm.replaceVisualBlock(cb ? cb.text : '');
+    };
+    const sys = readSystemClipboard();
+    if (sys === null) {
+      fallback();
+      return;
+    }
+    void sys
+      .then((text) => {
+        if (text) tdm.replaceVisualBlock(text);
+        else fallback();
+      })
+      .catch(fallback);
   }
 
   private applyDelete(tdm: Store, action: string): void {

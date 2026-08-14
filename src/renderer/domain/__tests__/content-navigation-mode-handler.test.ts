@@ -78,6 +78,8 @@ describe('ContentNavigationModeHandler', () => {
       pasteAfter: vi.fn(),
       pasteBefore: vi.fn(),
       pasteTextRaw: vi.fn(),
+      replaceVisualBlock: vi.fn(),
+      getContentClipboard: vi.fn(() => null),
       undo: vi.fn(),
     };
   });
@@ -320,6 +322,16 @@ describe('ContentNavigationModeHandler', () => {
     it('块模式内 ? 打开内容键位帮助', () => {
       handler.handleKey(makeEvent('?'), '?', makeBlockTDM(), false);
       expect(mockTDM.toggleHelp).toHaveBeenCalledWith('content');
+    });
+
+    it('块模式内 p/P 用粘贴内容替换块（系统剪贴板优先，回退内部 yank）', async () => {
+      handler.handleKey(makeEvent('p'), 'p', makeBlockTDM(), false);
+      expect(mockTDM.replaceVisualBlock).toHaveBeenCalledWith(''); // 无系统剪贴板 + 空内部缓冲 → 仅删除
+
+      (readSystemClipboard as any).mockReturnValueOnce(Promise.resolve('外部文本'));
+      handler.handleKey(makeEvent('P'), 'P', makeBlockTDM(), false);
+      await new Promise((r) => setTimeout(r, 0));
+      expect(mockTDM.replaceVisualBlock).toHaveBeenCalledWith('外部文本');
     });
   });
 
