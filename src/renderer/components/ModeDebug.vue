@@ -62,23 +62,26 @@ const taskCounter = computed(() => {
   return `${filteredTasks.value.length}/${total} ${label}`;
 });
 
-// 配置面板展开时显示当前 config 子状态；nav 态附当前位置 [n/total]（j/k 导航的进度反馈）
+// 配置面板展开时：徽标已显示 section 名（SCHEDULE/PRIORITY/TAGS），
+// 中心只显示 nav 进度 [n/total]（键位提示在面板 footer，不重复）；
+// edit 态显示保存/取消提示（面板无此提示，不重复）
 const configModeText = computed(() => {
   const cs = selectedTask.value?.configState;
   const nav = configNavIndex.value;
-  let pos = '';
-  if (nav > 0) {
-    const total = cs === 'schedule-select' ? 5
-      : cs === 'priority-select' ? 4
-      : cs === 'tags-select' ? ((selectedTask.value?.tags?.length || 0) + 2)
-      : 0;
-    if (total > 0) pos = ` [${nav}/${total}]`;
-  }
   switch (cs) {
-    case 'schedule-select': return t('mode.configSchedule') + pos;
+    case 'schedule-select':
+    case 'priority-select':
+    case 'tags-select': {
+      if (nav > 0) {
+        const total = cs === 'schedule-select' ? 5
+          : cs === 'priority-select' ? 4
+          : cs === 'tags-select' ? ((selectedTask.value?.tags?.length || 0) + 2)
+          : 0;
+        if (total > 0) return `[${nav}/${total}]`;
+      }
+      return '';
+    }
     case 'schedule-edit': return t('mode.configScheduleEdit');
-    case 'priority-select': return t('mode.configPriority') + pos;
-    case 'tags-select': return t('mode.configTags') + pos;
     case 'tags-edit': return t('mode.configTagsEdit');
     default: return t('mode.config');
   }

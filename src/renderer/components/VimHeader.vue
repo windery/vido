@@ -5,11 +5,8 @@
             <span class="file-status">{{ currentTime }}</span>
         </div>
         <div class="header-right">
+            <!-- 完成进度（done/total + ▰▱ 块）：任务计数只出现在状态栏，避免同数字渲染多处 -->
             <div class="stats">
-                <span class="stat-block">
-                    <span class="stat-num">{{ filteredTasksCount }}</span>
-                    <span class="stat-label">{{ tasksLabel }}</span>
-                </span>
                 <span class="stat-block stat-done-block">
                     <span class="stat-num">{{ completedTasksCount }}<span class="stat-sep">/</span>{{ filteredTasksCount }}</span>
                     <span class="stat-label stat-done-label">{{ t('header.done') }}</span>
@@ -39,8 +36,6 @@ const props = defineProps<Props>();
 
 const now = ref(new Date());
 let timeInterval: ReturnType<typeof setInterval> | null = null;
-
-const tasksLabel = computed(() => (props.filteredTasksCount === 1 ? t('header.task') : t('header.tasks')));
 
 const currentTime = computed(() => {
     return now.value.toLocaleString('en-US', {

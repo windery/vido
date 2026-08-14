@@ -14,7 +14,7 @@ describe('VimHeader', () => {
       props: { filteredTasksCount: 3, completedTasksCount: 1 },
     });
     expect(wrapper.text()).toContain('vido'); // logo 品牌
-    expect(wrapper.text()).toContain('tasks'); // 数字与单位分离，不重复
+    expect(wrapper.text()).toContain('1/3'); // 完成进度 done/total（与状态栏的可见/全部计数分工，不重复）
     expect(wrapper.text()).toContain('done');
   });
 

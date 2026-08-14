@@ -13,24 +13,20 @@ export interface HelpSection {
 
 export const en = {
   header: {
-    tasks: 'tasks',
-    task: 'task',
     done: 'done',
   },
   mode: {
     titleEdit: '-- TITLE EDIT -- (editing task title)',
     contentEdit: '-- INSERT -- (editing task content)',
     contentNav: '-- CONTENT-NAV -- (hjkl to move, i to insert)',
-    config: '-- CONFIG -- (cs schedule  cp priority  ct tags  Esc close)',
-    configSchedule: '-- SCHEDULE -- (j/k nav ⏎ select · 0/$ first/last · 1/2/3 quick)',
-    configScheduleEdit: '-- SCHEDULE-EDIT -- (type date, Enter save, Esc cancel)',
-    configPriority: '-- PRIORITY -- (j/k nav ⏎ select · 0/$ first/last · 1/2/3 quick)',
-    configTags: '-- TAGS -- (j/k nav ⏎ select · d+index+⏎ delete · dd clear)',
-    configTagsEdit: '-- TAGS-EDIT -- (type tag, Enter save, Esc cancel)',
+    config: '-- CONFIG --',
+    // 键位详情在面板 footer/输入框 placeholder 展示，状态栏只报 section 名（徽标），不重复提示
+    configScheduleEdit: '⏎ save · Esc cancel',
+    configTagsEdit: '⏎ save · Esc cancel',
     help: 'Press ? for help',
-    calendar: '-- CALENDAR -- ([ ] page · H/L view · j/k select · Enter open · Esc exit)',
-    search: '-- SEARCH -- (type your search query)',
-    command: '-- COMMAND -- (type vim command)',
+    calendar: '-- CALENDAR --',
+    search: '-- SEARCH --',
+    command: '-- COMMAND --',
     lastLine: '-- LAST-LINE --',
   },
   task: {
