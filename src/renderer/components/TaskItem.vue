@@ -91,9 +91,8 @@
           <template v-else-if="task.configState === 'tags-select' || task.configState === 'tags-edit'">
             <div v-if="task.tags?.length" class="config-tags-display">
               <span v-for="(tag, i) in task.tags" :key="tag" class="config-tag"
-                  :class="{ 'config-tag-del': tagDeleteIndex === i + 1, 'nav-active': navOn('tags-select', i + 1) }">
+                  :class="{ 'nav-active': navOn('tags-select', i + 1) }">
                 <span class="config-tag-idx">{{ i + 1 }}</span>
-                <span v-if="tagDeleteIndex === i + 1" class="config-tag-x">✕</span>
                 <span class="config-tag-name">#{{ tag }}</span>
               </span>
             </div>
@@ -143,8 +142,8 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-// 标签删除待确认序号（0 = 无目标），驱动 tags-select 面板高亮
-const { tagDeleteIndex, configNavIndex } = useTaskState();
+// 配置面板 nav 高亮序号（0 = 未进入 nav）：j/k/数字导航、Enter 选中、x 删除高亮标签
+const { configNavIndex } = useTaskState();
 
 /** 配置面板 nav 态高亮：section 匹配且序号命中（j/k 导航、Enter 选中） */
 const navOn = (section: string, index: number) =>
@@ -813,7 +812,7 @@ watchEffect(() => {
   border: 1px solid transparent;
 }
 
-/* 序号前缀：提示 d+序号 的删除目标编号 */
+/* 序号前缀：提示数字直达（按 N 跳转到第 N 个标签，x 删除高亮标签）的目标编号 */
 .config-tag-idx {
   color: var(--text-3);
   font-family: var(--mono);
@@ -825,19 +824,7 @@ watchEffect(() => {
   color: var(--accent-bright);
 }
 
-.config-tag-x {
-  color: var(--p2);
-  font-weight: 700;
-  margin-right: 3px;
-}
-
-/* 删除待确认高亮：琥珀虚线框 + 底色，让用户清楚即将删除哪一个 */
-.config-tag-del {
-  border: 1px dashed var(--p2);
-  background: rgba(210, 153, 34, 0.16);
-}
-
-/* nav 态高亮（标签 chip）：磷光绿实线框，与删除待确认的琥珀虚线区分 */
+/* nav 态高亮（标签 chip，数字/j/k 导航）：磷光绿实线框，x 删除该标签 */
 .config-tag.nav-active {
   border-color: var(--accent);
 }

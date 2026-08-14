@@ -30,9 +30,7 @@ export interface AppState {
   flashMessage: string | null;
   /** 未保存变更（状态行 [+] 指示器，vim 语义） */
   dirty: boolean;
-  /** 标签删除待确认序号（1 基；0 = 未处于删除态），驱动 tags-select 面板高亮目标标签 */
-  tagDeleteIndex: number;
-  /** 配置面板 nav 态选项序号（1 基；0 = 未进入 nav）：j/k 高亮导航、Enter 选中高亮项 */
+  /** 配置面板 nav 态选项序号（1 基；0 = 未进入 nav）：j/k/数字 高亮导航、Enter 选中高亮项 */
   configNavIndex: number;
   /** Ctrl+V 可视块模式：active + 锚点（进入块模式时的光标）；选区 = 锚点 ↔ 当前光标矩形，由纯操作推导 */
   visualBlock: {
@@ -188,7 +186,6 @@ export class Store {
       helpScope: 'normal',
       flashMessage: null,
       dirty: false,
-      tagDeleteIndex: 0,
       configNavIndex: 0,
       visualBlock: { active: false, anchorLine: 0, anchorCol: 0 },
       calendarView: { visible: false, granularity: 'week', anchor: '', selectedDate: undefined, selectedTaskId: undefined, dayDetail: false },
@@ -349,30 +346,24 @@ export class Store {
   get filteredTasks(): any[] { return this.manager.list.all; }
 
   // 转发 manager 方法（每个写操作后触发 changed）
-  selectTask(id: number): void { this.resetTagDelete(); this.resetConfigNav(); this.resetVisualBlock(); this.manager.selectTask(id); this.syncSelection(); this.changed(); }
+  selectTask(id: number): void { this.resetConfigNav(); this.resetVisualBlock(); this.manager.selectTask(id); this.syncSelection(); this.changed(); }
   /** 搜索激活时 j/k 只在匹配集内移动（所见即所动）；否则全量移动 */
   selectNext(): void {
-    this.resetTagDelete();
     this.resetConfigNav();
     this.resetVisualBlock();
     if (this.isSearchActive()) { this.searchNext(1); return; }
     this.manager.selectNext(); this.syncSelection(); this.changed();
   }
   selectPrevious(): void {
-    this.resetTagDelete();
     this.resetConfigNav();
     this.resetVisualBlock();
     if (this.isSearchActive()) { this.searchNext(-1); return; }
     this.manager.selectPrevious(); this.syncSelection(); this.changed();
   }
-  goToFirst(): void { this.resetTagDelete(); this.resetConfigNav(); this.resetVisualBlock(); this.manager.goToFirst(); this.syncSelection(); this.changed(); }
-  goToLast(): void { this.resetTagDelete(); this.resetConfigNav(); this.resetVisualBlock(); this.manager.goToLast(); this.syncSelection(); this.changed(); }
+  goToFirst(): void { this.resetConfigNav(); this.resetVisualBlock(); this.manager.goToFirst(); this.syncSelection(); this.changed(); }
+  goToLast(): void { this.resetConfigNav(); this.resetVisualBlock(); this.manager.goToLast(); this.syncSelection(); this.changed(); }
 
-  /** 标签删除待确认态是 tags-select 面板的瞬态 UI：任务移动/关闭面板时一律清理，防止序号高亮残留到其他任务 */
-  private resetTagDelete(): void {
-    if (this.state.tagDeleteIndex !== 0) this.state.tagDeleteIndex = 0;
-  }
-  /** nav 高亮同样是面板瞬态 UI：任务移动时清理，防止高亮残留到其他任务 */
+  /** nav 高亮是面板瞬态 UI：任务移动时清理，防止高亮残留到其他任务 */
   private resetConfigNav(): void {
     if (this.state.configNavIndex !== 0) this.state.configNavIndex = 0;
   }
@@ -606,14 +597,11 @@ export class Store {
   startTitleEditing(): void { this.manager.startTitleEditing(); this.changed(); }
   startContentNavigation(): void { this.setTaskStatus(TaskState.CONTENT_NAVIGATION); this.changed(); }
   setConfigState(id: number, s: string | undefined): void {
-    // 关闭/切换配置 section 时清理残留的标签删除高亮与 nav 导航高亮
-    if (s === undefined) this.resetTagDelete();
+    // 关闭/切换配置 section 时清理残留的 nav 导航高亮
     this.resetConfigNav();
     this.manager.setConfigState(id, s);
     this.changed();
   }
-  /** 标签删除待确认序号：0 表示无目标；由 ConfigKeyHandler 写入，驱动面板高亮 */
-  setTagDeleteIndex(n: number): void { this.state.tagDeleteIndex = n; this.changed(); }
   /** 配置面板 nav 态选项序号（1 基；0 = 退出 nav），由 ConfigKeyHandler 写入，驱动面板高亮 */
   setConfigNavIndex(n: number): void { this.state.configNavIndex = n; this.changed(); }
   updateTaskCursorPosition(id: number, l: number, c: number): void { this.manager.updateTaskCursor(id, l, c); this.changed(); }

@@ -1445,36 +1445,6 @@ describe('Store — dirty 状态指示（[+]）', () => {
   });
 });
 
-describe('Store — 标签删除高亮清理（tagDeleteIndex）', () => {
-  function makeMultiStore(): Store {
-    const store = new Store();
-    const mk = (id: number) => {
-      const t = new Task(id);
-      t.selected = false;
-      t.status = TaskState.VIEWING;
-      return t;
-    };
-    store.manager = new TaskListManager(new TaskList([mk(1), mk(2)]), 3);
-    store.manager.selectTask(1);
-    return store;
-  }
-
-  it('j/k 移动任务时清理残留高亮序号', () => {
-    const s = makeMultiStore();
-    s.setTagDeleteIndex(1);
-    s.selectNext();
-    expect(s.state.tagDeleteIndex).toBe(0);
-  });
-
-  it('关闭配置面板时清理残留高亮序号', () => {
-    const s = makeMultiStore();
-    s.setConfigState(1, 'tags-select');
-    s.setTagDeleteIndex(1);
-    s.setConfigState(1, undefined);
-    expect(s.state.tagDeleteIndex).toBe(0);
-  });
-});
-
 describe('Store — vim * / # 词搜索', () => {
   function makeSearchStore(): Store {
     const store = new Store();

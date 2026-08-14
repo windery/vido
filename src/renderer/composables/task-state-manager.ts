@@ -33,7 +33,6 @@ function buildState(): any {
     lastlineContent: store.state.lastlineContent,
     lastlineVisible: store.state.lastlineVisible,
     flashMessage: store.state.flashMessage,
-    tagDeleteIndex: store.state.tagDeleteIndex,
     configNavIndex: store.state.configNavIndex,
     visualBlock: store.state.visualBlock,
     dirty: store.state.dirty,

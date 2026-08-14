@@ -18,7 +18,6 @@ export function useTaskStateGetters() {
     isHelpVisible: computed(() => stateRef.value.isHelpVisible || false),
     helpScope: computed(() => stateRef.value.helpScope || 'normal'),
     flashMessage: computed(() => stateRef.value.flashMessage || null),
-    tagDeleteIndex: computed(() => stateRef.value.tagDeleteIndex || 0),
     configNavIndex: computed(() => stateRef.value.configNavIndex || 0),
     dirty: computed(() => !!stateRef.value.dirty),
     calendarVisible: computed(() => !!stateRef.value.calendarView?.visible),

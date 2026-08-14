@@ -25,7 +25,6 @@ function createTDM(task: Task): any {
     setConfigState: vi.fn((_id: number, s: string | undefined) => {
       current = makeTask(s);
     }),
-    setTagDeleteIndex: vi.fn(),
     setConfigNavIndex: vi.fn((n: number) => {
       navIndex = n;
     }),
@@ -151,6 +150,35 @@ describe('ConfigKeyHandler state machine', () => {
     expect(tdm._nav()).toBe(0);
   });
 
+  it('数字直达标签：2 高亮第 2 个标签，x 删除该标签', () => {
+    const tdm = createTDM(makeTagTask(['work', 'urgent', 'home']));
+    const ok = handler.handleKey(makeEvent('2'), '2', tdm);
+    expect(ok).toBe(true);
+    expect(tdm._nav()).toBe(2);
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled(); // 只跳转不高亮生效
+
+    handler.handleKey(makeEvent('x'), 'x', tdm);
+    expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'tags', ['work', 'home']);
+    expect(tdm._nav()).toBe(0);
+  });
+
+  it('数字直达后再按其他数字：切换高亮目标，不误删', () => {
+    const tdm = createTDM(makeTagTask(['a', 'b', 'c']));
+    handler.handleKey(makeEvent('2'), '2', tdm);
+    expect(tdm._nav()).toBe(2);
+    handler.handleKey(makeEvent('3'), '3', tdm);
+    expect(tdm._nav()).toBe(3);
+    handler.handleKey(makeEvent('x'), 'x', tdm);
+    expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'tags', ['a', 'b']);
+  });
+
+  it('越界数字无动作（消费不删除不高亮）', () => {
+    const tdm = createTDM(makeTagTask(['a', 'b']));
+    handler.handleKey(makeEvent('9'), '9', tdm);
+    expect(tdm._nav()).toBe(0);
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
+  });
+
   it('x in schedule-select clears schedule', () => {
     const tdm = createTDM(makeTask('schedule-select'));
     const ok = handler.handleKey(makeEvent('x'), 'x', tdm);
@@ -173,15 +201,12 @@ describe('ConfigKeyHandler state machine', () => {
     expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
   });
 
-  it('slow d…d in tags-select does NOT clear all tags (600ms 防误触窗口)', () => {
-    vi.useFakeTimers();
+  it('d 在 tags-select 一律消费不动作（删除统一走数字直达 + x）', () => {
     const tdm = createTDM(makeTagTask(['a', 'b']));
-    handler.handleKey(makeEvent('d'), 'd', tdm);
-    vi.advanceTimersByTime(700);
     const ok = handler.handleKey(makeEvent('d'), 'd', tdm);
     expect(ok).toBe(true);
     expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
-    vi.useRealTimers();
+    expect(tdm._nav()).toBe(0);
   });
 
   it('d 后其他键按正常流程继续（1 快捷选 priority 仍生效）', () => {
@@ -250,99 +275,6 @@ describe('ConfigKeyHandler state machine', () => {
     expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
   });
 });
-
-describe('ConfigKeyHandler 标签删除（d + 序号 + Enter）', () => {
-  let handler: ConfigKeyHandler;
-
-  beforeEach(() => {
-    handler = new ConfigKeyHandler();
-  });
-
-  it('d 开启删除待确认，数字累加并高亮目标序号', () => {
-    const tdm = createTDM(makeTagTask(['work', 'urgent', 'home']));
-
-    handler.handleKey(makeEvent('d'), 'd', tdm);
-    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(0); // 空 buffer 不亮
-
-    handler.handleKey(makeEvent('2'), '2', tdm);
-    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(2); // 高亮第 2 个标签
-  });
-
-  it('两位序号累加（d11 → 高亮第 11 个）', () => {
-    const tags = Array.from({ length: 11 }, (_, i) => `t${i + 1}`);
-    const tdm = createTDM(makeTagTask(tags));
-
-    handler.handleKey(makeEvent('d'), 'd', tdm);
-    handler.handleKey(makeEvent('1'), '1', tdm);
-    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(1);
-    handler.handleKey(makeEvent('1'), '1', tdm);
-    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(11);
-  });
-
-  it('越界序号不高亮', () => {
-    const tdm = createTDM(makeTagTask(['a', 'b']));
-
-    handler.handleKey(makeEvent('d'), 'd', tdm);
-    handler.handleKey(makeEvent('9'), '9', tdm);
-    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(0);
-  });
-
-  it('Enter 确认删除目标标签并清除高亮', () => {
-    const tdm = createTDM(makeTagTask(['work', 'urgent', 'home']));
-
-    handler.handleKey(makeEvent('d'), 'd', tdm);
-    handler.handleKey(makeEvent('2'), '2', tdm);
-    handler.handleKey(makeEvent('Enter'), 'Enter', tdm);
-
-    expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'tags', ['work', 'home']);
-    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(0);
-  });
-
-  it('Esc 取消删除，不修改标签', () => {
-    const tdm = createTDM(makeTagTask(['a', 'b']));
-
-    handler.handleKey(makeEvent('d'), 'd', tdm);
-    handler.handleKey(makeEvent('1'), '1', tdm);
-    handler.handleKey(makeEvent('Escape'), 'Escape', tdm);
-
-    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
-    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(0);
-  });
-
-  it('无效序号 Enter 取消而不删除', () => {
-    const tdm = createTDM(makeTagTask(['a', 'b']));
-
-    handler.handleKey(makeEvent('d'), 'd', tdm);
-    handler.handleKey(makeEvent('5'), '5', tdm);
-    handler.handleKey(makeEvent('Enter'), 'Enter', tdm);
-    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
-  });
-
-  it('非数字键取消待确认并消费（j/k 不再切任务）', () => {
-    const tdm = createTDM(makeTagTask(['a', 'b']));
-
-    handler.handleKey(makeEvent('d'), 'd', tdm);
-    const ok = handler.handleKey(makeEvent('j'), 'j', tdm);
-    expect(ok).toBe(true); // 面板内消费，不落命令层
-    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(0);
-    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
-  });
-
-  it('离开 tags-select 后残留删除态被清理（不再误累加）', () => {
-    const tdm = createTDM(makeTagTask(['a', 'b']));
-    handler.handleKey(makeEvent('d'), 'd', tdm);
-
-    // 模拟切到 priority-select（新任务实例，不再持有 tags）
-    const t2 = new Task(1);
-    t2.configState = 'priority-select';
-    tdm.getTaskDataState = () => ({ tasks: [t2] });
-
-    handler.handleKey(makeEvent('1'), '1', tdm);
-    // 残留删除态已取消，数字按 priority 快捷选择处理
-    expect(tdm.updateTaskProperty).toHaveBeenCalledWith(1, 'priority', TaskPriority.HIGH);
-  });
-});
-
 
 describe('ConfigKeyHandler j/k nav 导航（Enter 才选中生效，绝不切任务）', () => {
   let handler: ConfigKeyHandler;
@@ -442,13 +374,14 @@ describe('ConfigKeyHandler j/k nav 导航（Enter 才选中生效，绝不切任
     expect(cur(tdm).priority).toBeUndefined();
   });
 
-  it('tags：j 从第一个标签开始，Enter 删除高亮标签', () => {
+  it('tags：j 从第一个标签开始，Enter 高亮标签时无操作（删除统一走 x）', () => {
     const tdm = createTDM(makeTagTask(['work', 'home']));
     handler.handleKey(makeEvent('j'), 'j', tdm); // j → 第一项 = tag1(1)
     expect(tdm._nav()).toBe(1);
     handler.handleKey(makeEvent('Enter'), 'Enter', tdm);
-    expect(cur(tdm).tags).toEqual(['home']);
+    expect(cur(tdm).tags).toEqual(['work', 'home']); // 不误删
     expect(tdm._nav()).toBe(0);
+    expect(tdm.updateTaskProperty).not.toHaveBeenCalled();
   });
 
   it('tags：j 逐项到 Add 后 Enter 打开 tags-edit；清空走 x', () => {
@@ -466,15 +399,13 @@ describe('ConfigKeyHandler j/k nav 导航（Enter 才选中生效，绝不切任
     expect(cur(tdm2).tags).toEqual([]);
   });
 
-  it('? 打开完整键位参考，并清理 nav/删除待确认态（面板保持展开）', () => {
+  it('? 打开完整键位参考，并清理 nav 高亮（面板保持展开）', () => {
     const tdm = createTDM(makeTagTask(['a', 'b']));
-    handler.handleKey(makeEvent('d'), 'd', tdm); // 删除待确认
     handler.handleKey(makeEvent('j'), 'j', tdm); // 进入 nav
     const ok = handler.handleKey(makeEvent('?'), '?', tdm);
     expect(ok).toBe(true);
     expect(tdm.toggleHelp).toHaveBeenCalledWith('config-tags');
     expect(tdm._nav()).toBe(0);
-    expect(tdm.setTagDeleteIndex).toHaveBeenLastCalledWith(0);
   });
 
   it('nav 中按 d 取消 nav 且无副作用（priority 无删除语义）', () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import TaskItem from '../TaskItem.vue';
@@ -114,12 +114,8 @@ describe('TaskItem 配置面板标题条', () => {
   });
 });
 
-describe('TaskItem 标签配置：编号与删除高亮', () => {
-  beforeEach(() => {
-    store.setTagDeleteIndex(0);
-  });
-
-  it('标签 chip 前缀编号（d+序号 的删除目标）', () => {
+describe('TaskItem 标签配置：编号与 nav 高亮', () => {
+  it('标签 chip 前缀编号（数字直达的跳转目标）', () => {
     const wrapper = mountItem(makeTask({ configState: 'tags-select', tags: ['work', 'urgent'] }));
     const chips = wrapper.findAll('.config-tag');
     expect(chips.length).toBe(2);
@@ -127,24 +123,24 @@ describe('TaskItem 标签配置：编号与删除高亮', () => {
     expect(chips[1].find('.config-tag-idx').text()).toBe('2');
   });
 
-  it('tagDeleteIndex 匹配的标签高亮（config-tag-del + ✕ 标记）', async () => {
+  it('configNavIndex 命中的标签高亮（nav-active，x 删除该标签）', async () => {
     const wrapper = mountItem(makeTask({ configState: 'tags-select', tags: ['a', 'b', 'c'] }));
-    store.setTagDeleteIndex(2);
+    store.setConfigNavIndex(2);
     await nextTick();
 
     const chips = wrapper.findAll('.config-tag');
-    expect(chips[1].classes()).toContain('config-tag-del');
-    expect(chips[1].find('.config-tag-x').exists()).toBe(true);
-    expect(chips[0].find('.config-tag-x').exists()).toBe(false);
+    expect(chips[1].classes()).toContain('nav-active');
+    expect(chips[0].classes()).not.toContain('nav-active');
+    store.setConfigNavIndex(0);
   });
 
-  it('无删除目标时不带高亮样式', async () => {
+  it('无导航目标时不带高亮样式', async () => {
     const wrapper = mountItem(makeTask({ configState: 'tags-select', tags: ['a', 'b'] }));
-    store.setTagDeleteIndex(0);
+    store.setConfigNavIndex(0);
     await nextTick();
 
     const chips = wrapper.findAll('.config-tag');
-    expect(chips.every((c) => !c.classes().includes('config-tag-del'))).toBe(true);
+    expect(chips.every((c) => !c.classes().includes('nav-active'))).toBe(true);
   });
 
   it('按键提示不占任务行（提示统一在状态栏底部中间）', () => {

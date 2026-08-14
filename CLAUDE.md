@@ -29,15 +29,15 @@ j/k/0/$ 进入 nav 态（焦点锁定当前任务，绝不切换任务）：j/0 
 Esc 关闭配置（edit 态先取消回 select，再 Esc 关闭）
 ```
 
-**面板内前缀键（c = 配置导航 / d = 删除仅限标签——两个命名空间严格分离，杜绝 cc 开/清歧义）**：
+**面板内前缀键（c = 配置导航前缀，单一命名空间，杜绝 cc 开/清歧义）**：
 - `c` 导航前缀（600ms 窗口）：`cc` 收起面板（与 normal 模式 `cc` 组成对称开关，**绝不清除**）、`cs/cp/ct` 直达 日程/优先级/标签、`cd/cw/cm/cy` 清除对应 repeat
 - `x` = 清除当前配置项（tags 高亮某标签时只删该标签、否则清空全部；schedule/priority 直接清除）
-- `d` 删除前缀（**仅 tags-select**）：`d + 序号 + Enter` 删除对应编号标签。schedule/priority 的 d 一律消费不动作
 - `e` 重复前缀：`ed/ew/em/ey` 设置每天/每周/每月/每年重复
 - `j/k/0/$` 进入 **nav 态**（**绝不切任务**）：候选固定排序（schedule：今天→明天→下周→自定义；priority：!!!→!!→!；tags：各标签→Add；清除不在导航内，用 `x` 键），**j/0 → 第一项、k/$ → 最后一项**；nav 内 j/k 逐项移动、0/$ 直达首/尾、`Enter` 选中高亮项（唯一生效路径）→ 退出 nav 回 select；`Esc` 退出 nav 回 select；不按 j/k 时保留原快捷流（1/2/3 直接选、Enter 打开输入）
-- `H/L` 横向切 section（同一任务）；其余未知键一律消费
+- **tags-select 数字直达**：`1-9` 直接跳转到第 N 个标签（nav 高亮，chip 编号前缀即跳转目标）；`x` 删除高亮标签、无高亮时清空全部；`Enter` 高亮标签时无操作（只在 Add 上打开输入）——删除唯一入口是 `x`，绝不复用 Enter/d
+- `H/L` 横向切 section（同一任务）；其余未知键（含 `d`）一律消费，不落到命令层触发全局删除
 
-**tags-select 标签删除**（`d` 前缀操作符，仅 tags-select）：`d` 开启删除待确认 → 数字累加为 1 基序号（标签前显示编号，越界/空则不高亮）→ 目标标签高亮（琥珀虚线框 + `✕` 标记）→ `Enter` 确认删除该标签、`Esc`/非数字键取消（取消后按正常流程继续，如 `H/L` 切 section 放行命令层）；清空全部标签走 `x`（高亮某标签时 `x` 只删该标签）。删除态离开 tags-select 或切换任务时自动清理。其余 section 的 `d` 一律消费，不落到命令层触发全局删除。
+**tags-select 标签删除（数字直达 + x，唯一入口）**：标签 chip 带 1 基编号前缀（即跳转目标）；按 `1-9` 直接跳到第 N 个标签（nav 高亮，越界无动作）→ `x` 删除该标签（无高亮时清空全部）；`Enter` 高亮标签时无操作（只在 Add 上打开输入）。删除后留在 tags-select，编号自动重排。其余 section 的 `d` 一律消费，不落到命令层触发全局删除。
 
 **Rules:**
 1. select → Enter → edit（打开输入框）
@@ -199,7 +199,7 @@ This application embodies **programmer values**: rigorous, concise, efficient. T
 - **Immediate feedback (vim-instant)**: cursor movement, navigation, and scrolling are instant with zero animation; all other feedback transitions ≤ 150ms (prefer ≤ 100ms); no decorative delays, ever — vim responds in the same frame you press a key, this app must too
 - **Progressive disclosure**: Common options visible; advanced behind input/custom
 - **4.5:1 contrast ratio** minimum for all text
-- **Clear action**: 配置面板内 `x` 直接清除当前项（tags 高亮标签时删该标签）；`d` 删除仅限 tags（`d+序号+Enter` 删单个）；面板内 `cc` 只收起面板（与 normal 模式 `cc` 组成开关），**开/清键位绝不复用**。Never use numeric keys for destructive actions.
+- **Clear action**: 配置面板内 `x` 直接清除当前项（tags 高亮标签时删该标签，`1-9` 数字直达高亮）；面板内 `cc` 只收起面板（与 normal 模式 `cc` 组成开关），**开/清键位绝不复用**。Never use numeric keys for destructive actions.
 
 **Visual Design (CRITICAL)**:
 - **Premium, minimal, unified** — every element must feel like part of one cohesive design system. No "stuck on" looking panels.

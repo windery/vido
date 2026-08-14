@@ -6,14 +6,13 @@
  *   select 态（schedule-select / priority-select / tags-select）→ 由本处理器独占
  *   edit 态（schedule-edit / tags-edit）→ 由配置输入框独占（其 keydown 已 .stop 拦截 Enter/Escape 并转回同类型 select 态）
  *
- * 面板内键位（c = 配置导航，d = 删除仅限标签——命名空间严格分离，杜绝 cc 开/清歧义）：
+ * 面板内键位（c = 配置导航前缀——单一命名空间，杜绝 cc 开/清歧义）：
  *   c 是导航前缀 —— cc 收起面板（与 normal 模式 cc 组成开关）、cs/cp/ct 直达 日程/优先级/标签、cd/cw/cm/cy 清除对应 repeat，600ms 超时或无匹配则取消
- *   d 是删除前缀（**仅 tags-select**）—— d + 序号 + Enter 删除对应编号标签（输入时高亮目标，Esc/非数字键取消）；
- *     600ms 内连按 dd 清空全部标签。schedule/priority 的 d 一律消费不动作（清除走 nav 的 Clear 项 + Enter）
  *   e 是重复前缀 —— ed/ew/em/ey 设置每天/每周/每月/每年重复
  *   j/k/0/$ 进入 nav 态（焦点锁定当前任务，绝不切换任务）：j → 第一个候选项、k → 最后一个、
  *     0 → 第一个、$ → 最后一个；nav 内 j/k 逐项移动、0/$ 直达首/尾、Enter 选中高亮项（唯一生效路径）→ 退回 select；
  *     Esc 退出 nav 回 select（再 Esc 关面板）。不按 j/k 时保留原快捷流：1/2/3 直接选、Enter 打开输入（schedule/tags）
+ *   tags-select 数字直达：1-9 直接跳转到第 N 个标签（nav 高亮），x 删除高亮标签（无高亮则清空全部）
  *   H/L 放行命令层横向切换 section；其余未知键一律消费，防止落到命令层触发 paste/delete/undo 等全局副作用
  */
 
@@ -40,11 +39,6 @@ export class ConfigKeyHandler {
   /** repeat 设置前缀（ed/ew/em/ey）：e 后跟 d/w/m/y */
   private ePending = false;
   private eTimeout: ReturnType<typeof setTimeout> | null = null;
-  /** 标签删除待确认态：d 开启 → 数字累加 1 基序号 → Enter 删除 / Esc 取消；600ms 内再按 d（dd）清空全部标签 */
-  private dPending = false;
-  private dBuffer = '';
-  private dTaskId = 0;
-  private dPendingAt = 0;
 
   handleKey(
     event: KeyboardEvent,
@@ -59,11 +53,6 @@ export class ConfigKeyHandler {
 
     // edit 态由输入框独占，此处不拦截
     if (isConfigEditState(cs)) return false;
-
-    // 残留的删除待确认态（离开 tags-select 或切换任务）清理，避免序号误累加
-    if (this.dPending && (cs !== 'tags-select' || this.dTaskId !== task.id)) {
-      this.cancelTagDelete(taskDataManager);
-    }
 
     // nav 态（j/k/0/$ 进入，焦点锁定当前任务的配置项，绝不切换任务）：
     // j/k 逐项移动、0/$ 直达首/尾，Enter 选中高亮项（唯一生效路径），Esc 只退出 nav 回 select，
@@ -96,33 +85,11 @@ export class ConfigKeyHandler {
       taskDataManager.setConfigNavIndex(0); // 其余键取消 nav，继续正常流程
     }
 
-    // d 待确认态（仅 tags-select 同一任务生效）：
-    // 数字继续累加序号，Enter 确认删除，Esc 取消，其他键取消后按正常流程继续
-    if (this.dPending && this.dTaskId === task.id) {
-      if (key >= '0' && key <= '9') {
-        event.preventDefault();
-        this.dBuffer += key;
-        this.syncTagDeleteIndex(taskDataManager, task);
-        return true;
-      }
-      if (key === 'Enter') {
-        event.preventDefault();
-        this.confirmTagDelete(taskDataManager, task);
-        return true;
-      }
-      if (key === 'Escape') {
-        event.preventDefault();
-        this.cancelTagDelete(taskDataManager);
-        return true;
-      }
-      this.cancelTagDelete(taskDataManager);
-    }
-
     // c 前缀序列：cc 收起面板（开关）、cs/cp/ct 跳转、cd/cw/cm/cy 清除对应 repeat
     if (this.cPending) {
       this.cancelCPending();
       if (key === 'c') {
-        // cc 与 normal 模式的 cc 组成对称开关：收起面板，绝不清除（清除走 nav 的 Clear 项）
+        // cc 与 normal 模式的 cc 组成对称开关：收起面板，绝不清除（清除走 x 键）
         event.preventDefault();
         taskDataManager.setConfigState(task.id, undefined);
         return true;
@@ -156,7 +123,7 @@ export class ConfigKeyHandler {
 
     switch (key) {
       case 'x':
-        // x = 清除当前配置项：tags 高亮在某个标签上时只删该标签，否则清空全部；schedule/priority 直接清除
+        // x = 清除当前配置项：tags 高亮在某个标签上时只删该标签（数字/导航高亮），否则清空全部；schedule/priority 直接清除
         event.preventDefault();
         {
           const nav = (state as any).configNavIndex;
@@ -172,21 +139,6 @@ export class ConfigKeyHandler {
           }
         }
         taskDataManager.setConfigNavIndex(0);
-        return true;
-
-      case 'd':
-        if (cs === 'tags-select') {
-          // d 开启删除待确认（删除仅限标签）：d+序号+Enter 删单个标签；600ms 内再按 d（dd）清空全部标签
-          event.preventDefault();
-          this.dPending = true;
-          this.dTaskId = task.id;
-          this.dBuffer = '';
-          this.dPendingAt = Date.now();
-          this.syncTagDeleteIndex(taskDataManager, task);
-          return true;
-        }
-        // schedule/priority：d 一律消费不动作（清除走 nav 的 Clear 项 + Enter），不落到命令层触发全局删除
-        event.preventDefault();
         return true;
 
       case 'c':
@@ -208,9 +160,8 @@ export class ConfigKeyHandler {
         return true;
 
       case '?':
-        // 面板内按 ? 打开完整键位参考（清理待确认态，面板保持展开）
+        // 面板内按 ? 打开完整键位参考（nav 高亮清理，面板保持展开）
         event.preventDefault();
-        this.cancelTagDelete(taskDataManager);
         taskDataManager.setConfigNavIndex(0);
         // help 按配置子态拆分：schedule / priority / tags 各自展示自己的键位
         taskDataManager.toggleHelp(
@@ -222,7 +173,6 @@ export class ConfigKeyHandler {
 
       case 'Escape':
         event.preventDefault();
-        this.cancelTagDelete(taskDataManager);
         taskDataManager.setConfigState(task.id, undefined);
         return true;
 
@@ -261,6 +211,15 @@ export class ConfigKeyHandler {
         if (key === '$') {
           event.preventDefault();
           this.jumpNav(taskDataManager, task, cs, 'last');
+          return true;
+        }
+        // tags-select 数字直达：1-9 跳到第 N 个标签（nav 高亮，x 删除高亮标签）；越界无动作
+        if (cs === 'tags-select' && key >= '1' && key <= '9') {
+          event.preventDefault();
+          const n = parseInt(key, 10);
+          if (n <= (task.tags?.length || 0)) {
+            taskDataManager.setConfigNavIndex(n);
+          }
           return true;
         }
         if (cs === 'schedule-select') this.handleSchedule(event, key, taskDataManager, task.id);
@@ -345,38 +304,12 @@ export class ConfigKeyHandler {
       if (map[opt]) tdm.updateTaskProperty(task.id, 'priority', map[opt]);
     } else if (cs === 'tags-select') {
       const tags = task.tags || [];
-      if (index <= tags.length) {
-        // 高亮在某个标签上：Enter 删除该标签
-        tdm.updateTaskProperty(task.id, 'tags', tags.filter((_: string, i: number) => i !== index - 1));
-      } else {
+      if (index > tags.length) {
         // 高亮在 Add：Enter 打开标签输入（与默认 Enter 一致）
         tdm.setConfigState(task.id, 'tags-edit');
       }
+      // 高亮在某个标签上：Enter 无操作（删除统一走 x，避免误删）
     }
     tdm.setConfigNavIndex(0);
-  }
-
-  /** 根据已输数字串计算 1 基序号，写入响应式状态驱动面板高亮；越界/空则不亮 */
-  private syncTagDeleteIndex(tdm: Store, task: any): void {
-    const idx = parseInt(this.dBuffer, 10);
-    const tags = task.tags || [];
-    tdm.setTagDeleteIndex(idx >= 1 && idx <= tags.length ? idx : 0);
-  }
-
-  private confirmTagDelete(tdm: Store, task: any): void {
-    const idx = parseInt(this.dBuffer, 10);
-    this.cancelTagDelete(tdm);
-    const tags = task.tags || [];
-    if (!(idx >= 1 && idx <= tags.length)) return; // 无效序号：仅取消
-    const newTags = tags.filter((_: string, i: number) => i !== idx - 1);
-    tdm.updateTaskProperty(task.id, 'tags', newTags);
-  }
-
-  private cancelTagDelete(tdm: Store): void {
-    this.dPending = false;
-    this.dBuffer = '';
-    this.dTaskId = 0;
-    this.dPendingAt = 0;
-    tdm.setTagDeleteIndex(0);
   }
 }
