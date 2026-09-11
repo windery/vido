@@ -491,6 +491,10 @@ grep -E "(KeyboardManager|State transition)" ~/.vido-dev/log/vido-$(date +%Y-%m-
 
 Issues and PRDs live as GitHub issues; use the `gh` CLI for all operations. See `docs/agents/issue-tracker.md`.
 
+### Triage labels
+
+Five canonical triage roles, label strings identical to their names. See `docs/agents/triage-labels.md`.
+
 ### Domain docs
 
 Single-context — one `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
