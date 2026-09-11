@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { initializeFileOperations } from './file-operations';
 import { logger, writeLogToFile, getLogFilePath, LogEntry } from './logger';
-import { startTestServer } from './test-server';
 import { isDev, getVidoRootDir } from './paths';
 
 // const require = createRequire(import.meta.url);
@@ -33,6 +32,35 @@ export const BACKGROUND = process.env.VIDO_BACKGROUND === '1';
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, 'public')
   : RENDERER_DIST;
+
+// --------- 启动耗时追踪（诊断用，默认关闭） ---------
+// VIDO_STARTUP_TRACE=1 时输出各阶段相对耗时与主进程 RSS，用于定位启动瓶颈。
+// 默认关闭：不改变正常运行的日志与性能特征。
+const STARTUP_TRACE = process.env.VIDO_STARTUP_TRACE === '1';
+const traceMarks: Array<{ mark: string; t: number }> = [];
+
+function trace(mark: string): void {
+  if (!STARTUP_TRACE) return;
+  traceMarks.push({ mark, t: process.uptime() * 1000 });
+}
+
+function flushTrace(): void {
+  if (!STARTUP_TRACE || traceMarks.length === 0) return;
+  const stages = traceMarks
+    .map((m, i) =>
+      i === 0
+        ? `${m.mark}=0`
+        : `${m.mark}=+${(m.t - traceMarks[i - 1].t).toFixed(0)}ms`
+    )
+    .join(' ');
+  logger.info('StartupTrace', 'startup stages', {
+    total: `${(process.uptime() * 1000).toFixed(0)}ms`,
+    stages,
+    rssMain: `${(process.memoryUsage().rss / 1048576).toFixed(1)}MB`,
+  });
+}
+
+trace('main:module-eval');
 
 // Disable GPU Acceleration for Windows 7
 if (process.platform === 'win32') {
@@ -74,13 +102,21 @@ function focusMainWindow(): void {
 }
 
 async function createWindow() {
-  // macOS Dock 图标：F5 调试跑的是 Electron 二进制，bundle 图标是默认的，
-  // 用 app.dock.setIcon 运行时替换成 vido 图标（与打包后的 .icns 一致）。
+  // macOS Dock 图标：**仅开发环境需要**。F5 / pnpm dev 跑的是 node_modules 里的
+  // Electron 二进制，Dock 显示的是 Electron 默认图标，需运行时替换；而打包后的
+  // .app 自带 CFBundleIconFile=icon.icns，Dock 图标本就正确，**不需要**这行。
+  //
+  // 且该调用是同步的：把 1024×1024 的 PNG 解码为 NSImage 实测约 79ms，原先位于
+  // 建窗之前的关键路径上（占总启动 26%）。故改为「仅非打包环境」+「推迟到窗口显示后」。
   // 注意 setIcon 需要 PNG/ICNS，favicon.ico 是 ICO 格式不适用。
-  if (process.platform === 'darwin') {
+  const applyDevDockIcon = (): void => {
+    if (process.platform !== 'darwin' || app.isPackaged) return;
+    trace('win:dockicon-start');
     app.dock.setIcon(path.join(process.env.VITE_PUBLIC, 'icon.png'));
-  }
+    trace('win:dockicon-end');
+  };
 
+  trace('win:browserwindow-start');
   win = new BrowserWindow({
     title: 'Vido',
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
@@ -98,6 +134,8 @@ async function createWindow() {
     },
   });
 
+  trace('window:created');
+
   // 全平台移除菜单栏后，文本框的 Cmd/Ctrl+C/V/X/A 编辑快捷键会失效（原本由菜单
   // 加速键提供），手动补回：macOS 用 Cmd（meta），Windows/Linux 用 Ctrl（control）
   win.webContents.on('before-input-event', (event, input) => {
@@ -113,12 +151,21 @@ async function createWindow() {
     event.preventDefault();
   });
 
+  // 渲染进程里程碑：拆开「创建窗口 → 首帧」这 80ms 桶
+  // （did-start-loading = 渲染进程起来；dom-ready = HTML+CSS 就绪；did-finish-load = JS 执行完/Vue 挂载）
+  win.webContents.on('did-start-loading', () => trace('renderer:did-start-loading'));
+  win.webContents.on('dom-ready', () => trace('renderer:dom-ready'));
+
   // 渲染完成（首次绘制）后显示窗口并强制获取焦点；后台模式保持隐藏
   win.once('ready-to-show', () => {
+    trace('window:ready-to-show');
+    flushTrace();
     if (!BACKGROUND) {
       win?.show();
       focusMainWindow();
     }
+    // 开发环境的 Dock 图标替换：放在显示之后，绝不阻塞首帧
+    applyDevDockIcon();
   });
 
   if (VITE_DEV_SERVER_URL) {
@@ -139,6 +186,8 @@ async function createWindow() {
 
   // Test actively push message to the Electron-Renderer
   win.webContents.on('did-finish-load', () => {
+    trace('renderer:did-finish-load');
+    flushTrace();
     win?.webContents.send('main-process-message', new Date().toLocaleString());
     // 确保焦点在主窗口而不是开发者工具（与 ready-to-show 互为兜底）；后台模式跳过
     if (!BACKGROUND) focusMainWindow();
@@ -152,19 +201,31 @@ async function createWindow() {
   // win.webContents.on('will-navigate', (event, url) => { }) #344
 
   // 启动测试服务器：仅后台测试模式启用（测试专用端口 3002，
-  // 不得占用正常 dev/F5 实例的端口，也不得在其上暴露测试接口）
-  if (BACKGROUND) startTestServer(win);
+  // 不得占用正常 dev/F5 实例的端口，也不得在其上暴露测试接口）。
+  // **必须是动态 import**：静态导入会被提升到模块顶部，模块图不受 BACKGROUND 门控约束，
+  // 生产启动会白白付出 express/cors 的加载成本。
+  // 实测（生产路径 A/B，同机 macOS arm64）：启动 −51ms；主进程常驻 −6MB（稳态；
+  // 在 ready-to-show 时刻测得 −12MB，差异来自采样点不同）。express 模块解析本身约 44ms。
+  if (BACKGROUND) {
+    void import('./test-server').then(({ startTestServer }) =>
+      startTestServer(win)
+    );
+  }
 }
 
 app
   .whenReady()
   .then(() => {
+    trace('app:ready');
     // 初始化文件操作 IPC 处理器
     initializeFileOperations();
+    trace('main:file-ops');
     // 替换默认菜单，避免 Ctrl+R 被当作重载劫持
     setupAppMenu();
+    trace('main:menu');
     // 创建窗口
     createWindow();
+    trace('main:createWindow-returned');
     // 启动提示：运行环境 + 数据根目录（dev 用 ~/.vido-dev，与真实数据隔离）
     logger.info('MainProcess', 'Environment', { dev: isDev(), root: getVidoRootDir() });
     // 日志文件位置，便于 agent 定位排查
